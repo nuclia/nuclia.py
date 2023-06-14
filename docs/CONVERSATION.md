@@ -37,7 +37,7 @@ You should craft a JSON file with the information of the conversation for each c
 [Example](https://github.com/nuclia/nuclia.py/nuclia/tests/assets/conversation.js)
 
 ```bash
-nuclia kb upload conversation FILE
+nuclia kb upload conversation --path=FILE
 ```
 
 ## Upload files

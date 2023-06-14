@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Optional
 
-from nucliadb_models import Origin
+from uuid import uuid4
 from nuclia.cli.auth import NucliaAuth
 from nuclia.decorators import kb
+from nuclia.lib.conversations import Conversations
 
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.data import get_auth
@@ -12,6 +13,7 @@ import requests
 import os
 import mimetypes
 from tqdm import tqdm
+from datetime import datetime
 
 
 class NucliaUpload:
@@ -56,6 +58,42 @@ class NucliaUpload:
     @kb
     def conversation(self, *, ndb: NucliaDBClient, path: str):
         """Option to upload a conversation from filesystem to a Nuclia KnowledgeBox"""
+        conversations = Conversations.parse_file(path)
+
+        for conversation in conversations.conversations:
+            rid = conversation.slug if conversation.slug is not None else uuid4().hex
+            ndb.ndb.create_resource(
+                kbid=ndb.kbid,
+                slug=rid,
+                icon="application/conversation",
+                conversations={
+                    rid: {
+                        "messages": [
+                            {
+                                "who": message.who
+                                if message.who is not None
+                                else uuid4().hex,
+                                "to": [x for x in message.to]
+                                if message.to is not None
+                                else [],
+                                "ident": message.uuid
+                                if message.uuid is not None
+                                else uuid4().hex,
+                                "timestamp": message.timestamp
+                                if message.timestamp is not None
+                                else datetime.now().isoformat(),
+                                "content": {
+                                    "text": message.message.text,
+                                    "format": message.message.format
+                                    if message.message.format is not None
+                                    else "PLAIN",
+                                },
+                            }
+                            for message in conversation.messages
+                        ]
+                    }
+                },
+            )
 
     @kb
     def remote(

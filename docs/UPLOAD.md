@@ -32,7 +32,19 @@ nuclia kb upload remote --origin=REMOTE_FILE_URL
 In case you want to stream a file inside a resource you can use:
 
 ```bash
-nuclia kb upload remote --origin=REMOTE_FILE_URL  --rid=RESOURCE_ID --field=FIELD_ID
+nuclia kb upload remote --origin=REMOTE_FILE_URL --rid=RESOURCE_ID --field=FIELD_ID
 ```
 
 In case that `FIELD_ID` is not defined filename will be used
+
+## List resources on a kb
+
+```bash
+nuclia kb list
+```
+
+## Delete a resource on a kb
+
+```bash
+nuclia kb delete --rid=RID
+```
