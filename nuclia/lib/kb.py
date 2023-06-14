@@ -164,6 +164,7 @@ class NucliaDBClient:
             "upload-metadata": f"filename {encoded_filename}",
             "content-type": content_type,
         }
+
         response: httpx.Response = self.writer_session.post(url, headers=headers)
         if response.status_code == 201:
             return response.headers.get("Location")
@@ -178,9 +179,6 @@ class NucliaDBClient:
         }
         # upload url has all path, we should remove /kb/kbid/
         upload_url = "/" + "/".join(upload_url.split("/")[3:])
-        import pdb
-
-        pdb.set_trace()
         response: httpx.Response = self.writer_session.patch(
             upload_url, headers=headers, content=data
         )

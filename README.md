@@ -10,7 +10,7 @@ pip install nuclia
 
 ### Nuclia
 
-You can login with your Nuclia user (How to signup) via
+You can login with your Nuclia user [How to sign-up](https://nuclia.cloud/user/signup) via
 
 ```bash
 nuclia auth login
@@ -19,7 +19,7 @@ nuclia auth login
 
 ### Nuclia Knowledgebox
 
-You can login to a specific knowledgebox if you have a Service Token (How to get a Service Token) or your NucliaDB is deployed on-premise (Link to NucliaDB documentation)
+You can login to a specific knowledgebox if you have a Service Token (How to get a Service Token) or your NucliaDB is [deployed on-premise](https://docs.nuclia.dev/docs/nucliadb/deploy)
 
 ```bash
 nuclia auth knowledgebox -kb KB_URL --key SERVICE_TOKEN

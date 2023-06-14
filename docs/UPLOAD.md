@@ -24,7 +24,7 @@ In case that `FIELD_ID` is not defined filename will be used
 Streaming a file to a knowledgebox from an external URL its easy as:
 
 ```bash
-nuclia kb upload remote --url=REMOTE_FILE_URL
+nuclia kb upload remote --origin=REMOTE_FILE_URL
 ```
 
 ## Upload a remote file in an existing resource
@@ -32,7 +32,7 @@ nuclia kb upload remote --url=REMOTE_FILE_URL
 In case you want to stream a file inside a resource you can use:
 
 ```bash
-nuclia kb upload remote --url=REMOTE_FILE_URL  --rid=RESOURCE_ID --field=FIELD_ID
+nuclia kb upload remote --origin=REMOTE_FILE_URL  --rid=RESOURCE_ID --field=FIELD_ID
 ```
 
 In case that `FIELD_ID` is not defined filename will be used

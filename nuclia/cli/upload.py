@@ -62,13 +62,13 @@ class NucliaUpload:
         self,
         *,
         ndb: NucliaDBClient,
-        url: str,
+        origin: str,
         rid: Optional[str] = None,
         field: Optional[str] = "file",
     ):
         """Option to upload a remote url to a Nuclia KnowledgeBox"""
-        with requests.get(url, stream=True) as r:
-            filename = url.split("/")[-1]
+        with requests.get(origin, stream=True) as r:
+            filename = origin.split("/")[-1]
             size = int(r.headers.get("Content-Length"))
             upload_url = ndb.start_tus_upload(
                 rid=rid,
