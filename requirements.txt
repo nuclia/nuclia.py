@@ -1,0 +1,8 @@
+fire
+pydantic
+requests
+readline
+pyjwt
+jwcrypto
+nucliadb_sdk
+tqdm
