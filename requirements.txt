@@ -1,0 +1,6 @@
+fire
+pydantic
+requests
+gnureadline
+nucliadb_sdk
+tqdm

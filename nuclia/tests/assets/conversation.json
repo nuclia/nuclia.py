@@ -1,0 +1,41 @@
+{
+    "conversations": [
+        {
+            "slug": "conversation1", 
+            "messages":[
+                {
+                    "who": "user1",
+                    "to": ["agent1"],
+                    "uuid": "message1",
+                    "message": {
+                        "text": "This is my initial message",
+                        "format": "PLAIN",
+                        "type": "QUESTION",
+                        "attachments": [
+                            {
+                                "file": ""
+                            }
+                        ]
+
+                    }
+                },
+                {
+                    "who": "agent1",
+                    "to": ["user1", "agent2"],
+                    "uuid": "message2",
+                    "message": {
+                        "text": "This is my response message",
+                        "format": "PLAIN",
+                        "type": "ANSWER",
+                        "attachments": [
+                            {
+                                "file": ""
+                            }
+                        ]
+
+                    }
+                }
+            ]
+        }
+    ]
+}
