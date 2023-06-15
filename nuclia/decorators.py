@@ -1,7 +1,8 @@
 from typing import Optional
-from nuclia.lib.kb import Environment, NucliaDBClient
+
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
+from nuclia.lib.kb import Environment, NucliaDBClient
 
 
 def accounts(func):

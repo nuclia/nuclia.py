@@ -1,19 +1,11 @@
-from typing import Optional
-
-from nucliadb_sdk import NucliaDB, Region
-from nuclia import BASE
-
 import base64
 from enum import Enum
 from typing import Optional
 
 import httpx
 import requests
-
-from nucliadb_models.search import (
-    ChatRequest,
-)
-
+from nucliadb_models.search import ChatRequest
+from nucliadb_sdk import NucliaDB, Region
 
 RESOURCE_PATH = "/resource/{rid}"
 RESOURCE_PATH_BY_SLUG = "/slug/{slug}"

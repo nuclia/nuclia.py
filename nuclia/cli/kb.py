@@ -1,10 +1,11 @@
+from nucliadb_models.resource import ResourceList
+
 from nuclia.cli.auth import NucliaAuth
 from nuclia.cli.search import NucliaSearch
 from nuclia.cli.upload import NucliaUpload
 from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.lib.kb import NucliaDBClient
-from nucliadb_models.resource import ResourceList
 
 
 class NucliaKB:

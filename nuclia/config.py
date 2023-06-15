@@ -1,11 +1,10 @@
-from datetime import datetime
 import os
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
 
 from nuclia.cli.utils import yes_no
-
 
 CONFIG_DIR = "~/.nuclia"
 CONFIG_PATH = CONFIG_DIR + "/config"
@@ -76,6 +75,9 @@ class Config(BaseModel):
 
     def set_user_token(self, code: str):
         self.token = code
+
+    def set_nua_token(self, account: str, nua: str):
+        raise NotImplementedError()
 
     def set_kb_token(self, url: str, token: str):
         kbid = url.split("/")[-1]

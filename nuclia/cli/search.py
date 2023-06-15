@@ -1,9 +1,11 @@
 from typing import Union
+
+from nucliadb_models.search import ChatRequest, FindRequest
+
 from nuclia.cli.auth import NucliaAuth
 from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.lib.kb import NucliaDBClient
-from nucliadb_models.search import ChatRequest, FindRequest
 
 
 class NucliaSearch:

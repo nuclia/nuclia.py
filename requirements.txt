@@ -1,8 +1,6 @@
 fire
 pydantic
 requests
-readline
-pyjwt
-jwcrypto
+gnureadline
 nucliadb_sdk
 tqdm

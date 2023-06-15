@@ -1,13 +1,13 @@
-from typing import Dict, List, Optional
-import webbrowser
 import readline  # noqa
-import requests
-import jwt
-from nuclia.cli.utils import yes_no
-from nuclia.exceptions import NeedUserToken, UserTokenExpired
+import webbrowser
+from typing import Dict, List, Optional
 
+import requests
+
+from nuclia import BASE, get_global_url
+from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone
-from nuclia import BASE, get_global_url, get_regional_url
+from nuclia.exceptions import NeedUserToken, UserTokenExpired
 
 USER = f"{BASE}/api/v1/user/welcome"
 MEMBER = f"{BASE}/api/v1/user"
@@ -55,14 +55,7 @@ class NucliaAuth:
 
     def validate_nua(self, region: str, token: str):
         # Validate the code is ok
-        resp = requests.get(
-            get_regional_url(region, f"/api/v1/kb/{kb}"),
-            headers={"x-stf-nuakey", "Bearer {token}"},
-        )
-        if resp.status_code == 200:
-            return True
-        else:
-            return False
+        raise NotImplementedError()
 
     def validate_kb(self, url: str, token: str):
         # Validate the code is ok
@@ -115,19 +108,6 @@ class NucliaAuth:
     def post_login(self):
         self.accounts()
         self.zones()
-
-    def post_user(self, path: str, payload: Dict[str, str]):
-        if not self._config.token:
-            raise NeedUserToken()
-        resp = requests.post(
-            path,
-            headers={"Authorization": f"Bearer {self._config.token}"},
-            data=payload,
-        )
-        if resp.status_code == 201:
-            return resp.json()
-        elif resp.status_code == 403:
-            raise UserTokenExpired()
 
     def post_user(self, path: str, payload: Dict[str, str]):
         if not self._config.token:

@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+
 from nuclia import BASE
 from nuclia.cli.auth import NucliaAuth
 from nuclia.config import Account, KnowledgeBox
@@ -51,7 +52,7 @@ class NucliaKBS:
                 account_obj: Account = next(
                     filter(lambda x: x.id == account, self._auth._config.accounts)
                 )
-            except:
+            except StopIteration:
                 print(f"Account not found {account}")
                 return
 
@@ -66,7 +67,7 @@ class NucliaKBS:
                 kb_obj: KnowledgeBox = next(
                     filter(lambda x: x.id == kb, self._auth._config.kbs)
                 )
-            except:
+            except StopIteration:
                 print(f"KB not found {kb}")
                 return
 
