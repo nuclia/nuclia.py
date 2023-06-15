@@ -1,7 +1,7 @@
 install:
 	pip install -r code-requirements.txt
 	pip install -r test-requirements.txt
-	pip install requirements.txt
+	pip install -r requirements.txt
 	pip install -e .
 
 lint:
