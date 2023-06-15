@@ -1,3 +1,4 @@
+from typing import Union
 from nuclia.cli.auth import NucliaAuth
 from nuclia.data import get_auth
 from nuclia.decorators import kb
@@ -12,9 +13,18 @@ class NucliaSearch:
         return auth
 
     @kb
-    def find(self, *, ndb: NucliaDBClient, query: str):
-        return ndb.ndb.find(FindRequest(query=query), kbid=ndb.kbid)
+    def find(self, *, ndb: NucliaDBClient, query: Union[str, FindRequest]):
+        if isinstance(query, str):
+            req = FindRequest(query=query)
+        else:
+            req = query
+
+        return ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
-    def ask(self, *, ndb: NucliaDBClient, query: str):
-        return ndb.chat(ChatRequest(query=query))
+    def ask(self, *, ndb: NucliaDBClient, query: Union[str, ChatRequest]):
+        if isinstance(query, str):
+            req = ChatRequest(query=query)
+        else:
+            req = query
+        return ndb.chat(req)

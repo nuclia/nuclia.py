@@ -68,7 +68,7 @@ class NucliaAuth:
         # Validate the code is ok
         resp = requests.get(
             url,
-            headers={"X-STF-Serviceaccount", f"Bearer {token}"},
+            headers={"X-Nuclia-Serviceaccount", f"Bearer {token}"},
         )
         if resp.status_code == 200:
             return True

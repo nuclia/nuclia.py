@@ -1,3 +1,0 @@
-fire
-pydantic
-requests

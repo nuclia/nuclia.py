@@ -1,3 +1,0 @@
-[console_scripts]
-nuclia = nuclia.cli.run:run
-

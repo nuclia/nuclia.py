@@ -71,10 +71,10 @@ class NucliaDBClient:
 
         if environment == Environment.CLOUD and api_key is not None:
             reader_headers = {
-                "X-STF-SERVICEACCOUNT": f"Bearer {api_key}",
+                "X-NUCLIA-SERVICEACCOUNT": f"Bearer {api_key}",
             }
             writer_headers = {
-                "X-STF-SERVICEACCOUNT": f"Bearer {api_key}",
+                "X-NUCLIA-SERVICEACCOUNT": f"Bearer {api_key}",
                 "X-SYNCHRONOUS": "True",
             }
         elif (
