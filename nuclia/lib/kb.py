@@ -46,15 +46,17 @@ class NucliaDBClient:
         region: Optional[str] = None,
     ):
         if environment == Environment.OSS:
-            region = Region.ON_PREM
+            region_obj = Region.ON_PREM
         else:
-            region = Region(region)
+            region_obj = Region(region)
 
         headers = None
         if user_token is not None:
             headers = {"Authorization": f"Bearer {user_token}"}
         v2url = "/".join(url.split("/")[:-3])
-        self.ndb = NucliaDB(region=region, url=v2url, api_key=api_key, headers=headers)
+        self.ndb = NucliaDB(
+            region=region_obj, url=v2url, api_key=api_key, headers=headers
+        )
         self.api_key = api_key
         self.environment = environment
         self.kbid = url.strip("/").split("/")[-1]

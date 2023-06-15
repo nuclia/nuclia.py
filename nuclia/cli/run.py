@@ -1,4 +1,4 @@
-import fire
+import fire  # type: ignore
 
 from nuclia.cli.accounts import NucliaAccounts
 from nuclia.cli.kb import NucliaKB

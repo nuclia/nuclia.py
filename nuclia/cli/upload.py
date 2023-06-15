@@ -38,7 +38,7 @@ class NucliaUpload:
         if None in mimetype_result:
             mimetype = "application/octet-stream"
         else:
-            mimetype = "/".join()
+            mimetype = "/".join(mimetype_result)  # type: ignore
         with open(path, "rb") as upload_file:
             upload_url = ndb.start_tus_upload(
                 rid=rid,
@@ -59,8 +59,12 @@ class NucliaUpload:
     def conversation(self, *, ndb: NucliaDBClient, path: str):
         """Option to upload a conversation from filesystem to a Nuclia KnowledgeBox"""
         conversations = Conversations.parse_file(path)
+        if conversations.conversations is None:
+            return
 
         for conversation in conversations.conversations:
+            if conversation.messages is None:
+                continue
             rid = conversation.slug if conversation.slug is not None else uuid4().hex
             ndb.ndb.create_resource(
                 kbid=ndb.kbid,
@@ -107,7 +111,10 @@ class NucliaUpload:
         """Option to upload a remote url to a Nuclia KnowledgeBox"""
         with requests.get(origin, stream=True) as r:
             filename = origin.split("/")[-1]
-            size = int(r.headers.get("Content-Length"))
+            size_str = r.headers.get("Content-Length")
+            if size_str is None:
+                size_str = "-1"
+            size = int(size_str)
             upload_url = ndb.start_tus_upload(
                 rid=rid,
                 field=field,

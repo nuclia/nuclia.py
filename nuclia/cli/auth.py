@@ -33,7 +33,12 @@ class NucliaAuth:
             print("Validated")
             try:
                 kbid = url.split("/")[-1]
-                next(filter(lambda x: x.id == kbid, self._config.kbs))
+                next(
+                    filter(
+                        lambda x: x.id == kbid,
+                        self._config.kbs if self._config.kbs is not None else [],
+                    )
+                )
                 if yes_no(f"Want to replace actual KB {kbid} configuration") is False:
                     print("Cancelling operation")
                     return
@@ -47,9 +52,12 @@ class NucliaAuth:
             print("Invalid service token")
 
     def nua(self, token: str):
-        if self.validate_nua(token):
+        # TODO
+        region = token
+        account = token
+        if self.validate_nua(region, token):
             print("Validated")
-            self._config.set_nua_token(token)
+            self._config.set_nua_token(account, region, token)
         else:
             print("Invalid service token")
 
@@ -61,7 +69,7 @@ class NucliaAuth:
         # Validate the code is ok
         resp = requests.get(
             url,
-            headers={"X-Nuclia-Serviceaccount", f"Bearer {token}"},
+            headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
         )
         if resp.status_code == 200:
             return True
@@ -70,7 +78,7 @@ class NucliaAuth:
 
     def _show_user(self):
         print("Logged in!")
-        resp: Dict[str, str] = self.get_user(MEMBER)
+        resp = self.get_user(MEMBER)
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
 

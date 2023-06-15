@@ -22,9 +22,11 @@ class NucliaNUAS:
         return result
 
     def add(self, account: str, slug: str):
-        path = ADD_NUA.format(account=account)
-        return self._auth.post_user(path)
+        raise NotImplementedError()
+        # path = ADD_NUA.format(account=account)
+        # return self._auth.post_user(path)
 
     def delete(self, account: str, slug: str):
-        path = ADD_NUA.format(account=account)
-        return self._auth.post_user(path)
+        raise NotImplementedError()
+        # path = ADD_NUA.format(account=account)
+        # return self._auth.post_user(path)

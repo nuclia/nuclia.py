@@ -1,5 +1,3 @@
-from typing import Optional
-
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -26,7 +24,7 @@ def kbs(func):
 
 def kb(func):
     def wrapper_checkout_kb(*args, **kwargs):
-        url: Optional[str] = kwargs.get("url")
+        url = kwargs.get("url")
         api_key = kwargs.get("api_key")
         auth = get_auth()
         if url is None:
