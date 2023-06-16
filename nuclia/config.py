@@ -62,12 +62,9 @@ class Config(BaseModel):
     kbs: Optional[List[KnowledgeBox]] = []
     kbs_token: List[KnowledgeBox] = []
     zones: Optional[List[Zone]] = []
-    default: Selection
+    default: Optional[Selection] = Selection()
     user: Optional[str]
     token: Optional[str]
-
-    def __init__(self):
-        self.default = Selection()
 
     def get_kb(self, kbid: str) -> KnowledgeBox:
         try:

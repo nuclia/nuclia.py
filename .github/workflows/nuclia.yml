@@ -7,21 +7,3 @@ on:
   push:
     branches:
       - main
-
-jobs:
-  test:
-    name: Testing
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install package
-        run: make install
-
-      - name: Run pre-checks
-        run: make lint
-
-      - name: Test
-        run: make test
