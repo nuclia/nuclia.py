@@ -61,7 +61,7 @@ class NucliaAuth:
         else:
             print("Invalid service token")
 
-    def validate_nua(self, region: str, token: str):
+    def _validate_nua(self, region: str, token: str):
         # Validate the code is ok
         raise NotImplementedError()
 
@@ -93,10 +93,20 @@ class NucliaAuth:
         webbrowser.open(get_global_url("/redirect?display=token&ident={ident}"))
         code = input("Follow the browser flow and copy the token and paste it here:")
         print("Checking...")
+        self.set_user_token(code)
+
+    def set_user_token(self, code: str):
         if self._validate_user_token(code):
             self._config.set_user_token(code)
             print("Auth completed!")
             self.post_login()
+        else:
+            print("Invalid token auth not completed")
+
+    def set_nua_token(self, region: str, token: str):
+        if self._validate_nua(region, token):
+            self._config.set_nua_token(region, token)
+            print("NUA auth completed!")
         else:
             print("Invalid token auth not completed")
 

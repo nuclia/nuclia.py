@@ -1,7 +1,7 @@
 from nuclia import BASE
-from nuclia.cli.auth import NucliaAuth
 from nuclia.config import NuaKey
 from nuclia.data import get_auth
+from nuclia.sdk.auth import NucliaAuth
 
 LIST_NUAS = BASE + "/api/v1/account/{account}/nua_clients"
 ADD_NUA = BASE + "/api/v1/account/{account}/nua_clients"

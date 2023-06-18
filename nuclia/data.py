@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from nuclia.cli.auth import NucliaAuth
     from nuclia.config import Config
+    from nuclia.sdk.auth import NucliaAuth
 
 
 @dataclass
@@ -32,7 +32,7 @@ def get_config() -> Config:
 def get_auth() -> NucliaAuth:
     get_config()
     if DATA.auth is None:
-        from nuclia.cli.auth import NucliaAuth
+        from nuclia.sdk.auth import NucliaAuth
 
         DATA.auth = NucliaAuth()
     return DATA.auth
