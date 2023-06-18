@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 import requests
 
-from nuclia import BASE, get_global_url
+from nuclia import BASE, get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
@@ -65,7 +65,15 @@ class NucliaAuth:
 
     def validate_nua(self, region: str, token: str):
         # Validate the code is ok
-        raise NotImplementedError()
+        url = get_regional_url(region, "")
+        resp = requests.get(
+            url,
+            headers={"X-STF-NUA": f"Bearer {token}"},
+        )
+        if resp.status_code == 200:
+            return True
+        else:
+            return False
 
     def validate_kb(self, url: str, token: str):
         # Validate the code is ok
