@@ -1,3 +1,5 @@
+import base64
+import json
 import readline  # noqa
 import webbrowser
 from typing import Dict, List, Optional
@@ -61,7 +63,7 @@ class NucliaAuth:
         else:
             print("Invalid service token")
 
-    def _validate_nua(self, region: str, token: str):
+    def validate_nua(self, region: str, token: str):
         # Validate the code is ok
         raise NotImplementedError()
 
@@ -104,11 +106,19 @@ class NucliaAuth:
             print("Invalid token auth not completed")
 
     def set_nua_token(self, region: str, token: str):
-        if self._validate_nua(region, token):
-            self._config.set_nua_token(region, token)
+        if self.validate_nua(region, token):
+            account = self._extract_account(token)
+            self._config.set_nua_token(account, region, token)
             print("NUA auth completed!")
         else:
             print("Invalid token auth not completed")
+
+    def _extract_account(self, token: str) -> str:
+        base64url = token.split(".")[1]
+        data = json.loads(
+            base64.urlsafe_b64decode(base64url + "=" * (4 - len(base64url) % 4))
+        )
+        return data.get("jti")
 
     def _validate_user_token(self, code: Optional[str] = None) -> bool:
         # Validate the code is ok
