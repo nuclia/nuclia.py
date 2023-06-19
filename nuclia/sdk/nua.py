@@ -1,6 +1,6 @@
 from nuclia import BASE
-from nuclia.cli.auth import NucliaAuth
 from nuclia.data import get_auth
+from nuclia.sdk.auth import NucliaAuth
 
 LIST_KBS = BASE + "/api/v1/account/{account}/kbs"
 ADD_KB = BASE + "/api/v1/account/{account}/kbs"
