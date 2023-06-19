@@ -1,12 +1,12 @@
 import fire  # type: ignore
 
-from nuclia.cli.accounts import NucliaAccounts
-from nuclia.cli.kb import NucliaKB
-from nuclia.cli.kbs import NucliaKBS
-from nuclia.cli.nua import NucliaNUA
-from nuclia.cli.nuas import NucliaNUAS
-from nuclia.cli.zones import NucliaZones
 from nuclia.data import get_auth
+from nuclia.sdk.accounts import NucliaAccounts
+from nuclia.sdk.kb import NucliaKB
+from nuclia.sdk.kbs import NucliaKBS
+from nuclia.sdk.nua import NucliaNUA
+from nuclia.sdk.nuas import NucliaNUAS
+from nuclia.sdk.zones import NucliaZones
 
 
 class NucliaCLI(object):

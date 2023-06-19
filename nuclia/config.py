@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from nuclia.cli.utils import yes_no
+from nuclia.exceptions import NotDefinedDefault
 
 CONFIG_DIR = "~/.nuclia"
 CONFIG_PATH = CONFIG_DIR + "/config"
@@ -28,6 +29,7 @@ class NuaKey(BaseModel):
     title: str
     zone: str
     created: datetime
+    account: str
 
     def __str__(self):
         return f"{self.client_id} {self.title:30} ({self.created})"
@@ -61,10 +63,11 @@ class Config(BaseModel):
     accounts: Optional[List[Account]] = []
     kbs: Optional[List[KnowledgeBox]] = []
     kbs_token: List[KnowledgeBox] = []
+    nuas_token: List[NuaKey] = []
     zones: Optional[List[Zone]] = []
     default: Optional[Selection] = Selection()
-    user: Optional[str]
-    token: Optional[str]
+    user: Optional[str] = None
+    token: Optional[str] = None
 
     def get_kb(self, kbid: str) -> KnowledgeBox:
         try:
@@ -107,9 +110,13 @@ class Config(BaseModel):
         self.save()
 
     def get_default_kb(self) -> Selection:
+        if self.default is None:
+            raise NotDefinedDefault()
         return self.default
 
     def set_default_kb(self, account: str, kbid: str):
+        if self.default is None:
+            self.default = Selection()
         self.default.account = account
         self.default.kbid = kbid
         self.save()

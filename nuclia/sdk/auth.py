@@ -1,10 +1,12 @@
+import base64
+import json
 import readline  # noqa
 import webbrowser
 from typing import Dict, List, Optional
 
 import requests
 
-from nuclia import BASE, get_global_url
+from nuclia import BASE, get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
@@ -63,7 +65,15 @@ class NucliaAuth:
 
     def validate_nua(self, region: str, token: str):
         # Validate the code is ok
-        raise NotImplementedError()
+        url = get_regional_url(region, "")
+        resp = requests.get(
+            url,
+            headers={"X-STF-NUA": f"Bearer {token}"},
+        )
+        if resp.status_code == 200:
+            return True
+        else:
+            return False
 
     def validate_kb(self, url: str, token: str):
         # Validate the code is ok
@@ -93,12 +103,30 @@ class NucliaAuth:
         webbrowser.open(get_global_url("/redirect?display=token&ident={ident}"))
         code = input("Follow the browser flow and copy the token and paste it here:")
         print("Checking...")
+        self.set_user_token(code)
+
+    def set_user_token(self, code: str):
         if self._validate_user_token(code):
             self._config.set_user_token(code)
             print("Auth completed!")
             self.post_login()
         else:
             print("Invalid token auth not completed")
+
+    def set_nua_token(self, region: str, token: str):
+        if self.validate_nua(region, token):
+            account = self._extract_account(token)
+            self._config.set_nua_token(account, region, token)
+            print("NUA auth completed!")
+        else:
+            print("Invalid token auth not completed")
+
+    def _extract_account(self, token: str) -> str:
+        base64url = token.split(".")[1]
+        data = json.loads(
+            base64.urlsafe_b64decode(base64url + "=" * (4 - len(base64url) % 4))
+        )
+        return data.get("jti")
 
     def _validate_user_token(self, code: Optional[str] = None) -> bool:
         # Validate the code is ok

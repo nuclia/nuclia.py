@@ -1,10 +1,10 @@
 from typing import Dict, Optional
 
 from nuclia import BASE
-from nuclia.cli.auth import NucliaAuth
 from nuclia.config import Account, KnowledgeBox
 from nuclia.data import get_auth
 from nuclia.decorators import accounts
+from nuclia.sdk.auth import NucliaAuth
 
 ADD_KB = BASE + "/api/v1/account/{account}/kbs"
 
@@ -64,8 +64,6 @@ class NucliaKBS:
                 print(f"Account not found {account}")
                 return
 
-        self._auth._config.default.account = account_obj.id
-
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []
 
         try:
@@ -77,7 +75,7 @@ class NucliaKBS:
                 print(f"KB not found {kb}")
                 return
 
-        self._auth._config.default.kbid = kb_obj.id
+        self._auth._config.set_default_kb(account_obj.id, kb_obj.id)
         self._auth._config.save()
 
     def delete(self, account: str, slug: str):

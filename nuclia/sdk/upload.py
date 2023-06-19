@@ -9,11 +9,11 @@ from uuid import uuid4
 import requests
 from tqdm import tqdm
 
-from nuclia.cli.auth import NucliaAuth
 from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversations
 from nuclia.lib.kb import NucliaDBClient
+from nuclia.sdk.auth import NucliaAuth
 
 
 class NucliaUpload:
