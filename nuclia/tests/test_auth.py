@@ -2,7 +2,7 @@ from typing import Tuple
 from nuclia.sdk.auth import NucliaAuth
 
 
-def test_auth_user():
+def test_auth_user(testing_user: str):
     pass
 
 
