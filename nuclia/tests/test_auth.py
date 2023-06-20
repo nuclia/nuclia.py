@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.tests.fixtures import TESTING_KB
 

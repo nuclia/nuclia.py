@@ -1,7 +1,8 @@
 import os
+import tempfile
 
 import pytest
-import tempfile
+
 from nuclia.config import reset_config_file, set_config_file
 from nuclia.sdk.auth import NucliaAuth
 

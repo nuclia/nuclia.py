@@ -50,9 +50,10 @@ class NucliaDBClient:
         else:
             region_obj = Region(region)
 
-        headers = None
+        headers = {}
         if user_token is not None:
-            headers = {"Authorization": f"Bearer {user_token}"}
+            headers["Authorization"] = f"Bearer {user_token}"
+        headers["X-SYNCHRONOUS"] = "True"
         v2url = "/".join(url.split("/")[:-3])
         self.ndb = NucliaDB(
             region=region_obj, url=v2url, api_key=api_key, headers=headers
@@ -106,7 +107,7 @@ class NucliaDBClient:
         )
 
     def chat(self, request: ChatRequest):
-        url = f"{self.search_url}{CHAT_URL}"
+        url = f"{self.url}{CHAT_URL}"
         response: requests.Response = self.stream_session.post(
             url, data=request.json(), stream=True
         )
