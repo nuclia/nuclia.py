@@ -87,9 +87,9 @@ class NucliaUpload:
                                 if message.timestamp is not None
                                 else datetime.now().isoformat(),
                                 "content": {
-                                    "text": message.message.text,
-                                    "format": message.message.format
-                                    if message.message.format is not None
+                                    "text": message.content.text,
+                                    "format": message.content.format
+                                    if message.content.format is not None
                                     else "PLAIN",
                                 },
                             }

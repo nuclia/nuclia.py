@@ -15,9 +15,9 @@ You should craft a JSON file with the information of the conversation for each c
                 {
                     "who": "ORIGIN_UUID",
                     "to": ["DESTINATION_UUID"],
-                    "uuid": "UNIQUE_IDENTIFIER",
+                    "ident": "UNIQUE_IDENTIFIER",
                     "timestamp": "MESSAGE_DATETIME",
-                    "message": {
+                    "content": {
                         "text": "MESSAGE",
                         "format": "MESSAGE_TYPE"
 
