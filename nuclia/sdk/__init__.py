@@ -4,5 +4,6 @@ from .kb import NucliaKB  # noqa
 from .kbs import NucliaKBS  # noqa
 from .nua import NucliaNUA  # noqa
 from .nuas import NucliaNUAS  # noqa
+from .search import NucliaSearch  # noqa
 from .upload import NucliaUpload  # noqa
 from .zones import NucliaZones  # noqa

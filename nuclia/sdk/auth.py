@@ -5,7 +5,6 @@ import webbrowser
 from typing import Dict, List, Optional, Tuple
 
 import requests
-from nucliadb_sdk import get_kb
 
 from nuclia import BASE, get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no
@@ -33,10 +32,11 @@ class NucliaAuth:
 
     def show(self):
         if self._config.default:
-            print("Default")
-            print("=======")
+            print("Default Knowledge Box")
+            print("=====================")
             print()
-            print(get_kb(self._config.default.kbid))
+            print(self._config.get_kb(self._config.default.kbid))
+            print()
 
         if self._config.token:
             print("User Auth")
@@ -51,6 +51,7 @@ class NucliaAuth:
             print()
             for kb in self._config.kbs_token:
                 print(kb)
+            print()
 
         if len(self._config.nuas_token):
             print("NUA Key")
@@ -94,7 +95,7 @@ class NucliaAuth:
                 region=region,
                 token=token,
             )
-            return account
+            return client_id
         else:
             print("Invalid service token")
             return None
