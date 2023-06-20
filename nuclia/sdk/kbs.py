@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from nuclia import BASE
-from nuclia.config import Account, KnowledgeBox
+from nuclia.config import retrieve
 from nuclia.data import get_auth
 from nuclia.decorators import accounts
 from nuclia.sdk.auth import NucliaAuth
@@ -29,6 +29,14 @@ class NucliaKBS:
                     result.extend(self._auth.kbs(account_obj.slug))
             self._auth._config.kbs = result
             self._auth._config.save()
+
+            # List the Knowledge Boxes configured as Service Token
+            result.extend(
+                self._auth._config.kbs_token
+                if self._auth._config.kbs_token is not None
+                else []
+            )
+
             return result
         else:
             return self._auth.kbs(account)
@@ -46,38 +54,20 @@ class NucliaKBS:
     ):
         # path = ADD_KB.format(account=account)
         raise NotImplementedError()
-
         # return self._auth.post_user(path, payload)
 
-    def default(self, *, account: str, kb: str):
-        accounts = (
-            self._auth._config.accounts
-            if self._auth._config.accounts is not None
-            else []
-        )
-        try:
-            account_obj: Account = next(filter(lambda x: x.slug == account, accounts))
-        except StopIteration:
-            try:
-                account_obj = next(filter(lambda x: x.id == account, accounts))
-            except StopIteration:
-                print(f"Account not found {account}")
-                return
-
+    def default(self, kb: str):
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []
+        kb_obj = retrieve(kbs, kb)
+        if kb_obj is None:
+            kbs = (
+                self._auth._config.kbs_token
+                if self._auth._config.kbs_token is not None
+                else []
+            )
+            kb_obj = retrieve(kbs, kb)
 
-        try:
-            kb_obj: KnowledgeBox = next(filter(lambda x: x.slug == kb, kbs))
-        except StopIteration:
-            try:
-                kb_obj = next(filter(lambda x: x.id == kb, kbs))
-            except StopIteration:
-                print(f"KB not found {kb}")
-                return
-
-        self._auth._config.set_default_kb(account_obj.id, kb_obj.id)
+        if kb_obj is None:
+            raise KeyError("Knowledge Box not found")
+        self._auth._config.set_default_kb(kb_obj.id)
         self._auth._config.save()
-
-    def delete(self, account: str, slug: str):
-        # path = ADD_KB.format(account=account)
-        raise NotImplementedError()

@@ -1,5 +1,7 @@
 # Conversational use case
 
+All examples has assumed you [authenticated](AUTH.md) and defined a [default](DEFAULT.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
+
 ## Upload messages
 
 You should craft a JSON file with the information of the conversation for each conversation:
@@ -13,9 +15,9 @@ You should craft a JSON file with the information of the conversation for each c
                 {
                     "who": "ORIGIN_UUID",
                     "to": ["DESTINATION_UUID"],
-                    "uuid": "UNIQUE_IDENTIFIER",
+                    "ident": "UNIQUE_IDENTIFIER",
                     "timestamp": "MESSAGE_DATETIME",
-                    "message": {
+                    "content": {
                         "text": "MESSAGE",
                         "format": "MESSAGE_TYPE"
 
@@ -29,12 +31,12 @@ You should craft a JSON file with the information of the conversation for each c
 
 - `CONVERSATIONAL_SLUG`: Identification of the conversation
 - `ORIGIN_UUID`: Identification of the user who sent the message
-- `DESTIONTION_UUID`: Identification of the users who received the message
+- `DESTINATION_UUID`: Identification of the users who received the message
 - `UNIQUE_IDENTIFIER`: Identification of the message, needs to be unique
 - `MESSAGE_DATETIME`: Message date time in ISO format
 - `MESSAGE_TYPE`: Format of the message: `PLAIN` or `HTML` or `MARKDOWN` or `RST`
 
-[Example](https://github.com/nuclia/nuclia.py/nuclia/tests/assets/conversation.js)
+[Example](https://github.com/nuclia/nuclia.py/nuclia/tests/assets/conversation.json)
 
 ```bash
 nuclia kb upload conversation --path=FILE
@@ -42,8 +44,8 @@ nuclia kb upload conversation --path=FILE
 
 ## Upload files
 
-[Upload documentation](https://github.com/nuclia/nuclia.py/docs/UPLOAD.md)
+[Upload documentation](UPLOAD.md)
 
 ## Search on it
 
-
+[Search documentation](SEARCH.md)

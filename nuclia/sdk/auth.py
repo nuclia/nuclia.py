@@ -2,9 +2,10 @@ import base64
 import json
 import readline  # noqa
 import webbrowser
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import requests
+from nucliadb_sdk import get_kb
 
 from nuclia import BASE, get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no
@@ -16,6 +17,7 @@ MEMBER = f"{BASE}/api/v1/user"
 ACCOUNTS = f"{BASE}/api/v1/accounts"
 ZONES = f"{BASE}/api/v1/zones"
 LIST_KBS = BASE + "/api/v1/account/{account}/kbs"
+VERIFY_NUA = "/api/v1/nua/verify"
 
 
 class NucliaAuth:
@@ -29,12 +31,40 @@ class NucliaAuth:
             self._inner_config = get_config()
         return self._inner_config
 
+    def show(self):
+        if self._config.default:
+            print("Default")
+            print("=======")
+            print()
+            print(get_kb(self._config.default.kbid))
+
+        if self._config.token:
+            print("User Auth")
+            print("=========")
+            print()
+            self._show_user()
+            print()
+
+        if len(self._config.kbs_token):
+            print("Knowledgebox Auth")
+            print("=================")
+            print()
+            for kb in self._config.kbs_token:
+                print(kb)
+
+        if len(self._config.nuas_token):
+            print("NUA Key")
+            print("=======")
+            print()
+            for nua in self._config.nuas_token:
+                print(nua)
+
     def kb(self, url: str, token: str):
         url = url.strip("/")
-        if self.validate_kb(url, token):
+        kbid, title = self.validate_kb(url, token)
+        if kbid:
             print("Validated")
             try:
-                kbid = url.split("/")[-1]
                 next(
                     filter(
                         lambda x: x.id == kbid,
@@ -49,45 +79,54 @@ class NucliaAuth:
                 # Not found
                 pass
 
-            self._config.set_kb_token(url, token)
+            self._config.set_kb_token(url=url, token=token, title=title, kbid=kbid)
         else:
             print("Invalid service token")
 
-    def nua(self, token: str):
-        # TODO
-        region = token
-        account = token
-        if self.validate_nua(region, token):
+    def nua(self, region: str, token: str) -> Optional[str]:
+        client_id, title, account = self.validate_nua(region, token)
+        if account is not None and client_id is not None:
             print("Validated")
-            self._config.set_nua_token(account, region, token)
+            self._config.set_nua_token(
+                client_id=client_id,
+                title=title,
+                account=account,
+                region=region,
+                token=token,
+            )
+            return account
         else:
             print("Invalid service token")
+            return None
 
-    def validate_nua(self, region: str, token: str):
+    def validate_nua(
+        self, region: str, token: str
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         # Validate the code is ok
-        url = get_regional_url(region, "")
+        url = get_regional_url(region, VERIFY_NUA)
         resp = requests.get(
             url,
             headers={"X-STF-NUA": f"Bearer {token}"},
         )
         if resp.status_code == 200:
-            return True
+            data = resp.json()
+            return data.get("client_id"), data.get("title"), data.get("account")
         else:
-            return False
+            return None, None, None
 
-    def validate_kb(self, url: str, token: str):
+    def validate_kb(self, url: str, token: str) -> Tuple[Optional[str], Optional[str]]:
         # Validate the code is ok
         resp = requests.get(
             url,
             headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
         )
         if resp.status_code == 200:
-            return True
+            data = resp.json()
+            return data.get("uuid"), data.get("config", {}).get("title")
         else:
-            return False
+            return None, None
 
     def _show_user(self):
-        print("Logged in!")
         resp = self.get_user(MEMBER)
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
@@ -97,6 +136,7 @@ class NucliaAuth:
         Lets redirect the user to the UI to capture a token
         """
         if self._validate_user_token():
+            print("Logged in!")
             self._show_user()
             return
 
@@ -110,14 +150,6 @@ class NucliaAuth:
             self._config.set_user_token(code)
             print("Auth completed!")
             self.post_login()
-        else:
-            print("Invalid token auth not completed")
-
-    def set_nua_token(self, region: str, token: str):
-        if self.validate_nua(region, token):
-            account = self._extract_account(token)
-            self._config.set_nua_token(account, region, token)
-            print("NUA auth completed!")
         else:
             print("Invalid token auth not completed")
 
