@@ -31,7 +31,7 @@ You should craft a JSON file with the information of the conversation for each c
 
 - `CONVERSATIONAL_SLUG`: Identification of the conversation
 - `ORIGIN_UUID`: Identification of the user who sent the message
-- `DESTIONTION_UUID`: Identification of the users who received the message
+- `DESTINATION_UUID`: Identification of the users who received the message
 - `UNIQUE_IDENTIFIER`: Identification of the message, needs to be unique
 - `MESSAGE_DATETIME`: Message date time in ISO format
 - `MESSAGE_TYPE`: Format of the message: `PLAIN` or `HTML` or `MARKDOWN` or `RST`
