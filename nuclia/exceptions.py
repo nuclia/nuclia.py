@@ -12,3 +12,7 @@ class UserTokenExpired(Exception):
 
 class NotDefinedDefault(Exception):
     pass
+
+
+class NuaAPIException(Exception):
+    pass

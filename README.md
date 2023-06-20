@@ -22,7 +22,7 @@ nuclia auth login
 You can login to a specific knowledgebox if you have a Service Token (How to get a Service Token) or your NucliaDB is [deployed on-premise](https://docs.nuclia.dev/docs/nucliadb/deploy)
 
 ```bash
-nuclia auth knowledgebox -kb KB_URL --key SERVICE_TOKEN
+nuclia auth kb --url KB_URL --token SERVICE_TOKEN
 ```
 
 KB_URL its the url of the Knowledge Box. On the cloud service you can retrieve it on the dashboard. On the on-premise/community deployment its the url mapped to it.

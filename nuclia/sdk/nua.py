@@ -1,16 +1,14 @@
 from nuclia import BASE
-from nuclia.data import get_auth
-from nuclia.sdk.auth import NucliaAuth
+from nuclia.sdk.predict import NucliaPredict
+from nuclia.sdk.process import NucliaProcess
+from nuclia.sdk.train import NucliaTrain
 
 LIST_KBS = BASE + "/api/v1/account/{account}/kbs"
 ADD_KB = BASE + "/api/v1/account/{account}/kbs"
 
 
 class NucliaNUA:
-    @property
-    def _auth(self) -> NucliaAuth:
-        auth = get_auth()
-        return auth
-
-    def usage(self, id: str):
-        pass
+    def __init__(self):
+        self.predict = NucliaPredict()
+        self.process = NucliaProcess()
+        self.train = NucliaTrain()

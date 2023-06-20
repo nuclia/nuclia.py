@@ -1,9 +1,11 @@
 from typing import Tuple
+
 from nuclia.sdk.auth import NucliaAuth
 
 
 def test_auth_user(testing_user: str):
-    pass
+    na = NucliaAuth()
+    assert na._validate_user_token(testing_user)
 
 
 def test_auth_kb(testing_kb: Tuple[str, str]):
