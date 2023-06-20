@@ -3,9 +3,9 @@ import json
 import readline  # noqa
 import webbrowser
 from typing import Dict, List, Optional, Tuple
-from nucliadb_sdk import get_kb
 
 import requests
+from nucliadb_sdk import get_kb
 
 from nuclia import BASE, get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no

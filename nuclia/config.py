@@ -121,7 +121,9 @@ class Config(BaseModel):
         )
         self.save()
 
-    def set_kb_token(self, url: str, token: str, title: str, kbid: str):
+    def set_kb_token(
+        self, url: str, token: str, kbid: str, title: Optional[str] = None
+    ):
         try:
             kb_obj = next(
                 filter(
