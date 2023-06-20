@@ -1,4 +1,9 @@
+import os
+
+
 def yes_no(question: str) -> bool:
+    if os.environ.get("TESTING") == "True":
+        return True
     yes_choices = ["yes", "y"]
     no_choices = ["no", "n"]
     value = None

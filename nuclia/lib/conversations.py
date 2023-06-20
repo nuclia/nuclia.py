@@ -1,13 +1,13 @@
 from typing import List
 
-from nucliadb_models import PushMessage
+from nucliadb_models import Message
 from pydantic import BaseModel
 
 
-class Conversation(BaseModel):
+class ConversationWrapper(BaseModel):
     slug: str
-    messages: List[PushMessage]
+    messages: List[Message]
 
 
 class Conversations(BaseModel):
-    conversations: List[Conversation]
+    conversations: List[ConversationWrapper]

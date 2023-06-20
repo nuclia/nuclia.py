@@ -6,33 +6,19 @@
                 {
                     "who": "user1",
                     "to": ["agent1"],
-                    "uuid": "message1",
-                    "message": {
+                    "ident": "message1",
+                    "content": {
                         "text": "This is my initial message",
-                        "format": "PLAIN",
-                        "type": "QUESTION",
-                        "attachments": [
-                            {
-                                "file": ""
-                            }
-                        ]
-
+                        "format": "PLAIN"
                     }
                 },
                 {
                     "who": "agent1",
                     "to": ["user1", "agent2"],
-                    "uuid": "message2",
-                    "message": {
+                    "ident": "message2",
+                    "content": {
                         "text": "This is my response message",
-                        "format": "PLAIN",
-                        "type": "ANSWER",
-                        "attachments": [
-                            {
-                                "file": ""
-                            }
-                        ]
-
+                        "format": "PLAIN"
                     }
                 }
             ]
