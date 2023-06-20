@@ -20,7 +20,7 @@ class KnowledgeBox(BaseModel):
     account: Optional[str] = None
 
     def __str__(self):
-        return f"{self.account:20}: {self.id:36} -> {self.title}"
+        return f"{self.id:36} -> {'(' + self.account + ')' if self.account else ''} {self.title}"
 
 
 class NuaKey(BaseModel):
@@ -121,21 +121,23 @@ class Config(BaseModel):
         )
         self.save()
 
-    def set_kb_token(self, url: str, token: str):
-        kbid = url.split("/")[-1]
+    def set_kb_token(self, url: str, token: str, title: str, kbid: str):
         try:
             kb_obj = next(
-                filter(lambda x: x.id == kbid, self.kbs if self.kbs is not None else [])
+                filter(
+                    lambda x: x.id == kbid,
+                    self.kbs_token if self.kbs_token is not None else [],
+                )
             )
             if self.kbs_token is not None:
                 self.kbs_token.remove(kb_obj)
         except StopIteration:
             pass
 
-        kb_obj = KnowledgeBox(id=kbid, url=url, token=token)
+        kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title)
         self.kbs_token.append(kb_obj)
 
-        if yes_no("Do you want to setup KB {url} as default one?"):
+        if yes_no(f"Do you want to setup KB {url} as default one?"):
             if self.default is None:
                 self.default = Selection()
             self.default.kbid = kbid

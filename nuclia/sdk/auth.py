@@ -3,6 +3,7 @@ import json
 import readline  # noqa
 import webbrowser
 from typing import Dict, List, Optional, Tuple
+from nucliadb_sdk import get_kb
 
 import requests
 
@@ -31,6 +32,12 @@ class NucliaAuth:
         return self._inner_config
 
     def show(self):
+        if self._config.default:
+            print("Default")
+            print("=======")
+            print()
+            print(get_kb(self._config.default.kbid))
+
         if self._config.token:
             print("User Auth")
             print("=========")
@@ -54,10 +61,10 @@ class NucliaAuth:
 
     def kb(self, url: str, token: str):
         url = url.strip("/")
-        if self.validate_kb(url, token):
+        kbid, title = self.validate_kb(url, token)
+        if kbid:
             print("Validated")
             try:
-                kbid = url.split("/")[-1]
                 next(
                     filter(
                         lambda x: x.id == kbid,
@@ -72,7 +79,7 @@ class NucliaAuth:
                 # Not found
                 pass
 
-            self._config.set_kb_token(url, token)
+            self._config.set_kb_token(url=url, token=token, title=title, kbid=kbid)
         else:
             print("Invalid service token")
 
@@ -107,16 +114,17 @@ class NucliaAuth:
         else:
             return None, None, None
 
-    def validate_kb(self, url: str, token: str):
+    def validate_kb(self, url: str, token: str) -> Tuple[Optional[str], Optional[str]]:
         # Validate the code is ok
         resp = requests.get(
             url,
             headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
         )
         if resp.status_code == 200:
-            return True
+            data = resp.json()
+            return data.get("uuid"), data.get("config", {}).get("title")
         else:
-            return False
+            return None, None
 
     def _show_user(self):
         resp = self.get_user(MEMBER)

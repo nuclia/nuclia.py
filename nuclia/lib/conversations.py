@@ -1,5 +1,6 @@
-from nucliadb_models import PushMessage
 from typing import List
+
+from nucliadb_models import PushMessage
 from pydantic import BaseModel
 
 

@@ -80,8 +80,8 @@ class NucliaUpload:
                                 "to": [x for x in message.to]
                                 if message.to is not None
                                 else [],
-                                "ident": message.uuid
-                                if message.uuid is not None
+                                "ident": message.ident
+                                if message.ident is not None
                                 else uuid4().hex,
                                 "timestamp": message.timestamp
                                 if message.timestamp is not None
