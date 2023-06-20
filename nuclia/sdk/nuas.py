@@ -1,9 +1,8 @@
 from nuclia import BASE
-from nuclia.config import NuaKey
+from nuclia.config import retrieve_nua
 from nuclia.data import get_auth
 from nuclia.sdk.auth import NucliaAuth
 
-LIST_NUAS = BASE + "/api/v1/account/{account}/nua_clients"
 ADD_NUA = BASE + "/api/v1/account/{account}/nua_clients"
 
 
@@ -13,20 +12,29 @@ class NucliaNUAS:
         auth = get_auth()
         return auth
 
-    def list(self, account: str):
-        path = LIST_NUAS.format(account=account)
-        nuas = self._auth.get_user(path)
+    def list(self):
         result = []
-        for nua in nuas.get("clients", []):
-            result.append(NuaKey.parse_obj(nua))
+        result.extend(
+            self._auth._config.nuas_token
+            if self._auth._config.nuas_token is not None
+            else []
+        )
         return result
 
-    def add(self, account: str, slug: str):
-        raise NotImplementedError()
-        # path = ADD_NUA.format(account=account)
-        # return self._auth.post_user(path)
+    def default(self, nua: str):
+        nuas = (
+            self._auth._config.nuas_token
+            if self._auth._config.nuas_token is not None
+            else []
+        )
+        nua_obj = retrieve_nua(nuas, nua)
 
-    def delete(self, account: str, slug: str):
+        if nua_obj is None:
+            raise KeyError("NUA KEY not found")
+        self._auth._config.set_default_nua(nua_obj.client_id)
+        self._auth._config.save()
+
+    def add(self, account: str, slug: str):
         raise NotImplementedError()
         # path = ADD_NUA.format(account=account)
         # return self._auth.post_user(path)

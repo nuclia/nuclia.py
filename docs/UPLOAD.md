@@ -1,5 +1,7 @@
 # Upload use case
 
+All examples has assumed you [authenticated](AUTH.md) and defined a [default](DEFAULT.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
+
 ## Upload a file in a KnowledgeBox
 
 Pushing a file to a knowledgebox its easy as:
@@ -7,6 +9,13 @@ Pushing a file to a knowledgebox its easy as:
 ```bash
 nuclia kb upload file --path=FILE_PATH
 ```
+
+```python
+from nuclia import sdk
+upload = sdk.NucliaUpload()
+upload.file(FILE_PATH)
+```
+
 
 ## Upload a file in an existing resource
 
