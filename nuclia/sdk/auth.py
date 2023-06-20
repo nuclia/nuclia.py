@@ -94,7 +94,7 @@ class NucliaAuth:
                 region=region,
                 token=token,
             )
-            return account
+            return client_id
         else:
             print("Invalid service token")
             return None

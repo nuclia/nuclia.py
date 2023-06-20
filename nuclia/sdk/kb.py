@@ -1,4 +1,4 @@
-from nucliadb_models.resource import ResourceList
+from nucliadb_models.resource import ResourceList, Resource
 
 from nuclia.data import get_auth
 from nuclia.decorators import kb
@@ -23,6 +23,10 @@ class NucliaKB:
         data: ResourceList = ndb.ndb.list_resources(kbid=ndb.kbid)
         for resource in data.resources:
             print(f"{resource.id} {resource.icon:30} {resource.title}")
+
+    @kb
+    def get_resource_by_slug(self, *, ndb: NucliaDBClient, slug: str) -> Resource:
+        return ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
 
     @kb
     def delete(self, *, ndb: NucliaDBClient, rid: str):

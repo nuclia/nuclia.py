@@ -2,6 +2,7 @@ import os
 from typing import List, Optional
 
 from pydantic import BaseModel
+from nuclia import CLOUD_ID
 
 from nuclia.cli.utils import yes_no
 from nuclia.exceptions import NotDefinedDefault
@@ -136,7 +137,12 @@ class Config(BaseModel):
         except StopIteration:
             pass
 
-        kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title)
+        region = (
+            None
+            if CLOUD_ID not in url
+            else url.split(CLOUD_ID)[0].split("/")[-1].strip(".")
+        )
+        kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title, region=region)
         self.kbs_token.append(kb_obj)
 
         if yes_no(f"Do you want to setup KB {url} as default one?"):
@@ -212,3 +218,13 @@ def retrieve_nua(nuas: List[NuaKey], nua: str) -> Optional[NuaKey]:
     except StopIteration:
         pass
     return nua_obj
+
+
+def set_config_file(path: str):
+    global CONFIG_PATH
+    CONFIG_PATH = path
+
+
+def reset_config_file():
+    global CONFIG_PATH
+    CONFIG_PATH = CONFIG_DIR + "/config"
