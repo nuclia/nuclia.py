@@ -1,10 +1,10 @@
 # Upload use case
 
-All examples has assumed you [authenticated](AUTH.md) and defined a [default](DEFAULT.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
+All examples assume you [authenticated](AUTH.md) and defined a [default](DEFAULT.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
 
 ## Upload a file in a KnowledgeBox
 
-Pushing a file to a knowledgebox its easy as:
+Push a file to a knowledgebox:
 
 ```bash
 nuclia kb upload file --path=FILE_PATH
@@ -16,9 +16,7 @@ upload = sdk.NucliaUpload()
 upload.file(FILE_PATH)
 ```
 
-
 ## Upload a file in an existing resource
-
 
 In case you want to upload a file inside a resource you can use:
 
