@@ -7,6 +7,7 @@ from nucliadb_models.search import (
     FindRequest,
     KnowledgeboxFindResults,
     Relations,
+    SearchRequest,
 )
 
 from nuclia.data import get_auth
@@ -31,6 +32,15 @@ class NucliaSearch:
     def _auth(self) -> NucliaAuth:
         auth = get_auth()
         return auth
+
+    @kb
+    def search(self, *, ndb: NucliaDBClient, query: Union[str, SearchRequest]):
+        if isinstance(query, str):
+            req = SearchRequest(query=query)
+        else:
+            req = query
+
+        return ndb.ndb.search(req, kbid=ndb.kbid)
 
     @kb
     def find(self, *, ndb: NucliaDBClient, query: Union[str, FindRequest]):
