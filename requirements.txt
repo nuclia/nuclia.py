@@ -2,5 +2,7 @@ fire
 pydantic
 requests
 gnureadline
-nucliadb_sdk
+nucliadb_sdk=2.16.0.post381
+nucliadb_models=2.16.0.post381
+nucliadb_protos=2.16.0.post381
 tqdm
