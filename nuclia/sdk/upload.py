@@ -9,6 +9,8 @@ from typing import Optional
 from uuid import uuid4
 
 import requests
+from nucliadb_models.metadata import Extra, Origin
+from nucliadb_models.text import TextFormat
 from tqdm import tqdm
 
 from nuclia.data import get_auth
@@ -16,8 +18,6 @@ from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversations
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
-from nucliadb_models.text import TextFormat
-from nucliadb_models.metadata import Origin, Extra
 
 
 class NucliaUpload:
@@ -104,7 +104,17 @@ class NucliaUpload:
             )
 
     @kb
-    def text(self, *, ndb: NucliaDBClient, format: TextFormat = "PLAIN", path: Optional[str] = None, stdin: Optional[bool] = False, slug: Optional[str] = None, origin: Optional[Origin] = None, extra: Optional[Extra] = None):
+    def text(
+        self,
+        *,
+        ndb: NucliaDBClient,
+        format: TextFormat = TextFormat.PLAIN,
+        path: Optional[str] = None,
+        stdin: Optional[bool] = False,
+        slug: Optional[str] = None,
+        origin: Optional[Origin] = None,
+        extra: Optional[Extra] = None,
+    ):
         """Option to upload a text from filesystem to a Nuclia KnowledgeBox"""
         if path is None and not stdin:
             raise ValueError("Either path or stdin must be provided")
