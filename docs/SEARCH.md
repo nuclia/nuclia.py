@@ -42,16 +42,16 @@ search.find(query="My search")
 
 It also supports indented and YAML output.
 
-## Ask experience
+## Chat experience
 
 Based on the find experience we use a generative AI to answer the question based on the context without hallucinations and with the find result and relations
 
 ```bash
-nuclia kb search ask --query="My search"
+nuclia kb search chat --query="My search"
 ```
 
 ```python
 from nuclia import sdk
 search = sdk.NucliaSearch()
-search.ask(query="My search")
+search.chat(query="My search")
 ```

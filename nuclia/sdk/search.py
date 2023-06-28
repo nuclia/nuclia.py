@@ -55,7 +55,7 @@ class NucliaSearch:
         return ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
-    def ask(self, *, ndb: NucliaDBClient, query: Union[str, ChatRequest]):
+    def chat(self, *, ndb: NucliaDBClient, query: Union[str, ChatRequest]):
         if isinstance(query, str):
             req = ChatRequest(query=query)
         else:
