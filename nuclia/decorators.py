@@ -1,3 +1,5 @@
+import yaml
+
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -83,3 +85,14 @@ def nua(func):
         return func(*args, **kwargs)
 
     return wrapper_checkout_nua
+
+def pretty(func):
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        if kwargs.get("indent"):
+            return result.json(indent=kwargs.get("indent"))
+        if kwargs.get("yaml"):
+            return yaml.dump(result)
+        return result.json()
+
+    return wrapper

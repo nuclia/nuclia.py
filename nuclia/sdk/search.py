@@ -1,5 +1,6 @@
 import base64
 from dataclasses import dataclass
+import json
 from typing import Optional, Union
 
 from nucliadb_models.search import (
@@ -11,7 +12,7 @@ from nucliadb_models.search import (
 )
 
 from nuclia.data import get_auth
-from nuclia.decorators import kb
+from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 
@@ -34,7 +35,8 @@ class NucliaSearch:
         return auth
 
     @kb
-    def search(self, *, ndb: NucliaDBClient, query: Union[str, SearchRequest]):
+    @pretty
+    def search(self, *, ndb: NucliaDBClient, query: Union[str, SearchRequest], **kwargs):
         if isinstance(query, str):
             req = SearchRequest(query=query)
         else:
@@ -43,7 +45,8 @@ class NucliaSearch:
         return ndb.ndb.search(req, kbid=ndb.kbid)
 
     @kb
-    def find(self, *, ndb: NucliaDBClient, query: Union[str, FindRequest]):
+    @pretty
+    def find(self, *, ndb: NucliaDBClient, query: Union[str, FindRequest], **kwargs):
         if isinstance(query, str):
             req = FindRequest(query=query)
         else:

@@ -13,6 +13,7 @@
 - Fix documentation
 - Add `search` method in `NucliaSearch`
 - Support TextField upload
+- Default output in JSON, + support `--indent` and `--yaml` options
 
 ## 1.0.3 (2023-06-20)
 
