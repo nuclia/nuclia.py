@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple
 
 import requests
 
-from nuclia import BASE, get_global_url, get_regional_url
+from nuclia import BASE, get_global_url
 from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
@@ -16,7 +16,7 @@ MEMBER = f"{BASE}/api/v1/user"
 ACCOUNTS = f"{BASE}/api/v1/accounts"
 ZONES = f"{BASE}/api/v1/zones"
 LIST_KBS = BASE + "/api/v1/account/{account}/kbs"
-VERIFY_NUA = "/api/v1/nua/verify"
+VERIFY_NUA = "/api/authorizer/info"
 
 
 class NucliaAuth:
@@ -85,12 +85,12 @@ class NucliaAuth:
             print("Invalid service token")
 
     def nua(self, region: str, token: str) -> Optional[str]:
-        client_id, title, account = self.validate_nua(region, token)
+        client_id, account_type, account = self.validate_nua(token, region)
         if account is not None and client_id is not None:
             print("Validated")
             self._config.set_nua_token(
                 client_id=client_id,
-                title=title,
+                account_type=account_type,
                 account=account,
                 region=region,
                 token=token,
@@ -101,17 +101,17 @@ class NucliaAuth:
             return None
 
     def validate_nua(
-        self, region: str, token: str
+        self, token: str, region: Optional[str] = None
     ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         # Validate the code is ok
-        url = get_regional_url(region, VERIFY_NUA)
+        url = get_global_url(VERIFY_NUA)
         resp = requests.get(
             url,
-            headers={"X-STF-NUA": f"Bearer {token}"},
+            headers={"x-nuclia-nuakey": f"Bearer {token}"},
         )
         if resp.status_code == 200:
-            data = resp.json()
-            return data.get("client_id"), data.get("title"), data.get("account")
+            data = resp.json().get("user")
+            return data.get("user_id"), data.get("account_type"), data.get("account_id")
         else:
             return None, None, None
 
