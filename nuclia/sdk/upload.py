@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
 import requests
+from nucliadb_models.metadata import Extra, Origin
+from nucliadb_models.text import TextFormat
 from tqdm import tqdm
 
 from nuclia.data import get_auth
@@ -98,6 +102,47 @@ class NucliaUpload:
                     }
                 },
             )
+
+    @kb
+    def text(
+        self,
+        *,
+        ndb: NucliaDBClient,
+        format: TextFormat = TextFormat.PLAIN,
+        path: Optional[str] = None,
+        stdin: Optional[bool] = False,
+        slug: Optional[str] = None,
+        origin: Optional[Origin] = None,
+        extra: Optional[Extra] = None,
+    ):
+        """Option to upload a text from filesystem to a Nuclia KnowledgeBox"""
+        if path is None and not stdin:
+            raise ValueError("Either path or stdin must be provided")
+        if path:
+            text = Path(path).resolve().open().read()
+        else:
+            text = sys.stdin.read()
+        rid = slug if slug is not None else uuid4().hex
+        icon = "text/plain"
+        if format == "HTML":
+            icon = "text/html"
+        elif format == "MARKDOWN":
+            icon = "text/markdown"
+        elif format == "RST":
+            icon = "text/x-rst"
+        ndb.ndb.create_resource(
+            kbid=ndb.kbid,
+            slug=rid,
+            icon=icon,
+            origin=origin,
+            extra=extra,
+            texts={
+                rid: {
+                    "body": text,
+                    "format": format,
+                }
+            },
+        )
 
     @kb
     def remote(
