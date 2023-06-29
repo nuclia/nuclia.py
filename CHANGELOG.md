@@ -2,6 +2,7 @@
 
 ## 1.0.4 (unreleased)
 
+- Fix NUA Key auth and sentence predict
 - Pin Nuclia dependencies
 - Fix documentation
 - Add `search` method in `NucliaSearch`
