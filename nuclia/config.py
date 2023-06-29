@@ -26,13 +26,13 @@ class KnowledgeBox(BaseModel):
 
 class NuaKey(BaseModel):
     client_id: str
-    title: Optional[str]
+    account_type: Optional[str]
     region: str
     account: str
     token: str
 
     def __str__(self):
-        return f"{self.client_id} {self.account} {self.title:30}"
+        return f"{self.client_id} {self.account} {self.account_type:30}"
 
 
 class Zone(BaseModel):
@@ -101,7 +101,7 @@ class Config(BaseModel):
         account: str,
         region: str,
         token: str,
-        title: Optional[str] = None,
+        account_type: Optional[str] = None,
     ):
         if self.nuas_token is None:
             self.nuas_token = []
@@ -113,7 +113,7 @@ class Config(BaseModel):
 
         self.nuas_token.append(
             NuaKey(
-                title=title,
+                account_type=account_type,
                 account=account,
                 region=region,
                 token=token,

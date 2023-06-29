@@ -4,6 +4,7 @@ import requests
 
 from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
+from nuclia.lib.nua_responses import Sentence
 
 SENTENCE_PREDICT = "/api/v1/predict/sentence"
 
@@ -16,12 +17,12 @@ class NuaClient:
         self.url = REGIONAL.format(region=region).strip("/")
         self.headers = {"X-STF-NUAKEY": f"Bearer {token}"}
 
-    def sentence_predict(self, text: str, model: Optional[str] = None):
+    def sentence_predict(self, text: str, model: Optional[str] = None) -> Sentence:
         resp = requests.get(
-            f"{self.url}{SENTENCE_PREDICT}?query={text}&model={model}",
+            f"{self.url}{SENTENCE_PREDICT}?text={text}&model={model}",
             headers=self.headers,
         )
         if resp.status_code == 200:
-            return resp.json()
+            return Sentence.parse_obj(resp.json())
         else:
             raise NuaAPIException()

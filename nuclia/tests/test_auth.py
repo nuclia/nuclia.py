@@ -13,6 +13,8 @@ def test_auth_kb(testing_kb: str):
 
 
 def test_auth_nua(testing_nua: str):
-    pass
-    # na = NucliaAuth()
-    # assert na.validate_nua("europe-1", testing_nua)
+    na = NucliaAuth()
+    client, account_type, account = na.validate_nua(testing_nua)
+    assert client
+    assert account_type
+    assert account
