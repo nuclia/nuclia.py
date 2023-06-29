@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.4 (unreleased)
+## 1.0.4 (2023-06-29)
 
 - Fix NUA Key auth and sentence predict
 - Pin Nuclia dependencies
