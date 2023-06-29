@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 1.0.4 (2023-06-29)
 
 - Fix NUA Key auth and sentence predict
