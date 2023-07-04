@@ -35,3 +35,7 @@ You can login with a Nuclia Understanding API key to process files, predict and 
 ```bash
 nuclia auth nua --key ZZZZ
 ```
+
+## Documentation
+
+You can find the documentation [here](https://github.com/nuclia/nuclia.py/tree/main/docs)
