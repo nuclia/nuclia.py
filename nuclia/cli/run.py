@@ -1,6 +1,8 @@
 import logging
 import sys
+
 import fire  # type: ignore
+from nucliadb_sdk import exceptions
 
 from nuclia.data import get_auth
 from nuclia.exceptions import NeedUserToken
@@ -11,8 +13,9 @@ from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
 from nuclia.sdk.nuas import NucliaNUAS
 from nuclia.sdk.zones import NucliaZones
-from nucliadb_sdk import exceptions
+
 from .utils import CustomFormatter
+
 
 class NucliaCLI(object):
     def __init__(self):
@@ -38,6 +41,7 @@ def run():
         handleAuthError()
     except NeedUserToken:
         handleAuthError()
+
 
 def handleAuthError():
     logger.error("Login required.")

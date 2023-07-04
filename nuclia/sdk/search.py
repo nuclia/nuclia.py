@@ -1,6 +1,5 @@
 import base64
 from dataclasses import dataclass
-import json
 from typing import Optional, Union
 
 from nucliadb_models.search import (
@@ -13,7 +12,6 @@ from nucliadb_models.search import (
 
 from nuclia.data import get_auth
 from nuclia.decorators import kb, pretty
-from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -31,7 +29,7 @@ class ChatAnswer:
 class NucliaSearch:
     """
     Perform search on a Knowledge Box.
-    
+
     `find` and `search` accept the following parameters:
     - `indent`: indentation level for JSON output
     - `yaml`: return results in YAML format

@@ -1,6 +1,7 @@
+from functools import wraps
+
 import yaml
 
-from functools import wraps
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -90,6 +91,7 @@ def nua(func):
         return func(*args, **kwargs)
 
     return wrapper_checkout_nua
+
 
 def pretty(func):
     @wraps(func)

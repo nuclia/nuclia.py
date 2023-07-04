@@ -6,4 +6,3 @@ from pydantic import BaseModel
 
 class Conversation(BaseModel):
     __root__: List[Message]
-

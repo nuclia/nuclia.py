@@ -4,9 +4,10 @@ from typing import Optional
 
 import httpx
 import requests
-from nuclia.exceptions import NeedUserToken
 from nucliadb_models.search import ChatRequest
 from nucliadb_sdk import NucliaDB, Region
+
+from nuclia.exceptions import NeedUserToken
 
 RESOURCE_PATH = "/resource/{rid}"
 RESOURCE_PATH_BY_SLUG = "/slug/{slug}"

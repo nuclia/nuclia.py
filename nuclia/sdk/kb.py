@@ -2,7 +2,6 @@ from nucliadb_models.resource import Resource, ResourceList
 
 from nuclia.data import get_auth
 from nuclia.decorators import kb, pretty
-from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.search import NucliaSearch
 from nuclia.sdk.upload import NucliaUpload

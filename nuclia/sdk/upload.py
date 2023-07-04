@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import requests
 from nucliadb_models.text import TextFormat
+from nucliadb_sdk import exceptions
 from tqdm import tqdm
 
 from nuclia.data import get_auth
@@ -17,9 +18,18 @@ from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversation
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.logger import logger
-from nucliadb_sdk import exceptions
 
-RESOURCE_ATTRIBUTES = ["icon", "origin", "extra", "conversations", "texts", "usermetadata", "fieldmetadata", "title"]
+RESOURCE_ATTRIBUTES = [
+    "icon",
+    "origin",
+    "extra",
+    "conversations",
+    "texts",
+    "usermetadata",
+    "fieldmetadata",
+    "title",
+]
+
 
 class NucliaUpload:
     """
@@ -27,12 +37,16 @@ class NucliaUpload:
 
     All commands accept the following parameters:
     - `rid`: Resource ID. If not provided, a new resource will be created.
-    - `slug`: Resource slug. If it corresponds to an existing resource, the resource will be updated. If not provided, a unique value will be generated.
+    - `slug`: Resource slug. If it corresponds to an existing resource, the resource will be updated.
+        If not provided, a unique value will be generated.
     - `field`: Field id. If not provided, a unique value will be generated.
     - `title`: resource title.
-    - `usermetadata`: User metadata. See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
-    - `fieldmetadata`: Field metadata. See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
-    - `origin`: Origin metadata. See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `usermetadata`: User metadata.
+        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `fieldmetadata`: Field metadata.
+        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `origin`: Origin metadata.
+        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `extra`: user-defined metadata.
     """
 
@@ -59,8 +73,10 @@ class NucliaUpload:
             mimetype = "application/octet-stream"
         else:
             mimetype = "/".join(mimetype_result)  # type: ignore
-        rid, is_new_resource = self._get_or_create_resource(rid=rid, icon=mimetype, **kwargs)
-        
+        rid, is_new_resource = self._get_or_create_resource(
+            rid=rid, icon=mimetype, **kwargs
+        )
+
         with open(path, "rb") as upload_file:
             try:
                 upload_url = ndb.start_tus_upload(
@@ -91,33 +107,29 @@ class NucliaUpload:
             return
 
         field = kwargs.get("field") or uuid4().hex
-        conversations={
-                field: {
-                    "messages": [
-                        {
-                            "who": message.who
-                            if message.who is not None
-                            else uuid4().hex,
-                            "to": [x for x in message.to]
-                            if message.to is not None
-                            else [],
-                            "ident": message.ident
-                            if message.ident is not None
-                            else uuid4().hex,
-                            "timestamp": message.timestamp
-                            if message.timestamp is not None
-                            else datetime.now().isoformat(),
-                            "content": {
-                                "text": message.content.text,
-                                "format": message.content.format
-                                if message.content.format is not None
-                                else "PLAIN",
-                            },
-                        }
-                        for message in conversation
-                    ]
-                }
+        conversations = {
+            field: {
+                "messages": [
+                    {
+                        "who": message.who if message.who is not None else uuid4().hex,
+                        "to": [x for x in message.to] if message.to is not None else [],
+                        "ident": message.ident
+                        if message.ident is not None
+                        else uuid4().hex,
+                        "timestamp": message.timestamp
+                        if message.timestamp is not None
+                        else datetime.now().isoformat(),
+                        "content": {
+                            "text": message.content.text,
+                            "format": message.content.format
+                            if message.content.format is not None
+                            else "PLAIN",
+                        },
+                    }
+                    for message in conversation
+                ]
             }
+        }
 
         rid, is_new_resource = self._get_or_create_resource(
             conversations=conversations,
@@ -140,7 +152,7 @@ class NucliaUpload:
         **kwargs,
     ):
         """Upload a text from filesystem or from standard input to a Nuclia KnowledgeBox.
-        
+
         Format can be one of: PLAIN, HTML, MARKDOWN, RST"""
         if path is None and not stdin:
             raise ValueError("Either path or stdin must be provided")
@@ -156,7 +168,7 @@ class NucliaUpload:
         elif format == "RST":
             icon = "text/x-rst"
         field = kwargs.get("field") or uuid4().hex
-        texts={
+        texts = {
             field: {
                 "body": text,
                 "format": format,
@@ -192,7 +204,9 @@ class NucliaUpload:
                 size_str = "-1"
             size = int(size_str)
             mimetype = r.headers.get("Content-Type", "application/octet-stream")
-            rid, is_new_resource = self._get_or_create_resource(rid=rid, icon=mimetype, **kwargs)
+            rid, is_new_resource = self._get_or_create_resource(
+                rid=rid, icon=mimetype, **kwargs
+            )
             try:
                 upload_url = ndb.start_tus_upload(
                     rid=rid,
