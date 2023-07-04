@@ -22,6 +22,17 @@ from nucliadb_sdk import exceptions
 
 
 class NucliaUpload:
+    """
+    Create or update resource in a Nuclia KnowledgeBox.
+
+    All commands accept the following parameters:
+    - `rid`: Resource ID. If not provided, a new resource will be created.
+    - `slug`: Resource slug. If it corresponds to an existing resource, the resource will be updated. If not provided, a unique value will be generated.
+    - `field`: Field id. If not provided, a unique value will be generated.
+    - `origin`: Origin metadata. See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `extra`: user-defined metadata.
+    """
+
     @property
     def _auth(self) -> NucliaAuth:
         auth = get_auth()
