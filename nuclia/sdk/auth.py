@@ -146,6 +146,12 @@ class NucliaAuth:
         print("Checking...")
         self.set_user_token(code)
 
+    def logout(self):
+        """
+        Remove the current user token.
+        """
+        self._config.remove_user_token()
+
     def set_user_token(self, code: str):
         if self._validate_user_token(code):
             self._config.set_user_token(code)

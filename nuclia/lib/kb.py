@@ -4,6 +4,7 @@ from typing import Optional
 
 import httpx
 import requests
+from nuclia.exceptions import NeedUserToken
 from nucliadb_models.search import ChatRequest
 from nucliadb_sdk import NucliaDB, Region
 
@@ -87,7 +88,7 @@ class NucliaDBClient:
         elif (
             environment == Environment.CLOUD and api_key is None and user_token is None
         ):
-            raise AttributeError("On Cloud you need to provide API Key")
+            raise NeedUserToken("On Cloud you need to provide API Key")
         else:
             reader_headers = {
                 "X-NUCLIADB-ROLES": f"READER",

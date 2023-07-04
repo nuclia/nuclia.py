@@ -17,6 +17,7 @@ from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversation
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
+from nuclia.sdk.logger import logger
 from nucliadb_sdk import exceptions
 
 
@@ -212,6 +213,7 @@ class NucliaUpload:
             try:
                 resource = ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
                 rid = resource.id
+                logger.warn(f"Using existing resource: {rid}")
                 need_to_create_resource = False
             except exceptions.NotFoundError:
                 need_to_create_resource = True
@@ -228,5 +230,6 @@ class NucliaUpload:
                     kw[param] = kwargs.get(param)
             resource = ndb.ndb.create_resource(**kw)
             rid = resource.uuid
+            logger.warn(f"New resource created: {rid}")
 
         return (rid, need_to_create_resource)

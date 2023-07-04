@@ -1,15 +1,18 @@
+import logging
 import sys
 import fire  # type: ignore
 
 from nuclia.data import get_auth
+from nuclia.exceptions import NeedUserToken
 from nuclia.sdk.accounts import NucliaAccounts
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
+from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
 from nuclia.sdk.nuas import NucliaNUAS
 from nuclia.sdk.zones import NucliaZones
 from nucliadb_sdk import exceptions
-from .utils import Colors
+from .utils import CustomFormatter
 
 class NucliaCLI(object):
     def __init__(self):
@@ -23,8 +26,20 @@ class NucliaCLI(object):
 
 
 def run():
+    logging.basicConfig(level=logging.INFO, handlers=[])
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(CustomFormatter())
+    logger.addHandler(ch)
+
     try:
         fire.Fire(NucliaCLI)
     except exceptions.AuthError:
-        sys.exit(f"{Colors.FAIL}Login required.{Colors.ENDC}\nRun `nuclia auth login` to login.")
+        handleAuthError()
+    except NeedUserToken:
+        handleAuthError()
 
+def handleAuthError():
+    logger.error("Login required.")
+    logger.info("Run `nuclia auth login` to login.")
+    sys.exit(1)
