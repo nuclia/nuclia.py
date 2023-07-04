@@ -1,5 +1,6 @@
 import yaml
 
+from functools import wraps
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -7,6 +8,7 @@ from nuclia.lib.nua import NuaClient
 
 
 def accounts(func):
+    @wraps(func)
     def wrapper_checkout_accounts(*args, **kwargs):
         auth = get_auth()
         auth.accounts()
@@ -16,6 +18,7 @@ def accounts(func):
 
 
 def kbs(func):
+    @wraps(func)
     def wrapper_checkout_kbs(*args, **kwargs):
         if "account" in kwargs:
             auth = get_auth()
@@ -26,6 +29,7 @@ def kbs(func):
 
 
 def kb(func):
+    @wraps(func)
     def wrapper_checkout_kb(*args, **kwargs):
         url = kwargs.get("url")
         api_key = kwargs.get("api_key")
@@ -71,6 +75,7 @@ def kb(func):
 
 
 def nua(func):
+    @wraps(func)
     def wrapper_checkout_nua(*args, **kwargs):
         auth = get_auth()
         nua_id = auth._config.get_default_nua()
@@ -87,6 +92,7 @@ def nua(func):
     return wrapper_checkout_nua
 
 def pretty(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         if kwargs.get("indent"):

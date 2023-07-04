@@ -19,25 +19,29 @@ class NucliaKB:
         self.search = NucliaSearch()
 
     @kb
-    def list(self, *, ndb: NucliaDBClient):
+    def list(self, **kwargs):
+        ndb = kwargs["ndb"]
         data: ResourceList = ndb.ndb.list_resources(kbid=ndb.kbid)
         for resource in data.resources:
             print(f"{resource.id} {resource.icon:30} {resource.title}")
 
     @kb
     @pretty
-    def get_resource_by_id(self, *, ndb: NucliaDBClient, rid: str, **kwargs) -> Resource:
+    def get_resource_by_id(self, *, rid: str, **kwargs) -> Resource:
+        ndb = kwargs["ndb"]
         return ndb.ndb.get_resource_by_id(
             kbid=ndb.kbid, rid=rid, query_params={"show": "values"}
         )
 
     @kb
     @pretty
-    def get_resource_by_slug(self, *, ndb: NucliaDBClient, slug: str, **kwargs) -> Resource:
+    def get_resource_by_slug(self, *, slug: str, **kwargs) -> Resource:
+        ndb = kwargs["ndb"]
         return ndb.ndb.get_resource_by_slug(
             kbid=ndb.kbid, slug=slug, query_params={"show": "values"}
         )
 
     @kb
-    def delete(self, *, ndb: NucliaDBClient, rid: str):
+    def delete(self, *, rid: str, **kwargs):
+        ndb = kwargs["ndb"]
         ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)

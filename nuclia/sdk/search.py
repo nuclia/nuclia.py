@@ -36,7 +36,8 @@ class NucliaSearch:
 
     @kb
     @pretty
-    def search(self, *, ndb: NucliaDBClient, query: Union[str, SearchRequest], **kwargs):
+    def search(self, *, query: Union[str, SearchRequest], **kwargs):
+        ndb = kwargs["ndb"]
         if isinstance(query, str):
             req = SearchRequest(query=query)
         else:
@@ -46,7 +47,8 @@ class NucliaSearch:
 
     @kb
     @pretty
-    def find(self, *, ndb: NucliaDBClient, query: Union[str, FindRequest], **kwargs):
+    def find(self, *, query: Union[str, FindRequest], **kwargs):
+        ndb = kwargs["ndb"]
         if isinstance(query, str):
             req = FindRequest(query=query)
         else:
@@ -55,7 +57,8 @@ class NucliaSearch:
         return ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
-    def chat(self, *, ndb: NucliaDBClient, query: Union[str, ChatRequest]):
+    def chat(self, *, query: Union[str, ChatRequest], **kwargs):
+        ndb = kwargs["ndb"]
         if isinstance(query, str):
             req = ChatRequest(query=query)
         else:

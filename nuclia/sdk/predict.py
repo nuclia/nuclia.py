@@ -14,7 +14,6 @@ class NucliaPredict:
         return auth
 
     @nua
-    def sentence(
-        self, nc: NuaClient, text: str, model: Optional[str] = None
-    ) -> Sentence:
+    def sentence(self, text: str, model: Optional[str] = None, **kwargs):
+        nc = kwargs["nc"]
         return nc.sentence_predict(text, model)

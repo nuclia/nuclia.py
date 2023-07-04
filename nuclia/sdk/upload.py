@@ -31,13 +31,13 @@ class NucliaUpload:
     def file(
         self,
         *,
-        ndb: NucliaDBClient,
         path: str,
         rid: Optional[str] = None,
         field: Optional[str] = None,
         **kwargs,
     ):
-        """Option to upload a file from filesystem to a Nuclia KnowledgeBox"""
+        """Upload a file from filesystem to a Nuclia KnowledgeBox"""
+        ndb = kwargs["ndb"]
         filename = path.split("/")[-1]
         size = os.path.getsize(path)
         mimetype_result = mimetypes.guess_type(path)
@@ -45,7 +45,7 @@ class NucliaUpload:
             mimetype = "application/octet-stream"
         else:
             mimetype = "/".join(mimetype_result)  # type: ignore
-        rid, is_new_resource = self._get_or_create_resource(ndb=ndb, rid=rid, icon=mimetype, **kwargs)
+        rid, is_new_resource = self._get_or_create_resource(rid=rid, icon=mimetype, **kwargs)
         
         with open(path, "rb") as upload_file:
             try:
@@ -70,8 +70,9 @@ class NucliaUpload:
                 sys.exit(1)
 
     @kb
-    def conversation(self, *, ndb: NucliaDBClient, path: str, **kwargs):
-        """Option to upload a conversation from filesystem to a Nuclia KnowledgeBox"""
+    def conversation(self, *, path: str, **kwargs):
+        """Upload a conversation from a JSON located on the filesystem to a Nuclia KnowledgeBox"""
+        ndb = kwargs["ndb"]
         conversation = Conversation.parse_file(path).__root__
         if conversation is None or len(conversation) == 0:
             return
@@ -106,7 +107,6 @@ class NucliaUpload:
             }
 
         rid, is_new_resource = self._get_or_create_resource(
-            ndb=ndb,
             conversations=conversations,
             **kwargs,
         )
@@ -123,13 +123,13 @@ class NucliaUpload:
     def text(
         self,
         *,
-        ndb: NucliaDBClient,
         format: TextFormat = TextFormat.PLAIN,
         path: Optional[str] = None,
         stdin: Optional[bool] = False,
         **kwargs,
     ):
-        """Option to upload a text from filesystem to a Nuclia KnowledgeBox"""
+        """Upload a text from filesystem or from standard input to a Nuclia KnowledgeBox"""
+        ndb = kwargs["ndb"]
         if path is None and not stdin:
             raise ValueError("Either path or stdin must be provided")
         if path:
@@ -151,7 +151,6 @@ class NucliaUpload:
             }
         }
         rid, is_new_resource = self._get_or_create_resource(
-            ndb=ndb,
             texts=texts,
             icon=icon,
             **kwargs,
@@ -169,13 +168,13 @@ class NucliaUpload:
     def remote(
         self,
         *,
-        ndb: NucliaDBClient,
         origin: str,
         rid: Optional[str] = None,
         field: Optional[str] = "file",
         **kwargs,
     ):
-        """Option to upload a remote url to a Nuclia KnowledgeBox"""
+        """Upload a remote url to a Nuclia KnowledgeBox"""
+        ndb = kwargs["ndb"]
         with requests.get(origin, stream=True) as r:
             filename = origin.split("/")[-1]
             size_str = r.headers.get("Content-Length")
@@ -183,7 +182,7 @@ class NucliaUpload:
                 size_str = "-1"
             size = int(size_str)
             mimetype = r.headers.get("Content-Type", "application/octet-stream")
-            rid, is_new_resource = self._get_or_create_resource(ndb=ndb, rid=rid, icon=mimetype, **kwargs)
+            rid, is_new_resource = self._get_or_create_resource(rid=rid, icon=mimetype, **kwargs)
             try:
                 upload_url = ndb.start_tus_upload(
                     rid=rid,
