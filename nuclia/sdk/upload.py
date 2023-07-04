@@ -15,11 +15,11 @@ from tqdm import tqdm
 from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversation
-from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.logger import logger
 from nucliadb_sdk import exceptions
 
+RESOURCE_ATTRIBUTES = ["icon", "origin", "extra", "conversations", "texts", "usermetadata", "fieldmetadata", "title"]
 
 class NucliaUpload:
     """
@@ -29,6 +29,9 @@ class NucliaUpload:
     - `rid`: Resource ID. If not provided, a new resource will be created.
     - `slug`: Resource slug. If it corresponds to an existing resource, the resource will be updated. If not provided, a unique value will be generated.
     - `field`: Field id. If not provided, a unique value will be generated.
+    - `title`: resource title.
+    - `usermetadata`: User metadata. See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `fieldmetadata`: Field metadata. See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `origin`: Origin metadata. See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `extra`: user-defined metadata.
     """
@@ -83,7 +86,6 @@ class NucliaUpload:
     @kb
     def conversation(self, *, path: str, **kwargs):
         """Upload a conversation from a JSON located on the filesystem to a Nuclia KnowledgeBox"""
-        ndb = kwargs["ndb"]
         conversation = Conversation.parse_file(path).__root__
         if conversation is None or len(conversation) == 0:
             return
@@ -122,12 +124,10 @@ class NucliaUpload:
             **kwargs,
         )
         if not is_new_resource:
-            ndb.ndb.update_resource(
-                kbid=ndb.kbid,
+            self._update_resource(
                 rid=rid,
                 conversations=conversations,
-                origin=kwargs.get("origin"),
-                extra=kwargs.get("extra"),
+                **kwargs,
             )
 
     @kb
@@ -139,8 +139,9 @@ class NucliaUpload:
         stdin: Optional[bool] = False,
         **kwargs,
     ):
-        """Upload a text from filesystem or from standard input to a Nuclia KnowledgeBox"""
-        ndb = kwargs["ndb"]
+        """Upload a text from filesystem or from standard input to a Nuclia KnowledgeBox.
+        
+        Format can be one of: PLAIN, HTML, MARKDOWN, RST"""
         if path is None and not stdin:
             raise ValueError("Either path or stdin must be provided")
         if path:
@@ -167,12 +168,10 @@ class NucliaUpload:
             **kwargs,
         )
         if not is_new_resource:
-            ndb.ndb.update_resource(
-                kbid=ndb.kbid,
+            self._update_resource(
                 rid=rid,
                 texts=texts,
-                origin=kwargs.get("origin"),
-                extra=kwargs.get("extra"),
+                **kwargs,
             )
 
     @kb
@@ -235,7 +234,7 @@ class NucliaUpload:
                 "kbid": ndb.kbid,
                 "slug": slug,
             }
-            for param in ["icon", "origin", "extra", "conversations", "texts"]:
+            for param in RESOURCE_ATTRIBUTES:
                 if kwargs.get(param):
                     kw[param] = kwargs.get(param)
             resource = ndb.ndb.create_resource(**kw)
@@ -243,3 +242,14 @@ class NucliaUpload:
             logger.warn(f"New resource created: {rid}")
 
         return (rid, need_to_create_resource)
+
+    def _update_resource(self, rid: str, **kwargs):
+        ndb = kwargs["ndb"]
+        kw = {
+            "kbid": ndb.kbid,
+            "rid": rid,
+        }
+        for param in RESOURCE_ATTRIBUTES:
+            if kwargs.get(param):
+                kw[param] = kwargs.get(param)
+        ndb.ndb.update_resource(**kw)
