@@ -249,7 +249,7 @@ class NucliaUpload:
                 "slug": slug,
             }
             for param in RESOURCE_ATTRIBUTES:
-                if kwargs.get(param):
+                if param in kwargs:
                     kw[param] = kwargs.get(param)
             resource = ndb.ndb.create_resource(**kw)
             rid = resource.uuid
@@ -264,6 +264,6 @@ class NucliaUpload:
             "rid": rid,
         }
         for param in RESOURCE_ATTRIBUTES:
-            if kwargs.get(param):
+            if param in kwargs:
                 kw[param] = kwargs.get(param)
         ndb.ndb.update_resource(**kw)
