@@ -3,6 +3,6 @@ pydantic
 pyyaml
 requests
 gnureadline
-nucliadb_sdk>=2.17.x
-nucliadb_models>=2.17.x
+nucliadb_sdk>=2.17.0
+nucliadb_models>=2.17.0
 tqdm
