@@ -1,5 +1,5 @@
 fire
-pydantic
+pydantic<2.0.0
 pyyaml==5.4.1
 requests
 gnureadline
