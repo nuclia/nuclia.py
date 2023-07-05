@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (unreleased)
+## 1.1.0 (2023-07-05)
 
 - Support `--json` and `--yaml` options
 - Rename `ask` in `chat` as `ask` will be another new feature
