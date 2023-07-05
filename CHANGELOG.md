@@ -1,10 +1,11 @@
 # Changelog
 
-## 1.0.5 (unreleased)
+## 1.1.0 (unreleased)
 
-
-- Nothing changed yet.
-
+- Support `--json` and `--yaml` options
+- Rename `ask` in `chat` as `ask` will be another new feature
+- Support all regular Nuclia resource metadata
+- Update the resource if it exists
 
 ## 1.0.4 (2023-06-29)
 

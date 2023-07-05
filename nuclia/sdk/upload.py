@@ -5,22 +5,51 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 from uuid import uuid4
 
 import requests
-from nucliadb_models.metadata import Extra, Origin
 from nucliadb_models.text import TextFormat
+from nucliadb_sdk import exceptions
 from tqdm import tqdm
 
 from nuclia.data import get_auth
 from nuclia.decorators import kb
-from nuclia.lib.conversations import Conversations
-from nuclia.lib.kb import NucliaDBClient
+from nuclia.lib.conversations import Conversation
 from nuclia.sdk.auth import NucliaAuth
+from nuclia.sdk.logger import logger
+
+RESOURCE_ATTRIBUTES = [
+    "icon",
+    "origin",
+    "extra",
+    "conversations",
+    "texts",
+    "usermetadata",
+    "fieldmetadata",
+    "title",
+]
 
 
 class NucliaUpload:
+    """
+    Create or update resource in a Nuclia KnowledgeBox.
+
+    All commands accept the following parameters:
+    - `rid`: Resource ID. If not provided, a new resource will be created.
+    - `slug`: Resource slug. If it corresponds to an existing resource, the resource will be updated.
+        If not provided, a unique value will be generated.
+    - `field`: Field id. If not provided, a unique value will be generated.
+    - `title`: resource title.
+    - `usermetadata`: User metadata.
+        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `fieldmetadata`: Field metadata.
+        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `origin`: Origin metadata.
+        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+    - `extra`: user-defined metadata.
+    """
+
     @property
     def _auth(self) -> NucliaAuth:
         auth = get_auth()
@@ -30,12 +59,13 @@ class NucliaUpload:
     def file(
         self,
         *,
-        ndb: NucliaDBClient,
         path: str,
         rid: Optional[str] = None,
         field: Optional[str] = None,
+        **kwargs,
     ):
-        """Option to upload a file from filesystem to a Nuclia KnowledgeBox"""
+        """Upload a file from filesystem to a Nuclia KnowledgeBox"""
+        ndb = kwargs["ndb"]
         filename = path.split("/")[-1]
         size = os.path.getsize(path)
         mimetype_result = mimetypes.guess_type(path)
@@ -43,86 +73,93 @@ class NucliaUpload:
             mimetype = "application/octet-stream"
         else:
             mimetype = "/".join(mimetype_result)  # type: ignore
-        with open(path, "rb") as upload_file:
-            upload_url = ndb.start_tus_upload(
-                rid=rid,
-                field=field,
-                size=size,
-                filename=filename,
-                content_type=mimetype,
-            )
+        rid, is_new_resource = self._get_or_create_resource(
+            rid=rid, icon=mimetype, **kwargs
+        )
 
-            offset = 0
-            for _ in tqdm(range((size // 524288) + 1)):
-                chunk = upload_file.read(524288)
-                offset = ndb.patch_tus_upload(
-                    upload_url=upload_url, data=chunk, offset=offset
+        with open(path, "rb") as upload_file:
+            try:
+                upload_url = ndb.start_tus_upload(
+                    rid=rid,
+                    field=field,
+                    size=size,
+                    filename=filename,
+                    content_type=mimetype,
                 )
 
+                offset = 0
+                for _ in tqdm(range((size // 524288) + 1)):
+                    chunk = upload_file.read(524288)
+                    offset = ndb.patch_tus_upload(
+                        upload_url=upload_url, data=chunk, offset=offset
+                    )
+            except Exception as e:
+                print(e)
+                if is_new_resource:
+                    ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
+                sys.exit(1)
+
     @kb
-    def conversation(self, *, ndb: NucliaDBClient, path: str):
-        """Option to upload a conversation from filesystem to a Nuclia KnowledgeBox"""
-        conversations = Conversations.parse_file(path)
-        if conversations.conversations is None:
+    def conversation(self, *, path: str, **kwargs):
+        """Upload a conversation from a JSON located on the filesystem to a Nuclia KnowledgeBox"""
+        conversation = Conversation.parse_file(path).__root__
+        if conversation is None or len(conversation) == 0:
             return
 
-        for conversation in conversations.conversations:
-            if conversation.messages is None:
-                continue
-            rid = conversation.slug if conversation.slug is not None else uuid4().hex
-            ndb.ndb.create_resource(
-                kbid=ndb.kbid,
-                slug=rid,
-                icon="application/conversation",
-                conversations={
-                    rid: {
-                        "messages": [
-                            {
-                                "who": message.who
-                                if message.who is not None
-                                else uuid4().hex,
-                                "to": [x for x in message.to]
-                                if message.to is not None
-                                else [],
-                                "ident": message.ident
-                                if message.ident is not None
-                                else uuid4().hex,
-                                "timestamp": message.timestamp
-                                if message.timestamp is not None
-                                else datetime.now().isoformat(),
-                                "content": {
-                                    "text": message.content.text,
-                                    "format": message.content.format
-                                    if message.content.format is not None
-                                    else "PLAIN",
-                                },
-                            }
-                            for message in conversation.messages
-                        ]
+        field = kwargs.get("field") or uuid4().hex
+        conversations = {
+            field: {
+                "messages": [
+                    {
+                        "who": message.who if message.who is not None else uuid4().hex,
+                        "to": [x for x in message.to] if message.to is not None else [],
+                        "ident": message.ident
+                        if message.ident is not None
+                        else uuid4().hex,
+                        "timestamp": message.timestamp
+                        if message.timestamp is not None
+                        else datetime.now().isoformat(),
+                        "content": {
+                            "text": message.content.text,
+                            "format": message.content.format
+                            if message.content.format is not None
+                            else "PLAIN",
+                        },
                     }
-                },
+                    for message in conversation
+                ]
+            }
+        }
+
+        rid, is_new_resource = self._get_or_create_resource(
+            conversations=conversations,
+            **kwargs,
+        )
+        if not is_new_resource:
+            self._update_resource(
+                rid=rid,
+                conversations=conversations,
+                **kwargs,
             )
 
     @kb
     def text(
         self,
         *,
-        ndb: NucliaDBClient,
         format: TextFormat = TextFormat.PLAIN,
         path: Optional[str] = None,
         stdin: Optional[bool] = False,
-        slug: Optional[str] = None,
-        origin: Optional[Origin] = None,
-        extra: Optional[Extra] = None,
+        **kwargs,
     ):
-        """Option to upload a text from filesystem to a Nuclia KnowledgeBox"""
+        """Upload a text from filesystem or from standard input to a Nuclia KnowledgeBox.
+
+        Format can be one of: PLAIN, HTML, MARKDOWN, RST"""
         if path is None and not stdin:
             raise ValueError("Either path or stdin must be provided")
         if path:
             text = Path(path).resolve().open().read()
         else:
             text = sys.stdin.read()
-        rid = slug if slug is not None else uuid4().hex
         icon = "text/plain"
         if format == "HTML":
             icon = "text/html"
@@ -130,44 +167,103 @@ class NucliaUpload:
             icon = "text/markdown"
         elif format == "RST":
             icon = "text/x-rst"
-        ndb.ndb.create_resource(
-            kbid=ndb.kbid,
-            slug=rid,
+        field = kwargs.get("field") or uuid4().hex
+        texts = {
+            field: {
+                "body": text,
+                "format": format,
+            }
+        }
+        rid, is_new_resource = self._get_or_create_resource(
+            texts=texts,
             icon=icon,
-            origin=origin,
-            extra=extra,
-            texts={
-                rid: {
-                    "body": text,
-                    "format": format,
-                }
-            },
+            **kwargs,
         )
+        if not is_new_resource:
+            self._update_resource(
+                rid=rid,
+                texts=texts,
+                **kwargs,
+            )
 
     @kb
     def remote(
         self,
         *,
-        ndb: NucliaDBClient,
         origin: str,
         rid: Optional[str] = None,
         field: Optional[str] = "file",
+        **kwargs,
     ):
-        """Option to upload a remote url to a Nuclia KnowledgeBox"""
+        """Upload a remote url to a Nuclia KnowledgeBox"""
+        ndb = kwargs["ndb"]
         with requests.get(origin, stream=True) as r:
             filename = origin.split("/")[-1]
             size_str = r.headers.get("Content-Length")
             if size_str is None:
                 size_str = "-1"
             size = int(size_str)
-            upload_url = ndb.start_tus_upload(
-                rid=rid,
-                field=field,
-                size=size,
-                filename=filename,
-                content_type=r.headers.get("Content-Type", "application/octet-stream"),
+            mimetype = r.headers.get("Content-Type", "application/octet-stream")
+            rid, is_new_resource = self._get_or_create_resource(
+                rid=rid, icon=mimetype, **kwargs
             )
-            offset = 0
-            for _ in tqdm(range((size // 524288) + 1)):
-                chunk = r.raw.read(524288)
-                offset = ndb.patch_tus_upload(upload_url, chunk, offset)
+            try:
+                upload_url = ndb.start_tus_upload(
+                    rid=rid,
+                    field=field,
+                    size=size,
+                    filename=filename,
+                    content_type=mimetype,
+                )
+                offset = 0
+                for _ in tqdm(range((size // 524288) + 1)):
+                    chunk = r.raw.read(524288)
+                    offset = ndb.patch_tus_upload(upload_url, chunk, offset)
+            except Exception as e:
+                print(e)
+                if is_new_resource:
+                    ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
+                sys.exit(1)
+
+    def _get_or_create_resource(*args, **kwargs) -> Tuple[str, bool]:
+        rid = kwargs.get("rid")
+        if rid:
+            return rid
+        ndb = kwargs["ndb"]
+        slug = kwargs.get("slug")
+        need_to_create_resource = slug is None
+        if slug:
+            try:
+                resource = ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
+                rid = resource.id
+                logger.warning(f"Using existing resource: {rid}")
+                need_to_create_resource = False
+            except exceptions.NotFoundError:
+                need_to_create_resource = True
+        else:
+            slug = uuid4().hex
+
+        if need_to_create_resource:
+            kw = {
+                "kbid": ndb.kbid,
+                "slug": slug,
+            }
+            for param in RESOURCE_ATTRIBUTES:
+                if param in kwargs:
+                    kw[param] = kwargs.get(param)
+            resource = ndb.ndb.create_resource(**kw)
+            rid = resource.uuid
+            logger.warning(f"New resource created: {rid}")
+
+        return (rid, need_to_create_resource)
+
+    def _update_resource(self, rid: str, **kwargs):
+        ndb = kwargs["ndb"]
+        kw = {
+            "kbid": ndb.kbid,
+            "rid": rid,
+        }
+        for param in RESOURCE_ATTRIBUTES:
+            if param in kwargs:
+                kw[param] = kwargs.get(param)
+        ndb.ndb.update_resource(**kw)

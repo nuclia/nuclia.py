@@ -141,10 +141,16 @@ class NucliaAuth:
             self._show_user()
             return
 
-        webbrowser.open(get_global_url("/redirect?display=token&ident={ident}"))
+        webbrowser.open(get_global_url("/redirect?display=token"))
         code = input("Follow the browser flow and copy the token and paste it here:")
         print("Checking...")
         self.set_user_token(code)
+
+    def logout(self):
+        """
+        Remove the current user token.
+        """
+        self._config.remove_user_token()
 
     def set_user_token(self, code: str):
         if self._validate_user_token(code):

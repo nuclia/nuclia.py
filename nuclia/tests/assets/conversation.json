@@ -1,27 +1,20 @@
-{
-    "conversations": [
-        {
-            "slug": "conversation1", 
-            "messages":[
-                {
-                    "who": "user1",
-                    "to": ["agent1"],
-                    "ident": "message1",
-                    "content": {
-                        "text": "This is my initial message",
-                        "format": "PLAIN"
-                    }
-                },
-                {
-                    "who": "agent1",
-                    "to": ["user1", "agent2"],
-                    "ident": "message2",
-                    "content": {
-                        "text": "This is my response message",
-                        "format": "PLAIN"
-                    }
-                }
-            ]
-        }
-    ]
-}
+[
+  {
+    "who": "user1",
+    "to": ["agent1"],
+    "ident": "message1",
+    "content": {
+      "text": "This is my initial message",
+      "format": "PLAIN"
+    }
+  },
+  {
+    "who": "agent1",
+    "to": ["user1", "agent2"],
+    "ident": "message2",
+    "content": {
+      "text": "This is my response message",
+      "format": "PLAIN"
+    }
+  }
+]

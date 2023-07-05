@@ -4,37 +4,28 @@ All examples has assumed you [authenticated](AUTH.md) and defined a [default](DE
 
 ## Upload messages
 
-You should craft a JSON file with the information of the conversation for each conversation:
+You should craft a JSON file with the information of the conversation:
 
 ```json
-{
-    "conversations": [
-        {
-            "slug": "CONVERSATIONAL_SLUG", 
-            "messages":[
-                {
-                    "who": "ORIGIN_UUID",
-                    "to": ["DESTINATION_UUID"],
-                    "ident": "UNIQUE_IDENTIFIER",
-                    "timestamp": "MESSAGE_DATETIME",
-                    "content": {
-                        "text": "MESSAGE",
-                        "format": "MESSAGE_TYPE"
-
-                    }
-                }
-            ]
-        }
-    ]
-}
+[
+  {
+    "who": "ORIGIN_UUID",
+    "to": ["DESTINATION_UUID"],
+    "ident": "UNIQUE_IDENTIFIER",
+    "timestamp": "MESSAGE_DATETIME",
+    "content": {
+      "text": "MESSAGE",
+      "format": "MESSAGE_TYPE"
+    }
+  }
+]
 ```
 
-- `CONVERSATIONAL_SLUG`: Identification of the conversation
 - `ORIGIN_UUID`: Identification of the user who sent the message
 - `DESTINATION_UUID`: Identification of the users who received the message
-- `UNIQUE_IDENTIFIER`: Identification of the message, needs to be unique
+- `UNIQUE_IDENTIFIER`: Identification of the message, needs to be unique in the conversation
 - `MESSAGE_DATETIME`: Message date time in ISO format
-- `MESSAGE_TYPE`: Format of the message:  `0` for `PLAIN` or `1` for `HTML` or `MARKDOWN` or `RST`
+- `MESSAGE_TYPE`: Format of the message: `0` for `PLAIN` or `1` for `HTML` or `MARKDOWN` or `RST`
 
 [Example](https://github.com/nuclia/nuclia.py/nuclia/tests/assets/conversation.json)
 
