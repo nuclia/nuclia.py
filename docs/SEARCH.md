@@ -14,10 +14,10 @@ search = sdk.NucliaSearch()
 search.search(query="My search")
 ```
 
-Get indented output:
+Get JSON output:
 
 ```bash
-nuclia kb search search --query="My search" --indent=2
+nuclia kb search search --query="My search" --json
 ```
 
 Get YAML output:

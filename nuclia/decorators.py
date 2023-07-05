@@ -97,10 +97,10 @@ def pretty(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
-        if kwargs.get("indent"):
-            return result.json(indent=kwargs.get("indent"))
+        if kwargs.get("json"):
+            return result.json(indent=2)
         if kwargs.get("yaml"):
             return yaml.dump(result)
-        return result.json()
+        return result
 
     return wrapper

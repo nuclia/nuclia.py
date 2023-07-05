@@ -20,8 +20,8 @@ def test_conversation(testing_config):
     assert res is None
 
     nu = NucliaUpload()
-    nu.conversation(path=path)
+    nu.conversation(path=path, slug="conversation1", field="c1")
 
     resource = nkb.get_resource_by_slug(slug="conversation1")
     assert resource
-    assert resource.data.conversations["conversation1"]
+    assert resource.data.conversations["c1"]

@@ -31,7 +31,7 @@ class NucliaSearch:
     Perform search on a Knowledge Box.
 
     `find` and `search` accept the following parameters:
-    - `indent`: indentation level for JSON output
+    - `json`: return results in JSON format
     - `yaml`: return results in YAML format
     """
 
