@@ -95,6 +95,10 @@ class Config(BaseModel):
     def set_user_token(self, code: str):
         self.token = code
 
+    def remove_user_token(self):
+        self.token = None
+        self.save()
+
     def set_nua_token(
         self,
         client_id: str,

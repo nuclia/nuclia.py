@@ -11,8 +11,7 @@ from nucliadb_models.search import (
 )
 
 from nuclia.data import get_auth
-from nuclia.decorators import kb
-from nuclia.lib.kb import NucliaDBClient
+from nuclia.decorators import kb, pretty
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -28,13 +27,28 @@ class ChatAnswer:
 
 
 class NucliaSearch:
+    """
+    Perform search on a Knowledge Box.
+
+    `find` and `search` accept the following parameters:
+    - `json`: return results in JSON format
+    - `yaml`: return results in YAML format
+    """
+
     @property
     def _auth(self) -> NucliaAuth:
         auth = get_auth()
         return auth
 
     @kb
-    def search(self, *, ndb: NucliaDBClient, query: Union[str, SearchRequest]):
+    @pretty
+    def search(self, *, query: Union[str, SearchRequest], **kwargs):
+        """
+        Perform a search query.
+
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
+        """
+        ndb = kwargs["ndb"]
         if isinstance(query, str):
             req = SearchRequest(query=query)
         else:
@@ -43,7 +57,15 @@ class NucliaSearch:
         return ndb.ndb.search(req, kbid=ndb.kbid)
 
     @kb
-    def find(self, *, ndb: NucliaDBClient, query: Union[str, FindRequest]):
+    @pretty
+    def find(self, *, query: Union[str, FindRequest], **kwargs):
+        """
+        Perform a find query.
+
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
+        """
+
+        ndb = kwargs["ndb"]
         if isinstance(query, str):
             req = FindRequest(query=query)
         else:
@@ -52,7 +74,13 @@ class NucliaSearch:
         return ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
-    def ask(self, *, ndb: NucliaDBClient, query: Union[str, ChatRequest]):
+    def chat(self, *, query: Union[str, ChatRequest], **kwargs):
+        """
+        Answer a question.
+
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Chat_Knowledge_Box_kb__kbid__chat_post
+        """
+        ndb = kwargs["ndb"]
         if isinstance(query, str):
             req = ChatRequest(query=query)
         else:
