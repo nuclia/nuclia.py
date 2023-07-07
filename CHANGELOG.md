@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.1 (unreleased)
+## 1.1.1 (2023-07-07)
 
 
 - Set region parameter according KB url
