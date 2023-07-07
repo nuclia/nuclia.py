@@ -64,8 +64,9 @@ def kb(func):
                     )
 
         elif url.find("nuclia.cloud") >= 0:
+            region = url.split(".")[0].split("/")[-1]
             ndb = NucliaDBClient(
-                environment=Environment.CLOUD, url=url, api_key=api_key
+                environment=Environment.CLOUD, url=url, api_key=api_key, region=region
             )
         else:
             ndb = NucliaDBClient(environment=Environment.OSS, url=url)

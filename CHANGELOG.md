@@ -3,7 +3,7 @@
 ## 1.1.1 (unreleased)
 
 
-- Nothing changed yet.
+- Set region parameter according KB url
 
 
 ## 1.1.0 (2023-07-05)
