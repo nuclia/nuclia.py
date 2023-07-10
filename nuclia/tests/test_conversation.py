@@ -1,9 +1,9 @@
 import os
-from nuclia.sdk.resource import NucliaResource
 
 from nucliadb_sdk.v2.exceptions import NotFoundError
 
 from nuclia.sdk.kb import NucliaKB
+from nuclia.sdk.resource import NucliaResource
 from nuclia.sdk.upload import NucliaUpload
 
 path = f"{os.path.dirname(__file__)}/assets/conversation.json"

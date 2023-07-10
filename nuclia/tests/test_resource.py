@@ -1,5 +1,6 @@
-from nuclia.sdk.resource import NucliaResource
 from nucliadb_sdk.v2.exceptions import NotFoundError
+
+from nuclia.sdk.resource import NucliaResource
 
 
 def test_resource(testing_config):
@@ -9,7 +10,7 @@ def test_resource(testing_config):
         nresource.delete(rid=res.id)
     except NotFoundError:
         pass
-    
+
     res_id = nresource.create(slug="res1")
 
     res = nresource.get(rid=res_id)
@@ -19,8 +20,10 @@ def test_resource(testing_config):
     assert res
     assert res.id == res_id
 
-    nresource.update(rid=res_id, title="My great resource", texts={"text1": {"body": "Hello here"}})
-    res = nresource.get(slug="res1", show=["basic","values"])
+    nresource.update(
+        rid=res_id, title="My great resource", texts={"text1": {"body": "Hello here"}}
+    )
+    res = nresource.get(slug="res1", show=["basic", "values"])
 
     assert res
     assert res.title == "My great resource"

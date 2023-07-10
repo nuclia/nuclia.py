@@ -9,7 +9,6 @@ from typing import Optional, Tuple
 from uuid import uuid4
 
 import requests
-from nuclia.sdk.resource import RESOURCE_ATTRIBUTES, NucliaResource
 from nucliadb_models.text import TextFormat
 from nucliadb_sdk import exceptions
 from tqdm import tqdm
@@ -19,6 +18,7 @@ from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversation
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.logger import logger
+from nuclia.sdk.resource import RESOURCE_ATTRIBUTES, NucliaResource
 
 
 class NucliaUpload:

@@ -1,9 +1,11 @@
 from typing import List, Optional
 from uuid import uuid4
+
+from nucliadb_models.metadata import ResourceProcessingStatus
+from nucliadb_models.resource import Resource
+
 from nuclia.decorators import kb, pretty
 from nuclia.sdk.logger import logger
-from nucliadb_models.resource import Resource
-from nucliadb_models.metadata import ResourceProcessingStatus
 
 RESOURCE_ATTRIBUTES = [
     "icon",
@@ -21,7 +23,7 @@ RESOURCE_ATTRIBUTES = [
 class NucliaResource:
     """
     Manage existing resource
-    
+
     All commands accept either `rid` or `slug` to identify the targeted resource.
     """
 
@@ -42,29 +44,48 @@ class NucliaResource:
 
     @kb
     @pretty
-    def get(self, *, rid: Optional[str] = None, slug: Optional[str] = None, show: Optional[List[str]] = ['basic'], extracted: Optional[List[str]] = [], **kwargs) -> Resource:
+    def get(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        show: Optional[List[str]] = ["basic"],
+        extracted: Optional[List[str]] = [],
+        **kwargs
+    ) -> Resource:
         ndb = kwargs["ndb"]
         show = list(show or [])
         if "basic" not in show:
             show.append("basic")
         if rid:
             res = ndb.ndb.get_resource_by_id(
-                kbid=ndb.kbid, rid=rid, query_params={"show": show, "extracted": extracted}
+                kbid=ndb.kbid,
+                rid=rid,
+                query_params={"show": show, "extracted": extracted},
             )
         elif slug:
             res = ndb.ndb.get_resource_by_slug(
-                kbid=ndb.kbid, slug=slug, query_params={"show": show, "extracted": extracted}
+                kbid=ndb.kbid,
+                slug=slug,
+                query_params={"show": show, "extracted": extracted},
             )
         else:
             raise ValueError("Either rid or slug must be provided")
-        
-        if 'extracted' in show and res.metadata.status != ResourceProcessingStatus.PROCESSED:
-            logger.warning("Resource is not processed yet, extracted content may be empty or incomplete.")
+
+        if (
+            "extracted" in show
+            and res.metadata.status != ResourceProcessingStatus.PROCESSED
+        ):
+            logger.warning(
+                "Resource is not processed yet, extracted content may be empty or incomplete."
+            )
 
         return res
 
     @kb
-    def update(self, *, rid: Optional[str]=None, slug: Optional[str]=None, **kwargs):
+    def update(
+        self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
+    ):
         ndb = kwargs["ndb"]
         if rid:
             self._update_resource(kbid=ndb.kbid, rid=rid, **kwargs)
@@ -74,9 +95,11 @@ class NucliaResource:
             self._update_resource(kbid=ndb.kbid, rid=res.id, **kwargs)
         else:
             raise ValueError("Either rid or slug must be provided")
-    
+
     @kb
-    def delete(self, *, rid: Optional[str]=None, slug: Optional[str]=None, **kwargs):
+    def delete(
+        self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
+    ):
         ndb = kwargs["ndb"]
         if rid:
             ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
