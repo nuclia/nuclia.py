@@ -5,7 +5,7 @@ import fire  # type: ignore
 from nucliadb_sdk import exceptions
 
 from nuclia.data import get_auth
-from nuclia.exceptions import NeedUserToken
+from nuclia.exceptions import NeedUserToken, UserTokenExpired
 from nuclia.sdk.accounts import NucliaAccounts
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
@@ -40,6 +40,8 @@ def run():
     except exceptions.AuthError:
         handleAuthError()
     except NeedUserToken:
+        handleAuthError()
+    except UserTokenExpired:
         handleAuthError()
 
 

@@ -17,10 +17,11 @@ First steps should be:
 ## Use Cases
 
 - [Upload files](UPLOAD.md)
-- Upload urls
+- [Upload url](UPLOAD.md)
+- [Upload text](UPLOAD.md)
 - [Upload conversation](CONVERSATION.md)
 - [Search](SEARCH.md)
-- Extract information from a file
+- [Extract information from a file](EXTRACT.md)
 - Detect Entities
-- Get embedding from text
+- [Get embedding from text](EXTRACT.md)
 - Get answer from a context
