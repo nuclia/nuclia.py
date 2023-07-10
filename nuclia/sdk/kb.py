@@ -30,7 +30,7 @@ class NucliaKB:
     @kb
     @pretty
     def get_resource_by_id(self, *, rid: str, **kwargs) -> Resource:
-        warn('get_resource_by_slug is deprecated, use resource.get instead', DeprecationWarning)
+        warn('get_resource_by_id is deprecated, use resource.get instead', DeprecationWarning)
         logger.warning('get_resource_by_slug is deprecated, use resource.get instead')
         ndb = kwargs["ndb"]
         return ndb.ndb.get_resource_by_id(
