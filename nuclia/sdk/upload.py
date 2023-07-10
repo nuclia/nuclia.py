@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 from uuid import uuid4
 
 import requests
+from nuclia.sdk.resource import RESOURCE_ATTRIBUTES, NucliaResource
 from nucliadb_models.text import TextFormat
 from nucliadb_sdk import exceptions
 from tqdm import tqdm
@@ -19,21 +20,10 @@ from nuclia.lib.conversations import Conversation
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.logger import logger
 
-RESOURCE_ATTRIBUTES = [
-    "icon",
-    "origin",
-    "extra",
-    "conversations",
-    "texts",
-    "usermetadata",
-    "fieldmetadata",
-    "title",
-]
-
 
 class NucliaUpload:
     """
-    Create or update resource in a Nuclia KnowledgeBox.
+    Create or update resource content in a Nuclia KnowledgeBox.
 
     All commands accept the following parameters:
     - `rid`: Resource ID. If not provided, a new resource will be created.
@@ -228,7 +218,7 @@ class NucliaUpload:
     def _get_or_create_resource(*args, **kwargs) -> Tuple[str, bool]:
         rid = kwargs.get("rid")
         if rid:
-            return rid
+            return (rid, False)
         ndb = kwargs["ndb"]
         slug = kwargs.get("slug")
         need_to_create_resource = slug is None
@@ -258,12 +248,4 @@ class NucliaUpload:
         return (rid, need_to_create_resource)
 
     def _update_resource(self, rid: str, **kwargs):
-        ndb = kwargs["ndb"]
-        kw = {
-            "kbid": ndb.kbid,
-            "rid": rid,
-        }
-        for param in RESOURCE_ATTRIBUTES:
-            if param in kwargs:
-                kw[param] = kwargs.get(param)
-        ndb.ndb.update_resource(**kw)
+        return NucliaResource().update(rid=rid, **kwargs)
