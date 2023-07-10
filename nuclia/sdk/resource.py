@@ -10,6 +10,7 @@ RESOURCE_ATTRIBUTES = [
     "origin",
     "extra",
     "conversations",
+    "links",
     "texts",
     "usermetadata",
     "fieldmetadata",

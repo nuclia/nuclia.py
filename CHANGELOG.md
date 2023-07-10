@@ -6,6 +6,7 @@
 - Manage UserTokenExpired in CLI.
 - Support `show` and `extracted` when getting a resource.
 - Refactor all resource related actions in a class.
+- Support `Link` upload
 
 
 ## 1.1.1 (2023-07-07)

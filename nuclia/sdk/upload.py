@@ -177,6 +177,32 @@ class NucliaUpload:
             )
 
     @kb
+    def link(
+        self,
+        *,
+        uri: str,
+        **kwargs,
+    ):
+        """Upload an URL to a Nuclia KnowledgeBox."""
+        field = kwargs.get("field") or uuid4().hex
+        links = {
+            field: {
+                "uri": uri,
+            }
+        }
+        kwargs["icon"] = "application/stf-link"
+        rid, is_new_resource = self._get_or_create_resource(
+            links=links,
+            **kwargs,
+        )
+        if not is_new_resource:
+            self._update_resource(
+                rid=rid,
+                links=links,
+                **kwargs,
+            )
+
+    @kb
     def remote(
         self,
         *,
