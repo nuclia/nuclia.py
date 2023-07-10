@@ -82,6 +82,21 @@ Pass `origin` or `extra` metadata:
 nuclia kb upload text --path=FILE_PATH --origin='{"url":"https://somwhere.com"}' --extra='{"metadata":{"whatever":42}}'
 ```
 
+
+## Upload an URL in a KnowledgeBox
+
+Push a text to a knowledgebox:
+
+```bash
+nuclia kb upload link --uri=THE_URI
+```
+
+```python
+from nuclia import sdk
+upload = sdk.NucliaUpload()
+upload.link(uri=THE_URI)
+```
+
 ## List resources on a kb
 
 ```bash

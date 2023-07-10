@@ -1,9 +1,18 @@
 # Changelog
 
-## 1.1.2 (unreleased)
+## 1.1.3 (unreleased)
 
 
 - Nothing changed yet.
+
+
+## 1.1.2 (2023-07-10)
+
+
+- Manage UserTokenExpired in CLI.
+- Support `show` and `extracted` when getting a resource.
+- Refactor all resource related actions in a class.
+- Support `Link` upload
 
 
 ## 1.1.1 (2023-07-07)
