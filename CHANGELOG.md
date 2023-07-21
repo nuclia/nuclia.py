@@ -1,25 +1,30 @@
 # Changelog
 
-## 1.1.3 (unreleased)
+## 1.1.5 (unreleased)
 
 
 - Nothing changed yet.
 
 
-## 1.1.2 (2023-07-10)
+## 1.1.4 (2023-07-21)
 
+- Fix http status check
+
+## 1.1.3 (2023-07-21)
+
+- Use pyyaml==5.3.1 as 5.4 is broken
+- Handle token expiration in a better way
+
+## 1.1.2 (2023-07-10)
 
 - Manage UserTokenExpired in CLI.
 - Support `show` and `extracted` when getting a resource.
 - Refactor all resource related actions in a class.
 - Support `Link` upload
 
-
 ## 1.1.1 (2023-07-07)
 
-
 - Set region parameter according KB url
-
 
 ## 1.1.0 (2023-07-05)
 
