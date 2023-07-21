@@ -2,6 +2,7 @@ from functools import wraps
 
 import yaml
 
+from nuclia import BASE_DOMAIN
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -63,7 +64,7 @@ def kb(func):
                         region=kb_obj.region,
                     )
 
-        elif url.find("nuclia.cloud") >= 0:
+        elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             ndb = NucliaDBClient(
                 environment=Environment.CLOUD, url=url, api_key=api_key, region=region
