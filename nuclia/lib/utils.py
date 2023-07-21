@@ -12,5 +12,5 @@ def handle_http_errors(response: Union[httpx.Response, requests.models.Response]
         and "Hydra token is either unexistent or revoked" in response.text
     ):
         raise UserTokenExpired()
-    else:
+    elif response.status_code >= 400:
         raise httpx.HTTPError(f"Status code {response.status_code}: {response.text}")

@@ -2,9 +2,7 @@
 
 ## 1.1.4 (unreleased)
 
-
-- Nothing changed yet.
-
+- Fix http status check
 
 ## 1.1.3 (2023-07-21)
 
