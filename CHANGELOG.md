@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.5 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 1.1.4 (2023-07-21)
 
 - Fix http status check
