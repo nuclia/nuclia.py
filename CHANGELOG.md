@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.4 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 1.1.3 (2023-07-21)
 
 - Use pyyaml==5.3.1 as 5.4 is broken
