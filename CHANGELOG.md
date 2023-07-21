@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.3 (unreleased)
+## 1.1.3 (2023-07-21)
 
 - Use pyyaml==5.3.1 as 5.4 is broken
 - Handle token expiration in a better way
