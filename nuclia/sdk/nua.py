@@ -1,4 +1,3 @@
-from nuclia import BASE
 from nuclia.sdk.predict import NucliaPredict
 from nuclia.sdk.process import NucliaProcess
 from nuclia.sdk.train import NucliaTrain

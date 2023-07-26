@@ -194,7 +194,9 @@ class NucliaAuth:
     def _request(self, method: str, path: str, data: Optional[Any] = None):
         if not self._config.token:
             raise NeedUserToken()
-        kwargs = {"headers": {"Authorization": f"Bearer {self._config.token}"}}
+        kwargs: Dict[str, Any] = {
+            "headers": {"Authorization": f"Bearer {self._config.token}"}
+        }
         if data is not None:
             non_null_values = {k: v for k, v in data.items() if v is not None}
             kwargs["data"] = json.dumps(non_null_values)

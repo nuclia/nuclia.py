@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from nuclia import BASE
-from nuclia.config import KnowledgeBox, retrieve
+from nuclia.config import retrieve
 from nuclia.data import get_auth
 from nuclia.decorators import account, accounts
 from nuclia.sdk.auth import NucliaAuth
