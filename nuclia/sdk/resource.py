@@ -17,6 +17,7 @@ RESOURCE_ATTRIBUTES = [
     "usermetadata",
     "fieldmetadata",
     "title",
+    "summary",
 ]
 
 
