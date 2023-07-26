@@ -3,6 +3,8 @@
 ## 1.1.5 (unreleased)
 
 - Support summary as resource attribute
+- Allow to create kb
+- Allow to set default account
 
 ## 1.1.4 (2023-07-21)
 

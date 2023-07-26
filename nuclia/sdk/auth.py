@@ -2,7 +2,7 @@ import base64
 import json
 import readline  # noqa
 import webbrowser
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
@@ -32,11 +32,18 @@ class NucliaAuth:
 
     def show(self):
         if self._config.default:
-            print("Default Knowledge Box")
-            print("=====================")
-            print()
-            print(self._config.get_kb(self._config.default.kbid))
-            print()
+            if self._config.default.account:
+                print("Default Account")
+                print("===============")
+                print()
+                print(self._config.default.account)
+                print()
+            if self._config.default.kbid:
+                print("Default Knowledge Box")
+                print("=====================")
+                print()
+                print(self._config.get_kb(self._config.default.kbid))
+                print()
 
         if self._config.token:
             print("User Auth")
@@ -128,7 +135,7 @@ class NucliaAuth:
             return None, None
 
     def _show_user(self):
-        resp = self.get_user(MEMBER)
+        resp = self._request('GET', MEMBER)
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
 
@@ -184,33 +191,29 @@ class NucliaAuth:
         self.accounts()
         self.zones()
 
-    def post_user(self, path: str, payload: Dict[str, str]):
+    def _request(self, method: str, path: str, data: Optional[Any] = None):
         if not self._config.token:
             raise NeedUserToken()
-        resp = requests.post(
+        kwargs = { "headers": {"Authorization": f"Bearer {self._config.token}"}}
+        if data is not None:
+            non_null_values = {k: v for k, v in data.items() if v is not None}
+            kwargs["data"] = json.dumps(non_null_values)
+        resp = requests.request(
+            method,
             path,
-            headers={"Authorization": f"Bearer {self._config.token}"},
-            data=payload,
+            **kwargs,
         )
-        if resp.status_code == 201:
+        if resp.status_code == 204:
+            return None
+        elif resp.status_code >= 200 and resp.status_code < 300:
             return resp.json()
         elif resp.status_code == 403:
             raise UserTokenExpired()
-
-    def get_user(self, path: str):
-        if not self._config.token:
-            raise NeedUserToken()
-        resp = requests.get(
-            path,
-            headers={"Authorization": f"Bearer {self._config.token}"},
-        )
-        if resp.status_code == 200:
-            return resp.json()
-        elif resp.status_code == 403:
-            raise UserTokenExpired()
+        else:
+            raise Exception(resp.text)
 
     def accounts(self) -> List[Account]:
-        accounts = self.get_user(ACCOUNTS)
+        accounts = self._request('GET', ACCOUNTS)
         result = []
         self._config.accounts = []
         for account in accounts:
@@ -221,7 +224,7 @@ class NucliaAuth:
         return result
 
     def zones(self) -> List[Zone]:
-        zones = self.get_user(ZONES)
+        zones = self._request('GET', ZONES)
         if self._config.accounts is None:
             self._config.accounts = []
         self._config.zones = []
@@ -236,7 +239,7 @@ class NucliaAuth:
     def kbs(self, account: str):
         path = LIST_KBS.format(account=account)
         try:
-            kbs = self.get_user(path)
+            kbs = self._request('GET', path)
         except UserTokenExpired:
             return []
         result = []
