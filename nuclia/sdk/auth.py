@@ -135,7 +135,7 @@ class NucliaAuth:
             return None, None
 
     def _show_user(self):
-        resp = self._request('GET', MEMBER)
+        resp = self._request("GET", MEMBER)
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
 
@@ -194,7 +194,7 @@ class NucliaAuth:
     def _request(self, method: str, path: str, data: Optional[Any] = None):
         if not self._config.token:
             raise NeedUserToken()
-        kwargs = { "headers": {"Authorization": f"Bearer {self._config.token}"}}
+        kwargs = {"headers": {"Authorization": f"Bearer {self._config.token}"}}
         if data is not None:
             non_null_values = {k: v for k, v in data.items() if v is not None}
             kwargs["data"] = json.dumps(non_null_values)
@@ -213,7 +213,7 @@ class NucliaAuth:
             raise Exception(resp.text)
 
     def accounts(self) -> List[Account]:
-        accounts = self._request('GET', ACCOUNTS)
+        accounts = self._request("GET", ACCOUNTS)
         result = []
         self._config.accounts = []
         for account in accounts:
@@ -224,7 +224,7 @@ class NucliaAuth:
         return result
 
     def zones(self) -> List[Zone]:
-        zones = self._request('GET', ZONES)
+        zones = self._request("GET", ZONES)
         if self._config.accounts is None:
             self._config.accounts = []
         self._config.zones = []
@@ -239,7 +239,7 @@ class NucliaAuth:
     def kbs(self, account: str):
         path = LIST_KBS.format(account=account)
         try:
-            kbs = self._request('GET', path)
+            kbs = self._request("GET", path)
         except UserTokenExpired:
             return []
         result = []

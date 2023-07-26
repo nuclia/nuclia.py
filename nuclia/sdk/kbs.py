@@ -1,8 +1,7 @@
-import json
 from typing import Dict, Optional
 
 from nuclia import BASE
-from nuclia.config import retrieve, KnowledgeBox
+from nuclia.config import KnowledgeBox, retrieve
 from nuclia.data import get_auth
 from nuclia.decorators import account, accounts
 from nuclia.sdk.auth import NucliaAuth
@@ -53,7 +52,7 @@ class NucliaKBS:
         learning_configuration: Optional[Dict[str, str]] = None,
         sentence_embedder: Optional[str] = None,
         title: Optional[str] = None,
-        zone: Optional[str] = 'europe-1',
+        zone: Optional[str] = "europe-1",
         **kwargs,
     ):
         account = kwargs["account"]
@@ -67,7 +66,7 @@ class NucliaKBS:
             "title": title or slug,
             "zone": zone,
         }
-        self._auth._request('POST', path, data)
+        self._auth._request("POST", path, data)
         return self.get(slug, account=account)
 
     @accounts
@@ -79,7 +78,7 @@ class NucliaKBS:
     ):
         account = kwargs["account"]
         path = KB_ENDPOINT.format(account=account, slug=slug)
-        return self._auth._request('GET', path)
+        return self._auth._request("GET", path)
 
     @accounts
     @account
@@ -90,7 +89,7 @@ class NucliaKBS:
     ):
         account = kwargs["account"]
         path = KB_ENDPOINT.format(account=account, slug=slug)
-        return self._auth._request('DELETE', path)
+        return self._auth._request("DELETE", path)
 
     def default(self, kb: str):
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []

@@ -11,7 +11,11 @@ class NucliaAccounts:
         return self._auth.accounts()
 
     def default(self, account: str):
-        accounts = self._auth._config.accounts if self._auth._config.accounts is not None else []
+        accounts = (
+            self._auth._config.accounts
+            if self._auth._config.accounts is not None
+            else []
+        )
         slugs = [account_obj.slug for account_obj in accounts]
         if account not in slugs:
             raise KeyError("Account not found")

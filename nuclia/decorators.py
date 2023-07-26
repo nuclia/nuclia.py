@@ -94,6 +94,7 @@ def nua(func):
 
     return wrapper_checkout_nua
 
+
 def account(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -107,6 +108,7 @@ def account(func):
         return func(*args, **kwargs)
 
     return wrapper
+
 
 def pretty(func):
     @wraps(func)
