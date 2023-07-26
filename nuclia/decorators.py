@@ -95,6 +95,21 @@ def nua(func):
     return wrapper_checkout_nua
 
 
+def account(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not kwargs.get("account"):
+            auth = get_auth()
+            account_slug = auth._config.get_default_account()
+            if account_slug is None:
+                raise NotDefinedDefault()
+            else:
+                kwargs["account"] = account_slug
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def pretty(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
