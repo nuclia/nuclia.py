@@ -2,9 +2,7 @@
 
 ## 1.1.5 (unreleased)
 
-
-- Nothing changed yet.
-
+- Support summary as resource attribute
 
 ## 1.1.4 (2023-07-21)
 
