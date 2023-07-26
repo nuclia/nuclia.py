@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.5 (unreleased)
+## 1.1.5 (2023-07-26)
 
 - Support summary as resource attribute
 - Allow to create kb
