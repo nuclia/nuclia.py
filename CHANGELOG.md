@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.6 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 1.1.5 (2023-07-26)
 
 - Support summary as resource attribute
