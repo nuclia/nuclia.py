@@ -191,15 +191,18 @@ class NucliaAuth:
         self.accounts()
         self.zones()
 
-    def _request(self, method: str, path: str, data: Optional[Any] = None):
+    def _request(
+        self, method: str, path: str, data: Optional[Any] = None, remove_null=True
+    ):
         if not self._config.token:
             raise NeedUserToken()
         kwargs: Dict[str, Any] = {
             "headers": {"Authorization": f"Bearer {self._config.token}"}
         }
         if data is not None:
-            non_null_values = {k: v for k, v in data.items() if v is not None}
-            kwargs["data"] = json.dumps(non_null_values)
+            if remove_null:
+                data = {k: v for k, v in data.items() if v is not None}
+            kwargs["data"] = json.dumps(data)
         resp = requests.request(
             method,
             path,
@@ -209,10 +212,12 @@ class NucliaAuth:
             return None
         elif resp.status_code >= 200 and resp.status_code < 300:
             return resp.json()
+        elif resp.status_code >= 300 and resp.status_code < 400:
+            return None
         elif resp.status_code == 403:
             raise UserTokenExpired()
         else:
-            raise Exception(resp.text)
+            raise Exception({"status": resp.status_code, "message": resp.text})
 
     def accounts(self) -> List[Account]:
         accounts = self._request("GET", ACCOUNTS)
