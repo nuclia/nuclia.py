@@ -12,7 +12,7 @@ if BASE_DOMAIN == "stashify.cloud":
     TESTING_KBID = "84379bd4-41d4-4100-86a2-9e5512675ae3"
     TESTING_KB = "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_KBID
 else:
-    TESTING_ACCOUNT_SLUG = "testing-sdk"
+    TESTING_ACCOUNT_SLUG = "nuclia"
     TESTING_KBID = "eb720a59-f879-4b23-a995-605f91c874f4"
     TESTING_KB = "https://europe-1.nuclia.cloud/api/v1/kb/" + TESTING_KBID
 
