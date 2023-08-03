@@ -1,4 +1,4 @@
-name: Nuclia SDK
+name: Test on stage
 
 on:
   pull_request:

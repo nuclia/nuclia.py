@@ -1,4 +1,4 @@
-name: Nuclia SDK
+name: Test on nuclia.cloud
 
 on:
   pull_request:
