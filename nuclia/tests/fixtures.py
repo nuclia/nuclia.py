@@ -3,11 +3,11 @@ import tempfile
 
 import pytest
 
+from nuclia import BASE_DOMAIN
 from nuclia.config import reset_config_file, set_config_file
 from nuclia.sdk.auth import NucliaAuth
-from nuclia import BASE_DOMAIN
 
-if BASE_DOMAIN == 'stashify.cloud':
+if BASE_DOMAIN == "stashify.cloud":
     TESTING_ACCOUNT_SLUG = "eric-cicd"
     TESTING_KBID = "84379bd4-41d4-4100-86a2-9e5512675ae3"
     TESTING_KB = "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_KBID
