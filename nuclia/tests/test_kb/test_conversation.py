@@ -6,7 +6,7 @@ from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.resource import NucliaResource
 from nuclia.sdk.upload import NucliaUpload
 
-path = f"{os.path.dirname(__file__)}/assets/conversation.json"
+path = f"{os.path.dirname(__file__)}/../assets/conversation.json"
 
 
 def test_conversation(testing_config):
