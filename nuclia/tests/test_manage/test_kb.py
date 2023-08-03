@@ -1,8 +1,8 @@
+from uuid import uuid4
+
 import pytest
 
-from uuid import uuid4
 from nuclia.exceptions import UserTokenExpired
-
 from nuclia.sdk.kbs import NucliaKBS
 from nuclia.tests.fixtures import IS_PROD, TESTING_ACCOUNT_SLUG, TESTING_KBID
 
@@ -25,7 +25,6 @@ def test_add_and_delete_kb(testing_config):
     assert kb["id"] is not None
     assert kb["slug"] == NEW_KB_SLUG
     assert kb["title"] == "Test KB"
-    all_kbs = kbs.list()
     assert kbs.get(account=TESTING_ACCOUNT_SLUG, slug=NEW_KB_SLUG) is not None
 
     kbs.delete(account=TESTING_ACCOUNT_SLUG, slug=NEW_KB_SLUG)
