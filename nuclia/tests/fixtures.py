@@ -7,11 +7,13 @@ from nuclia import BASE_DOMAIN
 from nuclia.config import reset_config_file, set_config_file
 from nuclia.sdk.auth import NucliaAuth
 
+IS_PROD = False
 if BASE_DOMAIN == "stashify.cloud":
     TESTING_ACCOUNT_SLUG = "eric-cicd"
     TESTING_KBID = "84379bd4-41d4-4100-86a2-9e5512675ae3"
     TESTING_KB = "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_KBID
 else:
+    IS_PROD = True
     TESTING_ACCOUNT_SLUG = "nuclia"
     TESTING_KBID = "eb720a59-f879-4b23-a995-605f91c874f4"
     TESTING_KB = "https://europe-1.nuclia.cloud/api/v1/kb/" + TESTING_KBID
