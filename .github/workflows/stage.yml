@@ -1,0 +1,27 @@
+name: Nuclia SDK
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install package
+        run: make install
+
+      - name: Run pre-checks
+        run: make lint
+
+      - name: Test
+        run: BASE_NUCLIA_DOMAIN="stashify.cloud" GA_TESTING_SERVICE_TOKEN="${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.STAGE_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.STAGE_TESTING_NUA }}" make test
