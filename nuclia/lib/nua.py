@@ -21,7 +21,6 @@ class NuaClient:
         endpoint = f"{self.url}{SENTENCE_PREDICT}?text={text}"
         if model:
             endpoint += f"&model={model}"
-        print(endpoint)
         resp = requests.get(endpoint, headers=self.headers)
         if resp.status_code == 200:
             return Sentence.parse_obj(resp.json())
