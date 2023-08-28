@@ -60,7 +60,7 @@ class NucliaAuth:
             for nua in self._config.nuas_token:
                 print(nua)
 
-    def kb(self, url: str, token: str):
+    def kb(self, url: str, token: str, interactive: bool = True):
         url = url.strip("/")
         kbid, title = self.validate_kb(url, token)
         if kbid:
@@ -72,7 +72,11 @@ class NucliaAuth:
                         self._config.kbs if self._config.kbs is not None else [],
                     )
                 )
-                if yes_no(f"Want to replace actual KB {kbid} configuration") is False:
+                if (
+                    interactive
+                    and yes_no(f"Want to replace actual KB {kbid} configuration")
+                    is False
+                ):
                     print("Cancelling operation")
                     return
 
@@ -80,7 +84,9 @@ class NucliaAuth:
                 # Not found
                 pass
 
-            self._config.set_kb_token(url=url, token=token, title=title, kbid=kbid)
+            self._config.set_kb_token(
+                url=url, token=token, title=title, kbid=kbid, interactive=interactive
+            )
         else:
             print("Invalid service token")
 

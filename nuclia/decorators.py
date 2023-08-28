@@ -32,6 +32,8 @@ def kbs(func):
 def kb(func):
     @wraps(func)
     def wrapper_checkout_kb(*args, **kwargs):
+        if "ndb" in kwargs:
+            return func(*args, **kwargs)
         url = kwargs.get("url")
         api_key = kwargs.get("api_key")
         auth = get_auth()
