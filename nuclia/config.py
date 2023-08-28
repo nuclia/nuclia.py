@@ -56,6 +56,7 @@ class Account(BaseModel):
 class Selection(BaseModel):
     nua: Optional[str] = None
     kbid: Optional[str] = None
+    account: Optional[str] = None
 
 
 class Config(BaseModel):
@@ -163,11 +164,6 @@ class Config(BaseModel):
 
         self.save()
 
-    def get_default_kb(self) -> str:
-        if self.default is None or self.default.kbid is None:
-            raise NotDefinedDefault()
-        return self.default.kbid
-
     def get_default_nua(self) -> str:
         if self.default is None or self.default.nua is None:
             raise NotDefinedDefault()
@@ -178,6 +174,22 @@ class Config(BaseModel):
             self.default = Selection()
         self.default.nua = nua
         self.save()
+
+    def get_default_account(self) -> str:
+        if self.default is None or self.default.account is None:
+            raise NotDefinedDefault()
+        return self.default.account
+
+    def set_default_account(self, account: str):
+        if self.default is None:
+            self.default = Selection()
+        self.default.account = account
+        self.save()
+
+    def get_default_kb(self) -> str:
+        if self.default is None or self.default.kbid is None:
+            raise NotDefinedDefault()
+        return self.default.kbid
 
     def set_default_kb(self, kbid: str):
         if self.default is None:

@@ -1,10 +1,6 @@
-from nuclia import BASE
 from nuclia.sdk.predict import NucliaPredict
 from nuclia.sdk.process import NucliaProcess
 from nuclia.sdk.train import NucliaTrain
-
-LIST_KBS = BASE + "/api/v1/account/{account}/kbs"
-ADD_KB = BASE + "/api/v1/account/{account}/kbs"
 
 
 class NucliaNUA:

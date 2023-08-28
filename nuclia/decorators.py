@@ -2,6 +2,7 @@ from functools import wraps
 
 import yaml
 
+from nuclia import BASE_DOMAIN
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -65,7 +66,7 @@ def kb(func):
                         region=kb_obj.region,
                     )
 
-        elif url.find("nuclia.cloud") >= 0:
+        elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             ndb = NucliaDBClient(
                 environment=Environment.CLOUD, url=url, api_key=api_key, region=region
@@ -94,6 +95,21 @@ def nua(func):
         return func(*args, **kwargs)
 
     return wrapper_checkout_nua
+
+
+def account(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not kwargs.get("account"):
+            auth = get_auth()
+            account_slug = auth._config.get_default_account()
+            if account_slug is None:
+                raise NotDefinedDefault()
+            else:
+                kwargs["account"] = account_slug
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def pretty(func):

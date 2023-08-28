@@ -3,10 +3,11 @@ from typing import Dict, Optional
 from nuclia import BASE
 from nuclia.config import retrieve
 from nuclia.data import get_auth
-from nuclia.decorators import accounts
+from nuclia.decorators import account, accounts
 from nuclia.sdk.auth import NucliaAuth
 
-ADD_KB = BASE + "/api/v1/account/{account}/kbs"
+KBS_ENDPOINT = BASE + "/api/v1/account/{account}/kbs"
+KB_ENDPOINT = BASE + "/api/v1/account/{account}/kb/{slug}"
 
 
 class NucliaKBS:
@@ -41,20 +42,54 @@ class NucliaKBS:
         else:
             return self._auth.kbs(account)
 
+    @accounts
+    @account
     def add(
         self,
-        account: str,
         slug: str,
         anonymization: Optional[str] = None,
         description: Optional[str] = None,
         learning_configuration: Optional[Dict[str, str]] = None,
         sentence_embedder: Optional[str] = None,
         title: Optional[str] = None,
-        zone: Optional[str] = None,
+        zone: Optional[str] = "europe-1",
+        **kwargs,
     ):
-        # path = ADD_KB.format(account=account)
-        raise NotImplementedError()
-        # return self._auth.post_user(path, payload)
+        account = kwargs["account"]
+        path = KBS_ENDPOINT.format(account=account)
+        data = {
+            "slug": slug,
+            "anonymization": anonymization,
+            "description": description,
+            "learning_configuration": learning_configuration,
+            "sentence_embedder": sentence_embedder,
+            "title": title or slug,
+            "zone": zone,
+        }
+        self._auth._request("POST", path, data)
+        return self.get(slug, account=account)
+
+    @accounts
+    @account
+    def get(
+        self,
+        slug: str,
+        **kwargs,
+    ):
+        account = kwargs["account"]
+        path = KB_ENDPOINT.format(account=account, slug=slug)
+        return self._auth._request("GET", path)
+
+    @accounts
+    @account
+    def delete(
+        self,
+        slug: str,
+        **kwargs,
+    ):
+        account = kwargs["account"]
+        path = KB_ENDPOINT.format(account=account, slug=slug)
+        return self._auth._request("DELETE", path)
 
     def default(self, kb: str):
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []

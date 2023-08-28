@@ -18,10 +18,10 @@ class NuaClient:
         self.headers = {"X-STF-NUAKEY": f"Bearer {token}"}
 
     def sentence_predict(self, text: str, model: Optional[str] = None) -> Sentence:
-        resp = requests.get(
-            f"{self.url}{SENTENCE_PREDICT}?text={text}&model={model}",
-            headers=self.headers,
-        )
+        endpoint = f"{self.url}{SENTENCE_PREDICT}?text={text}"
+        if model:
+            endpoint += f"&model={model}"
+        resp = requests.get(endpoint, headers=self.headers)
         if resp.status_code == 200:
             return Sentence.parse_obj(resp.json())
         else:

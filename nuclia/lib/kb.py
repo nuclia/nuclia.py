@@ -8,6 +8,7 @@ from nucliadb_models.search import ChatRequest
 from nucliadb_sdk import NucliaDB, Region
 
 from nuclia.exceptions import NeedUserToken
+from nuclia.lib.utils import handle_http_errors
 
 RESOURCE_PATH = "/resource/{rid}"
 RESOURCE_PATH_BY_SLUG = "/slug/{slug}"
@@ -113,13 +114,8 @@ class NucliaDBClient:
         response: requests.Response = self.stream_session.post(
             url, data=request.json(), stream=True
         )
-        response
-        if response.status_code == 200:
-            return response
-        else:
-            raise httpx.HTTPError(
-                f"Status code {response.status_code}: {response.text}"
-            )
+        handle_http_errors(response)
+        return response
 
     def download(self, uri: str) -> bytes:
         # uri has format
@@ -133,12 +129,8 @@ class NucliaDBClient:
         new_uri = "/".join(uri_parts[3:])
         url = DOWNLOAD_URL.format(uri=new_uri)
         response: httpx.Response = self.reader_session.get(url)
-        if response.status_code == 200:
-            return response.content
-        else:
-            raise httpx.HTTPError(
-                f"Status code {response.status_code}: {response.text}"
-            )
+        handle_http_errors(response)
+        return response.content
 
     def start_tus_upload(
         self,
@@ -163,12 +155,8 @@ class NucliaDBClient:
         }
 
         response: httpx.Response = self.writer_session.post(url, headers=headers)
-        if response.status_code == 201:
-            return response.headers.get("Location")
-        else:
-            raise httpx.HTTPError(
-                f"Status code {response.status_code}: {response.text}"
-            )
+        handle_http_errors(response)
+        return response.headers.get("Location")
 
     def patch_tus_upload(self, upload_url: str, data: bytes, offset: int) -> int:
         headers = {
@@ -179,9 +167,5 @@ class NucliaDBClient:
         response: httpx.Response = self.writer_session.patch(
             upload_url, headers=headers, content=data
         )
-        if response.status_code == 200:
-            return int(response.headers.get("Upload-Offset"))
-        else:
-            raise httpx.HTTPError(
-                f"Status code {response.status_code}: {response.text}"
-            )
+        handle_http_errors(response)
+        return int(response.headers.get("Upload-Offset"))
