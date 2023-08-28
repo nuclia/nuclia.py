@@ -128,7 +128,12 @@ class Config(BaseModel):
         self.save()
 
     def set_kb_token(
-        self, url: str, token: str, kbid: str, title: Optional[str] = None
+        self,
+        url: str,
+        token: str,
+        kbid: str,
+        title: Optional[str] = None,
+        interactive: bool = True,
     ):
         try:
             kb_obj = next(
@@ -150,10 +155,13 @@ class Config(BaseModel):
         kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title, region=region)
         self.kbs_token.append(kb_obj)
 
-        if yes_no(f"Do you want to setup KB {url} as default one?"):
+        if interactive is False or yes_no(
+            f"Do you want to setup KB {url} as default one?"
+        ):
             if self.default is None:
                 self.default = Selection()
             self.default.kbid = kbid
+
         self.save()
 
     def get_default_nua(self) -> str:
