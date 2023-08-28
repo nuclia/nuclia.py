@@ -3,7 +3,8 @@
 ## 1.1.7 (unreleased)
 
 
-- Nothing changed yet.
+- Set KB with no interaction
+- Provide custom client on knowledgebox actions
 
 
 ## 1.1.6 (2023-07-27)
