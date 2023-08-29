@@ -42,7 +42,7 @@ class NucliaSearch:
 
     @kb
     @pretty
-    def search(self, *, query: Union[str, SearchRequest], **kwargs):
+    def search(self, *, query: Union[str, SearchRequest] = "", **kwargs):
         """
         Perform a search query.
 
@@ -58,7 +58,7 @@ class NucliaSearch:
 
     @kb
     @pretty
-    def find(self, *, query: Union[str, FindRequest], **kwargs):
+    def find(self, *, query: Union[str, FindRequest] = "", **kwargs):
         """
         Perform a find query.
 
