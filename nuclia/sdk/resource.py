@@ -1,10 +1,10 @@
 from typing import List, Optional
 from uuid import uuid4
-from nuclia import get_list_parameter
 
 from nucliadb_models.metadata import ResourceProcessingStatus
 from nucliadb_models.resource import Resource
 
+from nuclia import get_list_parameter
 from nuclia.decorators import kb, pretty
 from nuclia.sdk.logger import logger
 
