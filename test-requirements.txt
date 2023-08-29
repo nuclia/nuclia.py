@@ -4,3 +4,4 @@ types-requests
 types-tqdm
 pytest-asyncio
 nucliadb
+nats-py==2.3.1
