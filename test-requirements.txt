@@ -2,3 +2,4 @@ pytest
 types-PyYAML
 types-requests
 types-tqdm
+pytest-asyncio

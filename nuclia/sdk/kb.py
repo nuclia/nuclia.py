@@ -26,11 +26,18 @@ class NucliaKB:
         self.resource = NucliaResource()
 
     @kb
-    def list(self, **kwargs) -> None:
+    def list(self, *, interactive: bool = True, **kwargs) -> Optional[ResourceList]:
         ndb: NucliaDBClient = kwargs["ndb"]
         data: ResourceList = ndb.ndb.list_resources(kbid=ndb.kbid)
-        for resource in data.resources:
-            print(f"{resource.id} {resource.icon:30} {resource.title}")
+        if interactive:
+            for resource in data.resources:
+                status = (
+                    resource.metadata.status if resource.metadata is not None else ""
+                )
+                print(f"{resource.id} {resource.icon:30} {resource.title} - {status}")
+            return None
+        else:
+            return data
 
     @kb
     def get_labelset(

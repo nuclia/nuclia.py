@@ -67,7 +67,19 @@ class NucliaAuth:
             for nua in self._config.nuas_token:
                 print(nua)
 
-    def kb(self, url: str, token: str, interactive: bool = True):
+    def nucliadb(self, url: str = "http://localhost:8080"):
+        """
+        Setup a local NucliaDB. Needs to be the base url of the NucliaDB server
+        """
+        resp = requests.get(url)
+        if resp.status_code != 200 or b"Nuclia" not in resp.content:
+            raise Exception("Not a valid URL")
+        self._config.set_default_nucliadb(nucliadb=url)
+
+    def unset_kb(self, kbid: str):
+        self._config.unset_default_kb(kbid=kbid)
+
+    def kb(self, url: str, token: Optional[str] = None, interactive: bool = True):
         url = url.strip("/")
         kbid, title = self.validate_kb(url, token)
         if kbid:
@@ -128,12 +140,22 @@ class NucliaAuth:
         else:
             return None, None, None
 
-    def validate_kb(self, url: str, token: str) -> Tuple[Optional[str], Optional[str]]:
+    def validate_kb(
+        self, url: str, token: Optional[str] = None
+    ) -> Tuple[Optional[str], Optional[str]]:
         # Validate the code is ok
-        resp = requests.get(
-            url,
-            headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
-        )
+        if token is None:
+            # Validate OSS version
+            resp = requests.get(
+                url,
+                headers={"X-NucliaDB-ROLES": f"READER"},
+            )
+        else:
+            # Validate Cloud version
+            resp = requests.get(
+                url,
+                headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
+            )
         if resp.status_code == 200:
             data = resp.json()
             return data.get("uuid"), data.get("config", {}).get("title")
