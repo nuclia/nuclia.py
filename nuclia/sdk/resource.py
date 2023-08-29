@@ -1,5 +1,6 @@
 from typing import List, Optional
 from uuid import uuid4
+from nuclia import get_list_parameter
 
 from nucliadb_models.metadata import ResourceProcessingStatus
 from nucliadb_models.resource import Resource
@@ -55,7 +56,8 @@ class NucliaResource:
         **kwargs
     ) -> Resource:
         ndb = kwargs["ndb"]
-        show = list(show or [])
+        show = get_list_parameter(show)
+        extracted = get_list_parameter(extracted)
         if "basic" not in show:
             show.append("basic")
         if rid:
