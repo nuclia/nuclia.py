@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.8 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 1.1.7 (2023-08-28)
 
 
