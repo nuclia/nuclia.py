@@ -3,7 +3,7 @@
 ## 1.1.9 (unreleased)
 
 
-- Nothing changed yet.
+- Relax requirements on PyYaml
 
 
 ## 1.1.8 (2023-08-30)
