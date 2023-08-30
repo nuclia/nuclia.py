@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.9 (unreleased)
+## 1.1.9 (2023-08-30)
 
 
 - Relax requirements on PyYaml
