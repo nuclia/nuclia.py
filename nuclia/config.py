@@ -57,6 +57,7 @@ class Selection(BaseModel):
     nua: Optional[str] = None
     kbid: Optional[str] = None
     account: Optional[str] = None
+    nucliadb: Optional[str] = None
 
 
 class Config(BaseModel):
@@ -130,8 +131,8 @@ class Config(BaseModel):
     def set_kb_token(
         self,
         url: str,
-        token: str,
         kbid: str,
+        token: Optional[str] = None,
         title: Optional[str] = None,
         interactive: bool = True,
     ):
@@ -162,6 +163,17 @@ class Config(BaseModel):
                 self.default = Selection()
             self.default.kbid = kbid
 
+        self.save()
+
+    def get_default_nucliadb(self) -> Optional[str]:
+        if self.default is None or self.default.nua is None:
+            raise NotDefinedDefault()
+        return self.default.nucliadb
+
+    def set_default_nucliadb(self, nucliadb: str):
+        if self.default is None:
+            self.default = Selection()
+        self.default.nucliadb = nucliadb
         self.save()
 
     def get_default_nua(self) -> str:
@@ -195,6 +207,13 @@ class Config(BaseModel):
         if self.default is None:
             self.default = Selection()
         self.default.kbid = kbid
+        self.save()
+
+    def unset_default_kb(self, kbid: str):
+        if self.default is None:
+            self.default = Selection()
+        if self.default.kbid == kbid:
+            self.default.kbid = None
         self.save()
 
     def save(self):

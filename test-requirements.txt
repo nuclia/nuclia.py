@@ -1,4 +1,7 @@
-pytest
-types-PyYAML
-types-requests
-types-tqdm
+pytest==7.4.0
+types-PyYAML==6.0.12.11
+types-requests==2.31.0.2
+types-tqdm==4.66.0.2
+pytest-asyncio==0.21.1
+nucliadb>=2.23.0
+nats-py==2.2.0

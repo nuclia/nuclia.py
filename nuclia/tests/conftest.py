@@ -1,3 +1,1 @@
-pytest_plugins = [
-    "nuclia.tests.fixtures",
-]
+pytest_plugins = ["nuclia.tests.fixtures", "nucliadb.tests.fixtures"]

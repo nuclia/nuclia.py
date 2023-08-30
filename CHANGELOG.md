@@ -3,6 +3,7 @@
 ## 1.1.8 (unreleased)
 
 
+- Adding support for local NucliaDB
 - Fix `--show` when passing a single value
 
 
