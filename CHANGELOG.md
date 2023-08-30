@@ -4,6 +4,7 @@
 
 
 - Align Python version requirement with nuclia_sdk
+- Fix Local nucliadb default retrieval
 
 
 ## 1.1.9 (2023-08-30)
