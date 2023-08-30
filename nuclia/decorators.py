@@ -79,6 +79,30 @@ def kb(func):
     return wrapper_checkout_kb
 
 
+def nucliadb(func):
+    @wraps(func)
+    def wrapper_checkout_nucliadb(*args, **kwargs):
+        if "ndb" in kwargs:
+            return func(*args, **kwargs)
+        url = kwargs.get("url")
+        auth = get_auth()
+        if url is None:
+            # Get default KB
+            nucliadb = auth._config.get_default_nucliadb()
+            if nucliadb is None:
+                raise NotDefinedDefault()
+            # OSS
+            ndb = NucliaDBClient(
+                environment=Environment.OSS, base_url=f"{nucliadb}/api"
+            )
+        else:
+            ndb = NucliaDBClient(environment=Environment.OSS, base_url=f"{url}/api")
+        kwargs["ndb"] = ndb
+        return func(*args, **kwargs)
+
+    return wrapper_checkout_nucliadb
+
+
 def nua(func):
     @wraps(func)
     def wrapper_checkout_nua(*args, **kwargs):

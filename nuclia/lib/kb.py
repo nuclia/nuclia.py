@@ -33,20 +33,23 @@ class Environment(str, Enum):
 
 
 class NucliaDBClient:
-    api_key: Optional[str]
     environment: Environment
-    session: httpx.Client
-    url: str
-    search_url: str
+    base_url: str
+    api_key: Optional[str]
+    url: Optional[str] = None
+    reader_session: Optional[httpx.Client] = None
+    stream_session: Optional[requests.Session] = None
+    writer_session: Optional[httpx.Client] = None
 
     def __init__(
         self,
         *,
-        url: str,
         environment: Environment = Environment.CLOUD,
+        url: Optional[str] = None,
         api_key: Optional[str] = None,
         user_token: Optional[str] = None,
         region: Optional[str] = None,
+        base_url: Optional[str] = None,
     ):
         if environment == Environment.OSS:
             region_obj = Region.ON_PREM
@@ -57,15 +60,20 @@ class NucliaDBClient:
         if user_token is not None:
             headers["Authorization"] = f"Bearer {user_token}"
         headers["X-SYNCHRONOUS"] = "True"
-        v2url = "/".join(url.split("/")[:-3])
+        if base_url is not None:
+            v2url = base_url
+        if base_url is None and url is not None:
+            v2url = "/".join(url.split("/")[:-3])
+        self.base_url = v2url
         self.ndb = NucliaDB(
             region=region_obj, url=v2url, api_key=api_key, headers=headers
         )
         self.api_key = api_key
         self.environment = environment
-        self.kbid = url.strip("/").split("/")[-1]
 
-        self.url = url
+        if url is not None:
+            self.kbid = url.strip("/").split("/")[-1]
+            self.url = url
 
         if environment == Environment.CLOUD and api_key is not None:
             reader_headers = {
@@ -100,16 +108,19 @@ class NucliaDBClient:
                 "X-SYNCHRONOUS": "True",
             }
 
-        self.reader_session = httpx.Client(
-            headers=reader_headers, base_url=url  # type: ignore
-        )
-        self.stream_session = requests.Session()
-        self.stream_session.headers.update(reader_headers)
-        self.writer_session = httpx.Client(
-            headers=writer_headers, base_url=url  # type: ignore
-        )
+        if url is not None:
+            self.reader_session = httpx.Client(
+                headers=reader_headers, base_url=url  # type: ignore
+            )
+            self.stream_session = requests.Session()
+            self.stream_session.headers.update(reader_headers)
+            self.writer_session = httpx.Client(
+                headers=writer_headers, base_url=url  # type: ignore
+            )
 
     def chat(self, request: ChatRequest):
+        if self.url is None or self.stream_session is None:
+            raise Exception("KB not configured")
         url = f"{self.url}{CHAT_URL}"
         response: requests.Response = self.stream_session.post(
             url, data=request.json(), stream=True
@@ -121,6 +132,8 @@ class NucliaDBClient:
         # uri has format
         # /kb/2a00d5b4-cfcc-48eb-85ac-d70bfd38b26d/resource/41d02aac4ade48098b23e38141807738/file/file/download/field
         # we need to remove the kb url
+        if self.reader_session is None:
+            raise Exception("KB not configured")
 
         uri_parts = uri.split("/")
         if len(uri_parts) < 9:
@@ -140,6 +153,9 @@ class NucliaDBClient:
         rid: Optional[str] = None,
         content_type: str = "application/octet-stream",
     ):
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
         if rid is not None:
             if field is None:
                 field = filename
@@ -159,6 +175,9 @@ class NucliaDBClient:
         return response.headers.get("Location")
 
     def patch_tus_upload(self, upload_url: str, data: bytes, offset: int) -> int:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
         headers = {
             "upload-offset": str(offset),
         }
