@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.8 (unreleased)
+## 1.1.8 (2023-08-30)
 
 
 - Adding support for local NucliaDB
