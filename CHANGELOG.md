@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.10 (unreleased)
+## 1.1.10 (2023-08-30)
 
 
 - Align Python version requirement with nuclia_sdk
