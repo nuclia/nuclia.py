@@ -166,7 +166,7 @@ class Config(BaseModel):
         self.save()
 
     def get_default_nucliadb(self) -> Optional[str]:
-        if self.default is None or self.default.nua is None:
+        if self.default is None or self.default.nucliadb is None:
             raise NotDefinedDefault()
         return self.default.nucliadb
 
