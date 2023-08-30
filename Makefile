@@ -1,5 +1,5 @@
 install:
-	pip install --update pip
+	pip install --upgrade pip
 	pip install -r code-requirements.txt
 	pip install -r test-requirements.txt
 	pip install -r requirements.txt
