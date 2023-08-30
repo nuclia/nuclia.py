@@ -43,7 +43,7 @@ setup(
     author="Nuclia",
     keywords="search, semantic, AI",
     author_email="info@nuclia.com",
-    python_requires=">=3.7, <4",
+    python_requires=">=3.8, <4",
     license="BSD",
     zip_safe=True,
     include_package_data=True,

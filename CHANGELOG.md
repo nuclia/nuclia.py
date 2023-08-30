@@ -3,7 +3,7 @@
 ## 1.1.10 (unreleased)
 
 
-- Nothing changed yet.
+- Align Python version requirement with nuclia_sdk
 
 
 ## 1.1.9 (2023-08-30)
