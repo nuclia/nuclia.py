@@ -5,7 +5,7 @@
 
 - Adding support for local NucliaDB
 - Fix `--show` when passing a single value
-
+- Upgrade to `pyyaml>=6.0.1`
 
 ## 1.1.7 (2023-08-28)
 
