@@ -118,10 +118,21 @@ class NucliaKB:
         self,
         *,
         semantic_model: Optional[str] = None,
+        generative_model: Optional[str] = None,
+        ner_model: Optional[str] = None,
+        anonymization_model: Optional[str] = None,
+        visual_labeling: Optional[str] = None,
         **kwargs,
     ):
         ndb: NucliaDBClient = kwargs["ndb"]
-        ndb.ndb.set_configuration(kbid=ndb.kbid, semantic_model=semantic_model)
+        ndb.ndb.set_configuration(
+            kbid=ndb.kbid,
+            semantic_model=semantic_model,
+            generative_model=generative_model,
+            ner_model=ner_model,
+            anonymization_model=anonymization_model,
+            visual_labeling=visual_labeling,
+        )
 
     @kb
     def del_configuration(self, **kwargs):
