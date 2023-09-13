@@ -3,7 +3,7 @@
 ## 1.1.11 (unreleased)
 
 
-- Nothing changed yet.
+- Replace gnureadline with prompt_toolkit (for Windows compatibility)
 
 
 ## 1.1.10 (2023-08-30)
