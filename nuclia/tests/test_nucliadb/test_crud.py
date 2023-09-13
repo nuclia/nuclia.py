@@ -1,15 +1,15 @@
 from asyncio import BaseEventLoop
 from functools import partial
-from typing import Any
 
 import pytest
+from nucliadb.standalone.settings import Settings
 from nucliadb_models.resource import KnowledgeBoxList, KnowledgeBoxObj, ResourceList
 
 from nuclia.sdk import NucliaAuth, NucliaDB, NucliaKB
 
 
 @pytest.mark.asyncio
-async def test_crud(nucliadb: Any, event_loop: BaseEventLoop):
+async def test_crud(nucliadb: Settings, event_loop: BaseEventLoop):
     auth = NucliaAuth()
     nkb = NucliaKB()
     ndb = NucliaDB()

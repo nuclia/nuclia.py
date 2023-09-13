@@ -9,7 +9,7 @@ lint:
 	black nuclia
 	isort --profile=black nuclia
 	flake8 nuclia
-	mypy nuclia
 
 test:
+	mypy nuclia
 	pytest nuclia
