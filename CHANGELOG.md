@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.11 (unreleased)
+## 1.1.11 (2023-09-13)
 
 
 - Replace gnureadline with prompt_toolkit (for Windows compatibility)
