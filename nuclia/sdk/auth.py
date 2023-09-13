@@ -1,10 +1,10 @@
 import base64
 import json
-import readline  # noqa
 import webbrowser
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from prompt_toolkit import prompt
 
 from nuclia import BASE, get_global_url
 from nuclia.cli.utils import yes_no
@@ -177,7 +177,8 @@ class NucliaAuth:
             return
 
         webbrowser.open(get_global_url("/redirect?display=token"))
-        code = input("Follow the browser flow and copy the token and paste it here:")
+        # we cannot use Python's `input` here because the copy/pasted token is too long
+        code = prompt("Follow the browser flow and copy the token and paste it here:")
         print("Checking...")
         self.set_user_token(code)
 
