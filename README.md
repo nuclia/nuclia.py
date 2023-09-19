@@ -16,7 +16,6 @@ You can login with your Nuclia user [How to sign-up](https://nuclia.cloud/user/s
 nuclia auth login
 ```
 
-
 ### Nuclia Knowledgebox
 
 You can login to a specific knowledgebox if you have a Service Token (How to get a Service Token) or your NucliaDB is [deployed on-premise](https://docs.nuclia.dev/docs/nucliadb/deploy)
@@ -26,7 +25,6 @@ nuclia auth kb --url KB_URL --token SERVICE_TOKEN
 ```
 
 KB_URL its the url of the Knowledge Box. On the cloud service you can retrieve it on the dashboard. On the on-premise/community deployment its the url mapped to it.
-
 
 ### Nuclia Understanding API
 
@@ -38,4 +36,4 @@ nuclia auth nua --key ZZZZ
 
 ## Documentation
 
-You can find the documentation [here](https://github.com/nuclia/nuclia.py/tree/main/docs)
+You can find the documentation [here](https://github.com/nuclia/nuclia.py/tree/main/docs/01-README.md)

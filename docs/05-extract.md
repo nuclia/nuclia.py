@@ -1,6 +1,6 @@
 # Extract data from a resource
 
-Once you have [uploaded](UPLOAD.md) a resource you can extract data from it.
+Once you have [uploaded](04-upload.md) a resource you can extract data from it.
 
 ```bash
 nuclia kb resource get --rid=RESOURCE_ID --show=extracted --json
