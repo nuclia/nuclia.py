@@ -1,6 +1,6 @@
 # Conversational use case
 
-All examples has assumed you [authenticated](AUTH.md) and defined a [default](DEFAULT.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
+All examples has assumed you [authenticated](02-auth.md) and defined a [default](03-default.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
 
 ## Upload messages
 
@@ -35,8 +35,8 @@ nuclia kb upload conversation --path=FILE
 
 ## Upload files
 
-[Upload documentation](UPLOAD.md)
+[Upload documentation](04-upload.md)
 
 ## Search on it
 
-[Search documentation](SEARCH.md)
+[Search documentation](06-search.md)
