@@ -1,6 +1,6 @@
 # Upload use case
 
-All examples assume you [authenticated](AUTH.md) and defined a [default](DEFAULT.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
+All examples assume you [authenticated](02-auth.md) and defined a [default](03-default.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
 
 ## Upload a file in a KnowledgeBox
 
@@ -81,7 +81,6 @@ Pass `origin` or `extra` metadata:
 ```bash
 nuclia kb upload text --path=FILE_PATH --origin='{"url":"https://somwhere.com"}' --extra='{"metadata":{"whatever":42}}'
 ```
-
 
 ## Upload an URL in a KnowledgeBox
 
