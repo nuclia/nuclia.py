@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.12 (unreleased)
+## 1.1.12 (2023-09-21)
 
 
 - Configuration API integration
