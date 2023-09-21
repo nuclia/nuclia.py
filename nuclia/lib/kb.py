@@ -151,6 +151,7 @@ class NucliaDBClient:
         filename: str,
         field: Optional[str] = None,
         rid: Optional[str] = None,
+        md5: Optional[str] = None,
         content_type: str = "application/octet-stream",
     ):
         if self.writer_session is None:
@@ -169,6 +170,10 @@ class NucliaDBClient:
             "upload-metadata": f"filename {encoded_filename}",
             "content-type": content_type,
         }
+        if md5 is not None:
+            headers[
+                "upload-metadata"
+            ] += f",md5 {base64.b64encode(md5.encode()).decode()}"
 
         response: httpx.Response = self.writer_session.post(url, headers=headers)
         handle_http_errors(response)

@@ -12,6 +12,7 @@ from nucliadb_models.search import (
 
 from nuclia.data import get_auth
 from nuclia.decorators import kb, pretty
+from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -48,7 +49,7 @@ class NucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
         """
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = SearchRequest(query=query)
         else:
@@ -65,7 +66,7 @@ class NucliaSearch:
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
         """
 
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = FindRequest(query=query)
         else:
@@ -80,7 +81,7 @@ class NucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Chat_Knowledge_Box_kb__kbid__chat_post
         """
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = ChatRequest(query=query)
         else:

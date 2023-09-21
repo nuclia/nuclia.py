@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import hashlib
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 from uuid import uuid4
+from nuclia.lib.kb import NucliaDBClient
 
 import requests
 from nucliadb_models.text import TextFormat
@@ -55,7 +57,7 @@ class NucliaUpload:
         **kwargs,
     ):
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         filename = path.split("/")[-1]
         size = os.path.getsize(path)
         mimetype_result = mimetypes.guess_type(path)
@@ -66,6 +68,10 @@ class NucliaUpload:
         rid, is_new_resource = self._get_or_create_resource(
             rid=rid, icon=mimetype, **kwargs
         )
+        md5_hash = hashlib.md5()
+
+        with open(path, "rb") as upload_file:
+            md5_hash.update(upload_file.read())
 
         with open(path, "rb") as upload_file:
             try:
@@ -75,6 +81,7 @@ class NucliaUpload:
                     size=size,
                     filename=filename,
                     content_type=mimetype,
+                    md5=md5_hash.hexdigest(),
                 )
 
                 offset = 0

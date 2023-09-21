@@ -12,6 +12,7 @@ from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import NucliaResource
 from nuclia.sdk.search import NucliaSearch
 from nuclia.sdk.upload import NucliaUpload
+from nucliadb_models.configuration import KBConfiguration
 
 
 class NucliaKB:
@@ -111,6 +112,37 @@ class NucliaKB:
         label_to_delete = next(x for x in labelset_obj.labels if x.title == label)
         labelset_obj.labels.remove(label_to_delete)
         ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj)
+
+    @kb
+    def set_configuration(
+        self,
+        *,
+        semantic_model: Optional[str] = None,
+        generative_model: Optional[str] = None,
+        ner_model: Optional[str] = None,
+        anonymization_model: Optional[str] = None,
+        visual_labeling: Optional[str] = None,
+        **kwargs,
+    ):
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb.ndb.set_configuration(
+            kbid=ndb.kbid,
+            semantic_model=semantic_model,
+            generative_model=generative_model,
+            ner_model=ner_model,
+            anonymization_model=anonymization_model,
+            visual_labeling=visual_labeling,
+        )
+
+    @kb
+    def del_configuration(self, **kwargs):
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb.ndb.delete_configuration(kbid=ndb.kbid)
+
+    @kb
+    def get_configuration(self, **kwargs) -> KBConfiguration:
+        ndb: NucliaDBClient = kwargs["ndb"]
+        return ndb.ndb.get_configuration(kbid=ndb.kbid)
 
     @kb
     @pretty
