@@ -3,7 +3,7 @@
 ## 1.1.12 (unreleased)
 
 
-- Nothing changed yet.
+- Configuration API integration
 
 
 ## 1.1.11 (2023-09-13)
