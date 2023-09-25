@@ -98,11 +98,11 @@ class NucliaUpload:
         return rid
 
     @kb
-    def conversation(self, *, path: str, **kwargs) -> Optional[str]:
+    def conversation(self, *, path: str, **kwargs) -> str:
         """Upload a conversation from a JSON located on the filesystem to a Nuclia KnowledgeBox"""
         conversation = Conversation.parse_file(path).__root__
         if conversation is None or len(conversation) == 0:
-            return
+            return ""
 
         field = kwargs.get("field") or uuid4().hex
         conversations = {
