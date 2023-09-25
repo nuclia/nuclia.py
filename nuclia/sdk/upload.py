@@ -55,7 +55,7 @@ class NucliaUpload:
         rid: Optional[str] = None,
         field: Optional[str] = None,
         **kwargs,
-    ):
+    ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
         ndb: NucliaDBClient = kwargs["ndb"]
         filename = path.split("/")[-1]
@@ -94,14 +94,15 @@ class NucliaUpload:
                 print(e)
                 if is_new_resource:
                     ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
-                sys.exit(1)
+                raise
+        return rid
 
     @kb
-    def conversation(self, *, path: str, **kwargs):
+    def conversation(self, *, path: str, **kwargs) -> str:
         """Upload a conversation from a JSON located on the filesystem to a Nuclia KnowledgeBox"""
         conversation = Conversation.parse_file(path).__root__
         if conversation is None or len(conversation) == 0:
-            return
+            return ""
 
         field = kwargs.get("field") or uuid4().hex
         conversations = {
@@ -138,6 +139,7 @@ class NucliaUpload:
                 conversations=conversations,
                 **kwargs,
             )
+        return rid
 
     @kb
     def text(
@@ -147,7 +149,7 @@ class NucliaUpload:
         path: Optional[str] = None,
         stdin: Optional[bool] = False,
         **kwargs,
-    ):
+    ) -> str:
         """Upload a text from filesystem or from standard input to a Nuclia KnowledgeBox.
 
         Format can be one of: PLAIN, HTML, MARKDOWN, RST"""
@@ -182,6 +184,7 @@ class NucliaUpload:
                 texts=texts,
                 **kwargs,
             )
+        return rid
 
     @kb
     def link(
@@ -189,7 +192,7 @@ class NucliaUpload:
         *,
         uri: str,
         **kwargs,
-    ):
+    ) -> str:
         """Upload an URL to a Nuclia KnowledgeBox."""
         field = kwargs.get("field") or uuid4().hex
         links = {
@@ -208,6 +211,7 @@ class NucliaUpload:
                 links=links,
                 **kwargs,
             )
+        return rid
 
     @kb
     def remote(
@@ -217,7 +221,7 @@ class NucliaUpload:
         rid: Optional[str] = None,
         field: Optional[str] = "file",
         **kwargs,
-    ):
+    ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
         ndb = kwargs["ndb"]
         with requests.get(origin, stream=True) as r:
@@ -246,7 +250,8 @@ class NucliaUpload:
                 print(e)
                 if is_new_resource:
                     ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
-                sys.exit(1)
+                raise
+        return rid
 
     def _get_or_create_resource(*args, **kwargs) -> Tuple[str, bool]:
         rid = kwargs.get("rid")
