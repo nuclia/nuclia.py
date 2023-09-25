@@ -3,7 +3,7 @@
 ## 1.1.13 (unreleased)
 
 
-- Nothing changed yet.
+- Return RID on upload
 
 
 ## 1.1.12 (2023-09-21)
