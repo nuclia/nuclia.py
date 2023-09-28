@@ -1,9 +1,12 @@
 import tempfile
 import time
 
+import pytest
+
 from nuclia.sdk.export_import import NucliaExports, NucliaImports
 
 
+@pytest.mark.skip(reason="To avoid duplicating data in the test KB")
 def test_sync(testing_config):
     exports = NucliaExports()
     imports = NucliaImports()
@@ -14,6 +17,7 @@ def test_sync(testing_config):
         imports.start(path=path, sync=True)
 
 
+@pytest.mark.skip(reason="To avoid duplicating data in the test KB")
 def test_manual(testing_config):
     exports = NucliaExports()
     imports = NucliaImports()
