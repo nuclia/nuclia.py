@@ -1,6 +1,7 @@
 from typing import List, Optional
 from warnings import warn
 
+from nucliadb_models.configuration import KBConfiguration
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
 from nucliadb_models.resource import Resource, ResourceList
 
@@ -8,11 +9,11 @@ from nuclia.data import get_auth
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
+from nuclia.sdk.export_import import NucliaExports, NucliaImports
 from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import NucliaResource
 from nuclia.sdk.search import NucliaSearch
 from nuclia.sdk.upload import NucliaUpload
-from nucliadb_models.configuration import KBConfiguration
 
 
 class NucliaKB:
@@ -25,6 +26,8 @@ class NucliaKB:
         self.upload = NucliaUpload()
         self.search = NucliaSearch()
         self.resource = NucliaResource()
+        self.exports = NucliaExports()
+        self.imports = NucliaImports()
 
     @kb
     def list(self, *, interactive: bool = True, **kwargs) -> Optional[ResourceList]:
