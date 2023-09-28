@@ -57,7 +57,6 @@ def kb(func):
                         url=kb_obj.url,
                         user_token=auth._config.token,
                         region=kb_obj.region,
-                        #                        base_url=BASE,
                     )
                 else:
                     ndb = NucliaDBClient(
