@@ -31,6 +31,7 @@ class NucliaExports:
         if path is None:
             return resp
         self.download(export_id=resp.export_id, path=path, **kwargs)
+        return None
 
     @kb
     def download(self, *, export_id: str, path: str, **kwargs) -> None:
@@ -58,7 +59,9 @@ class NucliaImports:
     """
 
     @kb
-    def start(self, *, path: str, sync: bool = False, **kwargs) -> CreateImportResponse:
+    def start(
+        self, *, path: str, sync: bool = False, **kwargs
+    ) -> Optional[CreateImportResponse]:
         ndb: NucliaDBClient = kwargs["ndb"]
 
         def iterator(path: str):
@@ -83,6 +86,7 @@ class NucliaImports:
         else:
             wait_for_finished(ndb, "import", response.import_id)
             print(f"Import finished!")
+            return None
 
     @kb
     def status(self, *, import_id: str, **kwargs) -> Status:
