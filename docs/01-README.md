@@ -28,6 +28,7 @@ First steps should be:
 - [Upload conversation](07-conversation.md)
 - [Search](06-search.md)
 - [Extract information from a file](05-extract.md)
+- [Import/export knowledge boxes](08-import-export.md)
 - Detect Entities
 - [Get embedding from text](05-extract.md)
 - Get answer from a context
