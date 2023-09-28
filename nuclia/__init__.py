@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 
-BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "stashify.cloud")
+BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "nuclia.cloud")
 BASE = f"https://{BASE_DOMAIN}"
 REGIONAL = "https://{region}." + BASE_DOMAIN
 CLOUD_ID = BASE.split("/")[-1]
