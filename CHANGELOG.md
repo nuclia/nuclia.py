@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.13 (unreleased)
+## 1.1.13 (2023-09-29)
 
 
 - Return RID on upload
