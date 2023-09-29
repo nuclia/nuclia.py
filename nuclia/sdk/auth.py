@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from prompt_toolkit import prompt
 
-from nuclia import BASE, get_global_url
+from nuclia import BASE, BASE_DOMAIN, get_global_url
 from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
@@ -283,7 +283,7 @@ class NucliaAuth:
         region = {zone.id: zone.slug for zone in zones}
         for kb in kbs:
             zone = region[kb["zone"]]
-            url = f"https://{zone}.nuclia.cloud/api/v1/kb/{kb['id']}"
+            url = f"https://{zone}.{BASE_DOMAIN}/api/v1/kb/{kb['id']}"
             kb_obj = KnowledgeBox(
                 url=url, id=kb["id"], title=kb["title"], account=account, region=zone
             )

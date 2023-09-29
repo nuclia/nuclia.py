@@ -4,6 +4,7 @@
 
 
 - Return RID on upload
+- Support KB import/export
 
 
 ## 1.1.12 (2023-09-21)

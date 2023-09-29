@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import mimetypes
 import os
-import hashlib
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 from uuid import uuid4
-from nuclia.lib.kb import NucliaDBClient
 
 import requests
 from nucliadb_models.text import TextFormat
@@ -18,6 +17,7 @@ from tqdm import tqdm
 from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversation
+from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import RESOURCE_ATTRIBUTES, NucliaResource
