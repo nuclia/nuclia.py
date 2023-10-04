@@ -49,7 +49,10 @@ class NucliaAuth:
             print("User Auth")
             print("=========")
             print()
-            self._show_user()
+            try:
+                self._show_user()
+            except:
+                print("Not Authenticated")
             print()
 
         if len(self._config.kbs_token):

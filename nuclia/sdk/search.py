@@ -8,6 +8,7 @@ from nucliadb_models.search import (
     KnowledgeboxFindResults,
     Relations,
     SearchRequest,
+    SearchOptions,
 )
 
 from nuclia.data import get_auth
@@ -59,7 +60,14 @@ class NucliaSearch:
 
     @kb
     @pretty
-    def find(self, *, query: Union[str, FindRequest] = "", **kwargs):
+    def find(
+        self,
+        *,
+        query: Union[str, FindRequest] = "",
+        highlight: Optional[bool] = False,
+        relations: Optional[bool] = False,
+        **kwargs
+    ):
         """
         Perform a find query.
 
@@ -68,9 +76,12 @@ class NucliaSearch:
 
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = FindRequest(query=query)
+            req = FindRequest(query=query, highlight=highlight)
         else:
             req = query
+
+        if relations:
+            req.features.append(SearchOptions.RELATIONS)
 
         return ndb.ndb.find(req, kbid=ndb.kbid)
 

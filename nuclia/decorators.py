@@ -50,12 +50,19 @@ def kb(func):
                 # OSS
                 ndb = NucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
             else:
-                if kb_obj.token is None:
+                if kb_obj.token is None and auth._validate_user_token():
                     # User token auth
                     ndb = NucliaDBClient(
                         environment=Environment.CLOUD,
                         url=kb_obj.url,
                         user_token=auth._config.token,
+                        region=kb_obj.region,
+                    )
+                elif kb_obj.token is None:
+                    # Public
+                    ndb = NucliaDBClient(
+                        environment=Environment.CLOUD,
+                        url=kb_obj.url,
                         region=kb_obj.region,
                     )
                 else:

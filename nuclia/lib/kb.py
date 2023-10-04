@@ -98,7 +98,9 @@ class NucliaDBClient:
         elif (
             environment == Environment.CLOUD and api_key is None and user_token is None
         ):
-            raise NeedUserToken("On Cloud you need to provide API Key")
+            # Public
+            reader_headers = {}
+            writer_headers = {}
         else:
             reader_headers = {
                 "X-NUCLIADB-ROLES": f"READER",
