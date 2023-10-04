@@ -7,6 +7,7 @@ from nucliadb_models.search import (
     FindRequest,
     KnowledgeboxFindResults,
     Relations,
+    SearchOptions,
     SearchRequest,
 )
 
@@ -59,7 +60,14 @@ class NucliaSearch:
 
     @kb
     @pretty
-    def find(self, *, query: Union[str, FindRequest] = "", **kwargs):
+    def find(
+        self,
+        *,
+        query: Union[str, FindRequest] = "",
+        highlight: Optional[bool] = False,
+        relations: Optional[bool] = False,
+        **kwargs
+    ):
         """
         Perform a find query.
 
@@ -67,10 +75,15 @@ class NucliaSearch:
         """
 
         ndb: NucliaDBClient = kwargs["ndb"]
-        if isinstance(query, str):
-            req = FindRequest(query=query)
-        else:
+        if isinstance(query, str) and highlight is not None:
+            req = FindRequest(query=query, highlight=highlight)
+        elif isinstance(query, FindRequest):
             req = query
+        else:
+            raise Exception("Invalid Query either str or FindRequest")
+
+        if relations:
+            req.features.append(SearchOptions.RELATIONS)
 
         return ndb.ndb.find(req, kbid=ndb.kbid)
 

@@ -7,7 +7,6 @@ import requests
 from nucliadb_models.search import ChatRequest
 from nucliadb_sdk import NucliaDB, Region
 
-from nuclia.exceptions import NeedUserToken
 from nuclia.lib.utils import handle_http_errors
 
 RESOURCE_PATH = "/resource/{rid}"
@@ -98,7 +97,9 @@ class NucliaDBClient:
         elif (
             environment == Environment.CLOUD and api_key is None and user_token is None
         ):
-            raise NeedUserToken("On Cloud you need to provide API Key")
+            # Public
+            reader_headers = {}
+            writer_headers = {}
         else:
             reader_headers = {
                 "X-NUCLIADB-ROLES": f"READER",
