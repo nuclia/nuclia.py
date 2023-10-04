@@ -75,10 +75,12 @@ class NucliaSearch:
         """
 
         ndb: NucliaDBClient = kwargs["ndb"]
-        if isinstance(query, str):
+        if isinstance(query, str) and highlight is not None:
             req = FindRequest(query=query, highlight=highlight)
-        else:
+        elif isinstance(query, FindRequest):
             req = query
+        else:
+            raise Exception("Invalid Query either str or FindRequest")
 
         if relations:
             req.features.append(SearchOptions.RELATIONS)
