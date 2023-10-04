@@ -3,7 +3,8 @@
 ## 1.1.14 (unreleased)
 
 
-- Nothing changed yet.
+- Support public knowledgebox
+- Add relations to the find experience
 
 
 ## 1.1.13 (2023-09-29)
