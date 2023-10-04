@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.14 (unreleased)
+## 1.1.14 (2023-10-04)
 
 
 - Support public knowledgebox
