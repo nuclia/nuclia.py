@@ -7,7 +7,6 @@ import requests
 from nucliadb_models.search import ChatRequest
 from nucliadb_sdk import NucliaDB, Region
 
-from nuclia.exceptions import NeedUserToken
 from nuclia.lib.utils import handle_http_errors
 
 RESOURCE_PATH = "/resource/{rid}"

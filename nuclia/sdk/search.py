@@ -7,8 +7,8 @@ from nucliadb_models.search import (
     FindRequest,
     KnowledgeboxFindResults,
     Relations,
-    SearchRequest,
     SearchOptions,
+    SearchRequest,
 )
 
 from nuclia.data import get_auth

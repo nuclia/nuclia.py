@@ -51,7 +51,7 @@ class NucliaAuth:
             print()
             try:
                 self._show_user()
-            except:
+            except Exception:
                 print("Not Authenticated")
             print()
 
