@@ -14,5 +14,12 @@ jobs:
         uses: actions/checkout@v3
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v0'
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'docs/**'
       - name: Push SDK docs to GCS
+        if: steps.changes.outputs.src == 'true'
         run: gsutil cp -r ./docs/* gs://$DOCS_STORAGE/python-sdk
