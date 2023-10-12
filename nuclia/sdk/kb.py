@@ -138,7 +138,7 @@ class NucliaKB:
         )
 
     @kb
-    def del_configuration(self, **kwargs):
+    def del_configuration(self, **kwargs) -> None:
         ndb: NucliaDBClient = kwargs["ndb"]
         ndb.ndb.delete_configuration(kbid=ndb.kbid)
 

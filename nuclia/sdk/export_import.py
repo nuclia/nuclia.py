@@ -107,7 +107,6 @@ def wait_for_finished(ndb: NucliaDBClient, type: str, id: str):
     )
     while status != Status.FINISHED:
         assert status != Status.ERRORED, f"{type} failed"
-        assert status != Status.CANCELLED, f"{type} cancelled"
         pbar.update()
         time.sleep(1)
         status = get_status()
