@@ -3,7 +3,7 @@
 ## 1.1.15 (unreleased)
 
 
-- Nothing changed yet.
+- Fix file upload sdk example
 
 
 ## 1.1.14 (2023-10-04)
