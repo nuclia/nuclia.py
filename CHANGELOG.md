@@ -4,6 +4,7 @@
 
 
 - Fix file upload sdk example
+- Fix auth documentation
 
 
 ## 1.1.14 (2023-10-04)
