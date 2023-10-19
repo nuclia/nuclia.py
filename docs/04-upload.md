@@ -13,7 +13,7 @@ nuclia kb upload file --path=FILE_PATH
 ```python
 from nuclia import sdk
 upload = sdk.NucliaUpload()
-upload.file(FILE_PATH)
+upload.file(path=FILE_PATH)
 ```
 
 ## Upload a file in an existing resource
