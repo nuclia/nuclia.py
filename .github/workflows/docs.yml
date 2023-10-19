@@ -22,4 +22,4 @@ jobs:
               - 'docs/**'
       - name: Push SDK docs to GCS
         if: steps.changes.outputs.src == 'true'
-        run: gsutil cp -r ./docs/* gs://$DOCS_STORAGE/python-sdk
+        run: gsutil cp -r ./docs/* gs://${{ secrets.DOCS_STORAGE }}/python-sdk
