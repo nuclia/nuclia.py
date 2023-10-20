@@ -5,6 +5,7 @@
 
 - Fix file upload sdk example
 - Fix auth documentation
+- Fix mimetype detection + set a valid field id when none provided
 
 
 ## 1.1.14 (2023-10-04)
