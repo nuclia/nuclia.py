@@ -60,14 +60,14 @@ class NucliaUpload:
         ndb: NucliaDBClient = kwargs["ndb"]
         filename = path.split("/")[-1]
         size = os.path.getsize(path)
-        mimetype_result = mimetypes.guess_type(path)
-        if None in mimetype_result:
+        mimetype = mimetypes.guess_type(path)[0]
+        if not mimetype:
             mimetype = "application/octet-stream"
-        else:
-            mimetype = "/".join(mimetype_result)  # type: ignore
         rid, is_new_resource = self._get_or_create_resource(
             rid=rid, icon=mimetype, **kwargs
         )
+        if not field:
+            field = uuid4().hex
         md5_hash = hashlib.md5()
 
         with open(path, "rb") as upload_file:
