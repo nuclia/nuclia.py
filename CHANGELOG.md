@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.15 (unreleased)
+## 1.1.15 (2023-10-20)
 
 
 - Fix file upload sdk example
