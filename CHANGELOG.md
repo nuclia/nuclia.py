@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.16 (unreleased)
+## 1.1.16 (2023-10-31)
 
 
 - Fix import/export
