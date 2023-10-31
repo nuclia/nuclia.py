@@ -3,7 +3,7 @@
 ## Export a kb
 
 ```sh
-nuclia kbs my-source-kb default
+nuclia kbs default my-source-kb
 nuclia kb exports start --path=/some/path/foobar
 
 > Export is ready to be downloaded.
@@ -13,7 +13,7 @@ nuclia kb exports start --path=/some/path/foobar
 ## Import it to another kb
 
 ```sh
-nuclia kbs my-dst-kb default
+nuclia kbs default my-destination-kb
 nuclia kb imports start --path=/some/path/foobar
 
 > Uploading from /some/path/foobar to import: 7.13MB [00:01, 3.77MB/s]
