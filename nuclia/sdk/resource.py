@@ -19,6 +19,7 @@ RESOURCE_ATTRIBUTES = [
     "fieldmetadata",
     "title",
     "summary",
+    "metadata",
 ]
 
 
