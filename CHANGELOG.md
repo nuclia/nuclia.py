@@ -3,7 +3,7 @@
 ## 1.1.17 (unreleased)
 
 
-- Nothing changed yet.
+- Allow to set `metadata` values in a resource
 
 
 ## 1.1.16 (2023-10-31)
