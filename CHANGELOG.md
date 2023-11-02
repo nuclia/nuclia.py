@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.17 (2023-01-02)
+## 1.1.17 (unreleased)
 
 
 - Allow to set `metadata` values in a resource
