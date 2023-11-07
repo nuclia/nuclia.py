@@ -1,10 +1,12 @@
-# Upload use case
+# Upload contents
 
-All examples assume you [authenticated](02-auth.md) and defined a [default](03-default.md) knowledgebox. In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
+All examples assume you [authenticated](02-auth.md) and defined a [default Knowledge Box](03-kb.md).
+
+In case you want to overwrite or define a one time knowledgebox you should add on any command/function the `url` and `api_key` parameter.
 
 ## Upload a file in a KnowledgeBox
 
-Push a file to a knowledgebox:
+Push a file to a Knowledge Box:
 
 ```bash
 nuclia kb upload file --path=FILE_PATH
@@ -26,9 +28,9 @@ nuclia kb upload file --path=FILE_PATH  --rid=RESOURCE_ID --field=FIELD_ID
 
 In case that `FIELD_ID` is not defined filename will be used
 
-## Upload a remote file in a KnowledgeBox
+## Upload a remote file in a Knowledge Box
 
-Streaming a file to a knowledgebox from an external URL its easy as:
+Streaming a file to a Knowledge Box from an external URL its easy as:
 
 ```bash
 nuclia kb upload remote --origin=REMOTE_FILE_URL
@@ -44,9 +46,9 @@ nuclia kb upload remote --origin=REMOTE_FILE_URL --rid=RESOURCE_ID --field=FIELD
 
 In case that `FIELD_ID` is not defined filename will be used
 
-## Upload a text in a KnowledgeBox
+## Upload a text in a Knowledge Box
 
-Push a text to a knowledgebox:
+Push a text to a Knowledge Box:
 
 ```bash
 nuclia kb upload text --path=FILE_PATH
@@ -82,9 +84,9 @@ Pass `origin` or `extra` metadata:
 nuclia kb upload text --path=FILE_PATH --origin='{"url":"https://somwhere.com"}' --extra='{"metadata":{"whatever":42}}'
 ```
 
-## Upload an URL in a KnowledgeBox
+## Upload a web page in a Knowledge Box
 
-Push a text to a knowledgebox:
+Push a link to a Knowledge Box:
 
 ```bash
 nuclia kb upload link --uri=THE_URI
@@ -96,14 +98,44 @@ upload = sdk.NucliaUpload()
 upload.link(uri=THE_URI)
 ```
 
-## List resources on a kb
+## Upload a conversation
 
-```bash
-nuclia kb list
+First, you need to provide a JSON file containing the conversation messages following this format:
+
+```json
+[
+  {
+    "who": "ORIGIN_UUID",
+    "to": ["DESTINATION_UUID"],
+    "ident": "UNIQUE_IDENTIFIER",
+    "timestamp": "MESSAGE_DATETIME",
+    "content": {
+      "text": "MESSAGE",
+      "format": "MESSAGE_TYPE"
+    }
+  }
+]
 ```
 
-## Delete a resource on a kb
+- `ORIGIN_UUID`: Identification of the user who sent the message
+- `DESTINATION_UUID`: Identification of the users who received the message
+- `UNIQUE_IDENTIFIER`: Identification of the message, needs to be unique in the conversation
+- `MESSAGE_DATETIME`: Message date time in ISO format
+- `MESSAGE_TYPE`: Format of the message: `0` for `PLAIN` or `1` for `HTML` or `MARKDOWN` or `RST`
 
-```bash
-nuclia kb delete --rid=RID
-```
+[Example](https://github.com/nuclia/nuclia.py/nuclia/tests/assets/conversation.json)
+
+Then, you can upload it with:
+
+- CLI:
+
+  ```bash
+  nuclia kb upload conversation --path=FILE
+  ```
+
+- SDK:
+  ```python
+  from nuclia import sdk
+  upload = sdk.NucliaUpload()
+  upload.conversation(path=FILE)
+  ```
