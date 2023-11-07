@@ -39,7 +39,7 @@ nuclia kb search search --query="My search" --yaml
 
 ## Generative answer
 
-Based on a `find` request, Nuclia use a generative AI to answer the question based on the context without hallucinations and with the find result and relations.
+Based on a `find` request, Nuclia uses a generative AI to answer the question based on the context without hallucinations and with the find result and relations.
 
 - CLI:
 
