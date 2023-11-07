@@ -18,4 +18,4 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v0'
       - name: Push SDK docs to GCS
-        run: gsutil cp -r ./docs/* gs://${{ secrets.DOCS_STORAGE }}/python-sdk
+        run: gsutil rsync -r ./docs gs://${{ secrets.DOCS_STORAGE }}/python-sdk
