@@ -3,7 +3,7 @@
 ## 1.1.18 (unreleased)
 
 
-- Nothing changed yet.
+- Improve documentation.
 
 
 ## 1.1.17 (2023-11-02)
