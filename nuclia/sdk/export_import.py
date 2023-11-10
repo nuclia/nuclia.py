@@ -37,15 +37,21 @@ class NucliaExports:
         self.download(export_id=resp.export_id, path=path, **kwargs)
         return None
 
+    def _get_export_size(self, ndb: NucliaDBClient, kbid: str, export_id: str) -> int:
+        resp = ndb.ndb.export_status(kbid=kbid, export_id=export_id)
+        return resp.total_size
+
     @kb
     def download(self, *, export_id: str, path: str, **kwargs) -> None:
         ndb: NucliaDBClient = kwargs["ndb"]
         wait_for_finished(ndb, "export", export_id)
         print(f"Export ready! Will be downloaded to {path}.")
+        export_size = self._get_export_size(ndb, ndb.kbid, export_id)
         iterator = ndb.ndb.download_export(kbid=ndb.kbid, export_id=export_id)
         with open(path, "wb") as f:
             with tqdm(
                 desc=f"Downloading data",
+                total=export_size,
                 unit="iB",
                 unit_scale=True,
             ) as pbar:
