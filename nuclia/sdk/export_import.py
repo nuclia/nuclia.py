@@ -116,7 +116,7 @@ def wait_for_finished(ndb: NucliaDBClient, type: str, id: str):
     with tqdm(
         desc=desc,
         unit="resources",
-        total=0,
+        total=resp.total,
     ) as pbar:
         status = resp.status
         processed = 0
