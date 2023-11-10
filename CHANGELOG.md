@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.18 (unreleased)
+## 1.1.18 (2023-11-10)
 
 
 - Add `generate` and `generate_prompt` support in `NucliaPredict`.
