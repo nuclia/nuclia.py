@@ -26,10 +26,12 @@ class NucliaAgent:
 
         self.predict = NucliaPredict()
 
-    def generate_prompt(self, text: str, model: Optional[str] = None) -> Dict:
+    def generate_prompt(
+        self, text: str, agent_definition: str, model: Optional[str] = None
+    ) -> Dict:
         user_prompt = (
             self.predict.generate(
-                f"Define a prompt for an agent that will answer questions about {text}",
+                f"Define a prompt for an {agent_definition} that will answer questions about {text}",
                 model,
             )
             .decode()
@@ -41,14 +43,17 @@ class NucliaAgent:
             + user_prompt
             + " {question}"
         )  # noqa
+
+        return agent_prompt
+
+    def generate_agent(
+        self, topic: str, agent_definition: str = "agent", model: Optional[str] = None
+    ) -> Agent:
+        agent_prompt = self.generate_prompt(text, agent_definition, model)
+
         tokens = self.predict.tokens(text)
         filters = []
         for token in tokens.tokens:
             filters.append(f"/e/{token.ner}/{token.text}")
 
-        return {"agent_prompt": agent_prompt, "filters": filters}
-    
-    def generate_agent(self, text: str, model: Optional[str] = None) -> Agent:
-        prompt = self.generate_prompt(text, model)
-
-        return Agent(prompt=prompt["agent_prompt"], filters=prompt["filters"])
+        return Agent(prompt=agent_prompt, filters=filters)
