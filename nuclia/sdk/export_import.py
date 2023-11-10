@@ -86,6 +86,7 @@ class NucliaImports:
         response = ndb.ndb.start_import(kbid=ndb.kbid, content=iterator(path))
 
         if not sync:
+            print(f"Import task started.")
             return response
         else:
             import_id = response.import_id

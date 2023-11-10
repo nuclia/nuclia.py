@@ -4,6 +4,7 @@
 
 
 - Improve documentation.
+- Improve UX for exports and imports.
 
 
 ## 1.1.17 (2023-11-02)
