@@ -49,9 +49,9 @@ class NucliaAgent:
     def generate_agent(
         self, topic: str, agent_definition: str = "agent", model: Optional[str] = None
     ) -> Agent:
-        agent_prompt = self.generate_prompt(text, agent_definition, model)
+        agent_prompt = self.generate_prompt(topic, agent_definition, model)
 
-        tokens = self.predict.tokens(text)
+        tokens = self.predict.tokens(topic)
         filters = []
         for token in tokens.tokens:
             filters.append(f"/e/{token.ner}/{token.text}")
