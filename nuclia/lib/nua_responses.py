@@ -33,3 +33,15 @@ class ChatModel(BaseModel):
     query_context: List[str] = []
     truncate: Optional[bool] = False
     user_prompt: Optional[UserPrompt] = None
+
+
+class Token(BaseModel):
+    text: str
+    ner: str
+    start: int
+    end: int
+
+
+class Tokens(BaseModel):
+    tokens: List[Token]
+    time: float

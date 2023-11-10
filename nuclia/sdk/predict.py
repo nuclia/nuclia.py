@@ -3,7 +3,7 @@ from typing import Optional
 from nuclia.data import get_auth
 from nuclia.decorators import nua
 from nuclia.lib.nua import NuaClient
-from nuclia.lib.nua_responses import Sentence
+from nuclia.lib.nua_responses import Sentence, Tokens
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -24,12 +24,6 @@ class NucliaPredict:
         return nc.generate_predict(text, model)
 
     @nua
-    def generate_prompt(self, text: str, model: Optional[str] = None, **kwargs) -> str:
+    def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
         nc: NuaClient = kwargs["nc"]
-        user_prompt = (
-            nc.generate_predict(text, model).decode().replace("Prompt: ", "")[:-1]
-        )
-        return (
-            user_prompt
-            + " \nAnswer the following question based on the provided context: \n[START OF CONTEXT]\n{context}\n[END OF CONTEXT] Question: {question}"  # noqa
-        )
+        return nc.tokens_predict(text, model)

@@ -1,4 +1,5 @@
 from .accounts import NucliaAccounts  # noqa
+from .agent import NucliaAgent  # noqa
 from .auth import NucliaAuth  # noqa
 from .kb import NucliaKB  # noqa
 from .kbs import NucliaKBS  # noqa
