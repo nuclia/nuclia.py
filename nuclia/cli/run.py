@@ -1,5 +1,6 @@
 import logging
 import sys
+from pathlib import Path
 
 import fire  # type: ignore
 from nucliadb_sdk import exceptions
@@ -13,7 +14,6 @@ from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
 from nuclia.sdk.nuas import NucliaNUAS
 from nuclia.sdk.zones import NucliaZones
-from pathlib import Path
 
 from .utils import CustomFormatter
 
@@ -27,7 +27,7 @@ class NucliaCLI(object):
         self.kb = self.knowledgebox = NucliaKB()
         self.nuas = NucliaNUAS()
         self.nua = NucliaNUA()
-    
+
     def version(self):
         """Print the version of the CLI"""
         _dir = Path(__file__).resolve().parent.parent.parent

@@ -3,7 +3,7 @@
 ## 1.1.18 (unreleased)
 
 
-- Improve documentation.
+- Add `generate` and `generate_prompt` support in `NucliaPredict`.
 
 
 ## 1.1.17 (2023-11-02)
