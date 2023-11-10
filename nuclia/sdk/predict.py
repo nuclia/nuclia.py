@@ -2,7 +2,8 @@ from typing import Optional
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua
-from nuclia.lib.nua_responses import Sentence
+from nuclia.lib.nua import NuaClient
+from nuclia.lib.nua_responses import Sentence, Tokens
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -14,5 +15,15 @@ class NucliaPredict:
 
     @nua
     def sentence(self, text: str, model: Optional[str] = None, **kwargs) -> Sentence:
-        nc = kwargs["nc"]
+        nc: NuaClient = kwargs["nc"]
         return nc.sentence_predict(text, model)
+
+    @nua
+    def generate(self, text: str, model: Optional[str] = None, **kwargs) -> bytes:
+        nc: NuaClient = kwargs["nc"]
+        return nc.generate_predict(text, model)
+
+    @nua
+    def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
+        nc: NuaClient = kwargs["nc"]
+        return nc.tokens_predict(text, model)

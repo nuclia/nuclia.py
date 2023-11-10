@@ -83,14 +83,14 @@ class Config(BaseModel):
     def get_kb(self, kbid: str) -> KnowledgeBox:
         try:
             kb_obj = next(
-                filter(lambda x: x.id == kbid, self.kbs if self.kbs is not None else [])
-            )
-        except StopIteration:
-            kb_obj = next(
                 filter(
                     lambda x: x.id == kbid,
                     self.kbs_token if self.kbs_token is not None else [],
                 )
+            )
+        except StopIteration:
+            kb_obj = next(
+                filter(lambda x: x.id == kbid, self.kbs if self.kbs is not None else [])
             )
         return kb_obj
 
@@ -128,6 +128,20 @@ class Config(BaseModel):
         )
         self.save()
 
+    def _del_kbid(self, kbid: str):
+        try:
+            while True:
+                kb_obj = next(
+                    filter(
+                        lambda x: x.id == kbid,
+                        self.kbs_token if self.kbs_token is not None else [],
+                    )
+                )
+                if self.kbs_token is not None:
+                    self.kbs_token.remove(kb_obj)
+        except StopIteration:
+            pass
+
     def set_kb_token(
         self,
         url: str,
@@ -136,18 +150,7 @@ class Config(BaseModel):
         title: Optional[str] = None,
         interactive: bool = True,
     ):
-        try:
-            kb_obj = next(
-                filter(
-                    lambda x: x.id == kbid,
-                    self.kbs_token if self.kbs_token is not None else [],
-                )
-            )
-            if self.kbs_token is not None:
-                self.kbs_token.remove(kb_obj)
-        except StopIteration:
-            pass
-
+        self._del_kbid(kbid)
         region = (
             None
             if CLOUD_ID not in url
