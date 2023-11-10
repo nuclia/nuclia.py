@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from nucliadb_models.search import ChatRequest
 
@@ -26,7 +26,7 @@ class NucliaAgent:
 
         self.predict = NucliaPredict()
 
-    def generate_agent(self, text: str, model: Optional[str] = None) -> Agent:
+    def generate_prompt(self, text: str, model: Optional[str] = None) -> Dict:
         user_prompt = (
             self.predict.generate(
                 f"Define a prompt for an agent that will answer questions about {text}",
@@ -46,4 +46,9 @@ class NucliaAgent:
         for token in tokens.tokens:
             filters.append(f"/e/{token.ner}/{token.text}")
 
-        return Agent(prompt=agent_prompt, filters=filters)
+        return {"agent_prompt": agent_prompt, "filters": filters}
+    
+    def generate_agent(self, text: str, model: Optional[str] = None) -> Agent:
+        prompt = self.generate_prompt(text, model)
+
+        return Agent(prompt=prompt["agent_prompt"], filters=prompt["filters"])

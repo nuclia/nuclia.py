@@ -36,7 +36,7 @@ nuclia nuas default NUA_CLIENT_ID
 
 ## Services
 
-At the moment, the only available service through the CLI/SDK is `predict`.
+### Predict
 
 `predict` can return the embeddings of an input text:
 
@@ -54,34 +54,25 @@ At the moment, the only available service through the CLI/SDK is `predict`.
   predict.sentence(text="A SENTENCE")
   ```
 
-It can generate a text from a prompt:
+### Agent
+
+`agent` allows to generate LLM agents from an initial prompt:
 
 - CLI:
 
   ```bash
-  nuclia nua predict generate --text="A PROMPT"
+  nuclia nua agent generate_prompt --text="Toronto"
   ```
+
+  (with the CLI, you will obtain the prompt itself, not an agent directly)
 
 - SDK:
 
   ```python
   from nuclia import sdk
-  predict = sdk.NucliaPredict()
-  text = predict.generate(text="A PROMPT")
+  nuclia_agent = sdk.NucliaAgent()
+  agent = nuclia_agent.generate_agent("Toronto")
+  print(agent.ask("Tell me about the parks"))
   ```
 
-It can generate a custom prompt:
-
-- CLI:
-
-  ```bash
-  nuclia nua predict generate_prompt --text="A META PROMPT"
-  ```
-
-- SDK:
-
-  ```python
-  from nuclia import sdk
-  predict = sdk.NucliaPredict()
-  prompt = predict.generate_prompt(text="A META PROMPT")
-  ```
+  (with the SDK, you will obtain an agent directly, you can call `ask` on it to generate answers)
