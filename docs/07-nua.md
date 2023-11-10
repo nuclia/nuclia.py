@@ -36,7 +36,9 @@ nuclia nuas default NUA_CLIENT_ID
 
 ## Services
 
-At the moment, the only available service through the CLI/SDK is `predict`. `predict` returns the embeddings of the input text.
+At the moment, the only available service through the CLI/SDK is `predict`.
+
+`predict` can return the embeddings of an input text:
 
 - CLI:
 
@@ -50,4 +52,36 @@ At the moment, the only available service through the CLI/SDK is `predict`. `pre
   from nuclia import sdk
   predict = sdk.NucliaPredict()
   predict.sentence(text="A SENTENCE")
+  ```
+
+It can generate a text from a prompt:
+
+- CLI:
+
+  ```bash
+  nuclia nua predict generate --text="A PROMPT"
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  predict = sdk.NucliaPredict()
+  text = predict.generate(text="A PROMPT")
+  ```
+
+It can generate a custom prompt:
+
+- CLI:
+
+  ```bash
+  nuclia nua predict generate_prompt --text="A META PROMPT"
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  predict = sdk.NucliaPredict()
+  prompt = predict.generate_prompt(text="A META PROMPT")
   ```
