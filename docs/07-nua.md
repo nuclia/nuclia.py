@@ -54,6 +54,40 @@ nuclia nuas default NUA_CLIENT_ID
   predict.sentence(text="A SENTENCE")
   ```
 
+It can identify tokens in a text:
+
+- CLI:
+
+  ```bash
+  nuclia nua predict tokens --text="Who is Henriet? Does she speak English or Dutch?"
+  ```
+
+  > tokens=[Token(text='Henriet', ner='PERSON', start=7, end=14), Token(text='English', ner='LANGUAGE', start=31, end=38), Token(text='Dutch', ner='LANGUAGE', start=42, end=47)] time=0.009547710418701172
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  predict = sdk.NucliaPredict()
+  predict.tokens(text="Who is Henriet? Does she speak English or Dutch?")
+  ```
+
+It can generate text from a prompt:
+
+- CLI:
+
+  ```bash
+  nuclia nua predict generate --text="How to tell a good story?"
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  predict = sdk.NucliaPredict()
+  predict.generate(text="How to tell a good story?")
+  ```
+
 ### Agent
 
 `agent` allows to generate LLM agents from an initial prompt:
@@ -61,17 +95,17 @@ nuclia nuas default NUA_CLIENT_ID
 - CLI:
 
   ```bash
-  nuclia nua agent generate_prompt --text="Toronto"
+  nuclia nua agent generate_prompt --text="Toronto" --agent_definition="city guide"
   ```
 
-  (with the CLI, you will obtain the prompt itself, not an agent directly)
+  (with the CLI, you will obtain the prompt text itself, not an agent directly)
 
 - SDK:
 
   ```python
   from nuclia import sdk
   nuclia_agent = sdk.NucliaAgent()
-  agent = nuclia_agent.generate_agent("Toronto")
+  agent = nuclia_agent.generate_agent("Toronto", "city guide")
   print(agent.ask("Tell me about the parks"))
   ```
 
