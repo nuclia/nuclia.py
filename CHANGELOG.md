@@ -2,14 +2,15 @@
 
 ## 1.1.19 (unreleased)
 
-
-- Nothing changed yet.
+- Improve documentation.
+- Improve UX for exports and imports.
 
 
 ## 1.1.18 (2023-11-10)
 
 
 - Add `generate` and `generate_prompt` support in `NucliaPredict`.
+
 
 
 ## 1.1.17 (2023-11-02)

@@ -3,12 +3,14 @@ from unittest.mock import Mock
 import pytest
 from nucliadb_models.export_import import Status
 
-from nuclia.sdk.export_import import wait_for_finished
+from nuclia.sdk.export_import import wait_for_task_to_finish
 
 
-class StatusResponse:
-    def __init__(self, values):
+class FakeStatusResponse:
+    def __init__(self, values, total=100, processed=10):
         self.values = values
+        self.total = total
+        self.processed = processed
 
     @property
     def status(self):
@@ -19,10 +21,10 @@ class StatusResponse:
 def ndb_sdk():
     ndb = Mock()
     ndb.export_status = Mock(
-        return_value=StatusResponse([Status.RUNNING, Status.FINISHED])
+        return_value=FakeStatusResponse([Status.RUNNING, Status.FINISHED])
     )
     ndb.import_status = Mock(
-        return_value=StatusResponse([Status.RUNNING, Status.FINISHED])
+        return_value=FakeStatusResponse([Status.RUNNING, Status.FINISHED])
     )
     return ndb
 
@@ -35,6 +37,6 @@ def ndb(ndb_sdk):
     return ndb
 
 
-def test_wait_for_finished(ndb):
-    wait_for_finished(ndb, "export", "foo")
-    wait_for_finished(ndb, "import", "foo")
+def test_wait_for_task_to_finish(ndb):
+    wait_for_task_to_finish(ndb, "export", "foo")
+    wait_for_task_to_finish(ndb, "import", "foo")
