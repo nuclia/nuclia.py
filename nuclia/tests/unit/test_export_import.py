@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 from nucliadb_models.export_import import Status
 
-from nuclia.sdk.export_import import wait_for_finished
+from nuclia.sdk.export_import import wait_for_task_to_finish
 
 
 class FakeStatusResponse:
@@ -37,6 +37,6 @@ def ndb(ndb_sdk):
     return ndb
 
 
-def test_wait_for_finished(ndb):
-    wait_for_finished(ndb, "export", "foo")
-    wait_for_finished(ndb, "import", "foo")
+def test_wait_for_task_to_finish(ndb):
+    wait_for_task_to_finish(ndb, "export", "foo")
+    wait_for_task_to_finish(ndb, "import", "foo")
