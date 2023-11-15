@@ -4,6 +4,7 @@
 
 - Improve documentation.
 - Improve UX for exports and imports.
+- Support `filters` as search parameter on `search`, `find` and `chat`.
 
 
 ## 1.1.18 (2023-11-10)

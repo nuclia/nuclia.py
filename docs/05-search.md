@@ -13,7 +13,7 @@ Both endpoints support the same query parameters.
 
   ```bash
   nuclia kb search search --query="My search"
-  nuclia kb search find --query="My search"
+  nuclia kb search find --query="My search" --filters="['/icon/application/pdf','/classification.labels/region/Asia']"
   ```
 
 - SDK:
@@ -21,7 +21,7 @@ Both endpoints support the same query parameters.
   ```python
   from nuclia import sdk
   search = sdk.NucliaSearch()
-  search.search(query="My search")
+  search.search(query="My search", filters=['/icon/application/pdf', '/classification.labels/region/Asia'])
   search.find(query="My search")
   ```
 
