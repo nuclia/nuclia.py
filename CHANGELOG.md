@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.20 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 1.1.19 (2023-11-15)
 
 - Improve documentation.
