@@ -1,6 +1,6 @@
 import base64
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from nucliadb_models.search import (
     ChatRequest,
@@ -44,7 +44,13 @@ class NucliaSearch:
 
     @kb
     @pretty
-    def search(self, *, query: Union[str, SearchRequest] = "", **kwargs):
+    def search(
+        self,
+        *,
+        query: Union[str, SearchRequest] = "",
+        filters: Optional[List[str]] = False,
+        **kwargs
+    ):
         """
         Perform a search query.
 
@@ -52,7 +58,7 @@ class NucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = SearchRequest(query=query)
+            req = SearchRequest(query=query, filters=(filters or []))
         else:
             req = query
 
@@ -66,6 +72,7 @@ class NucliaSearch:
         query: Union[str, FindRequest] = "",
         highlight: Optional[bool] = False,
         relations: Optional[bool] = False,
+        filters: Optional[List[str]] = False,
         **kwargs
     ):
         """
@@ -76,7 +83,7 @@ class NucliaSearch:
 
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str) and highlight is not None:
-            req = FindRequest(query=query, highlight=highlight)
+            req = FindRequest(query=query, highlight=highlight, filters=(filters or []))
         elif isinstance(query, FindRequest):
             req = query
         else:
@@ -88,7 +95,13 @@ class NucliaSearch:
         return ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
-    def chat(self, *, query: Union[str, ChatRequest], **kwargs):
+    def chat(
+        self,
+        *,
+        query: Union[str, ChatRequest],
+        filters: Optional[List[str]] = False,
+        **kwargs
+    ):
         """
         Answer a question.
 
@@ -96,7 +109,7 @@ class NucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = ChatRequest(query=query)
+            req = ChatRequest(query=query, filters=(filters or []))
         else:
             req = query
         response = ndb.chat(req)
