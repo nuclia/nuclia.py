@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.19 (unreleased)
+## 1.1.19 (2023-11-15)
 
 - Improve documentation.
 - Improve UX for exports and imports.
