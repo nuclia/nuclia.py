@@ -48,7 +48,7 @@ class NucliaSearch:
         self,
         *,
         query: Union[str, SearchRequest] = "",
-        filters: Optional[List[str]] = [],
+        filters: Optional[List[str]] = None,
         **kwargs
     ):
         """
@@ -72,7 +72,7 @@ class NucliaSearch:
         query: Union[str, FindRequest] = "",
         highlight: Optional[bool] = False,
         relations: Optional[bool] = False,
-        filters: Optional[List[str]] = [],
+        filters: Optional[List[str]] = None,
         **kwargs
     ):
         """
@@ -99,7 +99,7 @@ class NucliaSearch:
         self,
         *,
         query: Union[str, ChatRequest],
-        filters: Optional[List[str]] = [],
+        filters: Optional[List[str]] = None,
         **kwargs
     ):
         """
