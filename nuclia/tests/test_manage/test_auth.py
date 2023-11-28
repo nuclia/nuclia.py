@@ -14,7 +14,7 @@ def test_auth_kb(testing_kb: str):
 
 def test_auth_nua(testing_nua: str):
     na = NucliaAuth()
-    client, account_type, account = na.validate_nua(testing_nua)
+    client, account_type, account, region = na.validate_nua(testing_nua)
     assert client
     assert account_type
     assert account

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pydantic import BaseModel
 
@@ -45,3 +45,42 @@ class Token(BaseModel):
 class Tokens(BaseModel):
     tokens: List[Token]
     time: float
+
+
+class Author(str, Enum):
+    NUCLIA = "NUCLIA"
+    USER = "USER"
+
+
+class Message(BaseModel):
+    author: Author
+    text: str
+
+
+class UserPrompt(BaseModel):
+    prompt: str
+
+
+class SummarizeResource(BaseModel):
+    fields: Dict[str, str]
+
+
+class SummarizeModel(BaseModel):
+    resources: Dict[str, SummarizeResource]
+
+
+class SummarizedResource(BaseModel):
+    summary: str
+    tokens: int
+
+
+class SummarizedModel(BaseModel):
+    resources: Dict[str, SummarizedResource]
+    summary: str = ""
+
+
+class RephraseModel(BaseModel):
+    question: str
+    chat_history: List[Message] = []
+    context: List[Message] = []
+    user_id: str
