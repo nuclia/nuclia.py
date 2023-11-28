@@ -1,24 +1,35 @@
 from typing import Dict, List, Optional
 
 import requests
+import base64
 
 from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
     ChatModel,
+    LearningConfig,
     Message,
+    ProcessingStatus,
+    PublicPushPayload,
+    PublicPushResponse,
     Sentence,
+    Source,
     Tokens,
     UserPrompt,
     SummarizeModel,
     SummarizeResource,
     Author,
+    PullResponse,
 )
 
 SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
 SUMMARIZE_PREDICT = "/api/v1/predict/summarize"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
+PUSH_PROCESS = "/api/v1/processing/push"
+PULL_PROCESS = "/api/v1/processing/pull"
+UPLOAD_PROCESS = "/api/v1/processing/upload"
+STATUS_PROCESS = "/api/v1/processing/status"
 
 
 class NuaClient:
@@ -125,3 +136,45 @@ class NuaClient:
             return response
         else:
             raise NuaAPIException()
+
+    def process_file(
+        self, path: str, config: Optional[LearningConfig] = None
+    ) -> PublicPushResponse:
+        filename = path.split("/")[-1]
+        upload_endpoint = f"{self.url}{UPLOAD_PROCESS}"
+
+        headers = self.headers.copy()
+        headers["X-FILENAME"] = base64.b64encode(filename.encode()).decode()
+        with open(path, "rb") as file_to_upload:
+            data = file_to_upload.read()
+
+        resp = requests.post(upload_endpoint, data=data, headers=headers)
+
+        # file_token =
+        payload = PublicPushPayload(
+            uuid=None, source=Source.HTTP, learning_config=config
+        )
+        payload.filefield[filename] = resp.content.decode()
+        process_endpoint = f"{self.url}{PUSH_PROCESS}"
+        resp = requests.post(
+            process_endpoint, data=payload.json(), headers=self.headers
+        )
+        if resp.status_code == 200:
+            return PublicPushResponse.parse_raw(resp.content)
+        else:
+            raise NuaAPIException()
+
+    def wait_for_processing(self, request: PublicPushResponse) -> Optional[bytes]:
+        collect_endpoint = f"{self.url}{PULL_PROCESS}?timeout=20"
+        resp = requests.get(collect_endpoint, headers=self.headers)
+        # b'{"seqid":23257,"account_seq":1996,"queue":"private","uuid":"df8dd975-71e5-40d3-9470-7596a860f3f0"}'
+        pull_resp = PullResponse.parse_raw(resp.content)
+        if pull_resp.payload is not None:
+            return base64.b64decode(pull_resp.payload)
+        else:
+            return None
+
+    def processing_status(self) -> ProcessingStatus:
+        activity_endpoint = f"{self.url}{STATUS_PROCESS}"
+        resp = requests.get(activity_endpoint, headers=self.headers)
+        return ProcessingStatus.parse_raw(resp.content)
