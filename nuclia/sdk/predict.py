@@ -3,7 +3,7 @@ from typing import List, Optional, Dict
 from nuclia.data import get_auth
 from nuclia.decorators import nua
 from nuclia.lib.nua import NuaClient
-from nuclia.lib.nua_responses import Sentence, Tokens
+from nuclia.lib.nua_responses import Sentence, SummarizedModel, Tokens
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -31,7 +31,7 @@ class NucliaPredict:
     @nua
     def summarize(
         self, texts: Dict[str, str], model: Optional[str] = None, **kwargs
-    ) -> bytes:
+    ) -> SummarizedModel:
         nc: NuaClient = kwargs["nc"]
         return nc.summarize(texts, model)
 

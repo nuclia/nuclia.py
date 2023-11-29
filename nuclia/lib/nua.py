@@ -14,6 +14,7 @@ from nuclia.lib.nua_responses import (
     PublicPushResponse,
     Sentence,
     Source,
+    SummarizedModel,
     Tokens,
     UserPrompt,
     SummarizeModel,
@@ -88,7 +89,7 @@ class NuaClient:
 
     def summarize(
         self, documents: Dict[str, str], model: Optional[str] = None
-    ) -> bytes:
+    ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
         if model:
             endpoint += f"?model={model}"
@@ -104,7 +105,7 @@ class NuaClient:
         )
 
         if resp.status_code == 200:
-            return resp.content
+            return SummarizedModel.parse_raw(resp.content)
         else:
             raise NuaAPIException()
 
