@@ -16,3 +16,7 @@ class NotDefinedDefault(Exception):
 
 class NuaAPIException(Exception):
     pass
+
+
+class AlreadyConsumed(Exception):
+    pass

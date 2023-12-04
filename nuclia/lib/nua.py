@@ -1,10 +1,11 @@
 import base64
+from time import sleep
 from typing import Dict, List, Optional
 
 import requests
 
 from nuclia import REGIONAL
-from nuclia.exceptions import NuaAPIException
+from nuclia.exceptions import NuaAPIException, AlreadyConsumed
 from nuclia.lib.nua_responses import (
     Author,
     ChatModel,
@@ -14,6 +15,7 @@ from nuclia.lib.nua_responses import (
     PublicPushPayload,
     PublicPushResponse,
     PullResponse,
+    PullStatus,
     Sentence,
     Source,
     SummarizedModel,
@@ -166,10 +168,27 @@ class NuaClient:
             raise NuaAPIException()
 
     def wait_for_processing(self, request: PublicPushResponse) -> Optional[bytes]:
-        collect_endpoint = f"{self.url}{PULL_PROCESS}?timeout=20"
-        resp = requests.get(collect_endpoint, headers=self.headers)
-        # b'{"seqid":23257,"account_seq":1996,"queue":"private","uuid":"df8dd975-71e5-40d3-9470-7596a860f3f0"}'
-        pull_resp = PullResponse.parse_raw(resp.content)
+        status = self.processing_status()
+        if (
+            status.account is not None
+            and request.account_seq is not None
+            and status.account.last_delivered_seqid is not None
+            and status.account.last_delivered_seqid >= request.account_seq
+        ):
+            raise AlreadyConsumed()
+
+        collect_endpoint = f"{self.url}{PULL_PROCESS}"
+
+        pull_resp = PullResponse(status=PullStatus.EMPTY, payload=None, msgid=None)
+        count = 0
+        while pull_resp.status == PullStatus.EMPTY and count < 10:
+            resp = requests.get(collect_endpoint, headers=self.headers)
+            # b'{"seqid":23257,"account_seq":1996,"queue":"private","uuid":"df8dd975-71e5-40d3-9470-7596a860f3f0"}'
+            pull_resp = PullResponse.parse_raw(resp.content)
+            count += 1
+            if pull_resp.status == PullStatus.EMPTY:
+                sleep(1)
+
         if pull_resp.payload is not None:
             return base64.b64decode(pull_resp.payload)
         else:
