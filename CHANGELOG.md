@@ -1,15 +1,23 @@
 # Changelog
 
-## 1.1.19 (unreleased)
+## 1.1.20 (unreleased)
 
 
 - Nothing changed yet.
+
+
+## 1.1.19 (2023-11-15)
+
+- Improve documentation.
+- Improve UX for exports and imports.
+- Support `filters` as search parameter on `search`, `find` and `chat`.
 
 
 ## 1.1.18 (2023-11-10)
 
 
 - Add `generate` and `generate_prompt` support in `NucliaPredict`.
+
 
 
 ## 1.1.17 (2023-11-02)
