@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from nuclia import BASE
+from nuclia import BASE, USE_NEW_REGIONAL_ENDPOINTS
 from nuclia.config import retrieve
 from nuclia.data import get_auth
 from nuclia.decorators import account, accounts
@@ -27,7 +27,8 @@ class NucliaKBS:
             )
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    result.extend(self._auth.kbs(account_obj.slug))
+                    account_id = (USE_NEW_REGIONAL_ENDPOINTS and account_obj.id) or account_obj.slug
+                    result.extend(self._auth.kbs(account_id))
             self._auth._config.kbs = result
             self._auth._config.save()
 

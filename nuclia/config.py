@@ -21,7 +21,7 @@ class KnowledgeBox(BaseModel):
     account: Optional[str] = None
 
     def __str__(self):
-        return f"{self.id:36} -> {'(' + self.account + ')' if self.account else ''} {self.title}"
+        return f"{self.id:36} -> {self.title} {'(account: ' + self.account + ')' if self.account else ''}"
 
 
 class NuaKey(BaseModel):

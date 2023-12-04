@@ -6,16 +6,16 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from prompt_toolkit import prompt
 
-from nuclia import BASE, BASE_DOMAIN, get_global_url
+from nuclia import USE_NEW_REGIONAL_ENDPOINTS, get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
 
-USER = f"{BASE}/api/v1/user/welcome"
-MEMBER = f"{BASE}/api/v1/user"
-ACCOUNTS = f"{BASE}/api/v1/accounts"
-ZONES = f"{BASE}/api/v1/zones"
-LIST_KBS = BASE + "/api/v1/account/{account}/kbs"
+USER = "/api/v1/user/welcome"
+MEMBER = "/api/v1/user"
+ACCOUNTS = "/api/v1/accounts"
+ZONES = "/api/v1/zones"
+LIST_KBS = "/api/v1/account/{account}/kbs"
 VERIFY_NUA = "/api/authorizer/info"
 
 
@@ -175,7 +175,7 @@ class NucliaAuth:
             return None, None
 
     def _show_user(self):
-        resp = self._request("GET", MEMBER)
+        resp = self._request("GET", get_global_url(MEMBER))
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
 
@@ -220,7 +220,7 @@ class NucliaAuth:
         if code is None:
             code = self._config.token
         resp = requests.get(
-            USER,
+            get_global_url(USER),
             headers={"Authorization": f"Bearer {code}"},
         )
         if resp.status_code == 200:
@@ -261,7 +261,7 @@ class NucliaAuth:
             raise Exception({"status": resp.status_code, "message": resp.text})
 
     def accounts(self) -> List[Account]:
-        accounts = self._request("GET", ACCOUNTS)
+        accounts = self._request("GET", get_global_url(ACCOUNTS))
         result = []
         self._config.accounts = []
         for account in accounts:
@@ -272,7 +272,7 @@ class NucliaAuth:
         return result
 
     def zones(self) -> List[Zone]:
-        zones = self._request("GET", ZONES)
+        zones = self._request("GET", get_global_url(ZONES))
         if self._config.accounts is None:
             self._config.accounts = []
         self._config.zones = []
@@ -285,19 +285,37 @@ class NucliaAuth:
         return result
 
     def kbs(self, account: str):
-        path = LIST_KBS.format(account=account)
-        try:
-            kbs = self._request("GET", path)
-        except UserTokenExpired:
-            return []
         result = []
         zones = self.zones()
-        region = {zone.id: zone.slug for zone in zones}
-        for kb in kbs:
-            zone = region[kb["zone"]]
-            url = f"https://{zone}.{BASE_DOMAIN}/api/v1/kb/{kb['id']}"
-            kb_obj = KnowledgeBox(
-                url=url, id=kb["id"], title=kb["title"], account=account, region=zone
-            )
-            result.append(kb_obj)
+        if not USE_NEW_REGIONAL_ENDPOINTS:
+            path = get_global_url(LIST_KBS.format(account=account))
+            try:
+                kbs = self._request("GET", path)
+            except UserTokenExpired:
+                return []
+            region = {zone.id: zone.slug for zone in zones}
+            for kb in kbs:
+                zone = region[kb["zone"]]
+                url = get_regional_url(zone, f"/api/v1/kb/{kb['id']}")
+                kb_obj = KnowledgeBox(
+                    url=url, id=kb["id"], title=kb["title"], account=account, region=zone
+                )
+                result.append(kb_obj)
+        else:
+            for zone in zones:
+                zoneSlug = zone.slug
+                path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
+                try:
+                    kbs = self._request("GET", path)
+                except UserTokenExpired:
+                    return []
+                except requests.exceptions.ConnectionError:
+                    print(f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone")
+                    continue
+                for kb in kbs:
+                    url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
+                    kb_obj = KnowledgeBox(
+                        url=url, id=kb["id"], title=kb["title"], account=account, region=zone.slug
+                    )
+                    result.append(kb_obj)
         return result

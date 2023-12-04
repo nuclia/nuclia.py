@@ -6,6 +6,8 @@ BASE = f"https://{BASE_DOMAIN}"
 REGIONAL = "https://{region}." + BASE_DOMAIN
 CLOUD_ID = BASE.split("/")[-1]
 
+USE_NEW_REGIONAL_ENDPOINTS = os.environ.get("USE_NEW_REGIONAL_ENDPOINTS", "") == "TRUE"
+
 
 def get_global_url(path: str):
     return BASE + path
