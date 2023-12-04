@@ -2,10 +2,11 @@ import base64
 import json
 import webbrowser
 from typing import Any, Dict, List, Optional, Tuple
+
 import requests
 from prompt_toolkit import prompt
 
-from nuclia import BASE, BASE_DOMAIN, get_global_url, get_regional_url
+from nuclia import BASE, BASE_DOMAIN, get_global_url
 from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone
 from nuclia.exceptions import NeedUserToken, UserTokenExpired

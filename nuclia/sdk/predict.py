@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua

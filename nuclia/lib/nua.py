@@ -1,26 +1,26 @@
+import base64
 from typing import Dict, List, Optional
 
 import requests
-import base64
 
 from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
+    Author,
     ChatModel,
     LearningConfig,
     Message,
     ProcessingStatus,
     PublicPushPayload,
     PublicPushResponse,
+    PullResponse,
     Sentence,
     Source,
     SummarizedModel,
-    Tokens,
-    UserPrompt,
     SummarizeModel,
     SummarizeResource,
-    Author,
-    PullResponse,
+    Tokens,
+    UserPrompt,
 )
 
 SENTENCE_PREDICT = "/api/v1/predict/sentence"

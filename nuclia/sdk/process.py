@@ -1,9 +1,10 @@
 from typing import Optional
+
 from nuclia.data import get_auth
 from nuclia.decorators import nua
+from nuclia.lib.nua import NuaClient
 from nuclia.lib.nua_responses import LearningConfig, ProcessingStatus
 from nuclia.sdk.auth import NucliaAuth
-from nuclia.lib.nua import NuaClient
 
 
 class NucliaProcessing:
@@ -18,7 +19,6 @@ class NucliaProcessing:
     ):
         nc: NuaClient = kwargs["nc"]
         response = nc.process_file(path, config)
-        status = nc.processing_status()
         payload = nc.wait_for_processing(response)
         return payload
 

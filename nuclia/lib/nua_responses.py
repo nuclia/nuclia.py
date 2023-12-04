@@ -1,13 +1,9 @@
-from enum import Enum
-from typing import List, Optional, Dict
-
-from pydantic import BaseModel
-
-from datetime import datetime
-from pydantic import ConstrainedStr
-from pydantic import Field
-
 import re
+from datetime import datetime
+from enum import Enum
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, ConstrainedStr, Field
 
 
 class Sentence(BaseModel):
