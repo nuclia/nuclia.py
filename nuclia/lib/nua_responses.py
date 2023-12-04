@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 from pydantic import BaseModel, ConstrainedStr, Field
 
@@ -194,7 +194,7 @@ class LearningConfig(BaseModel):
 
 
 class PushPayload(BaseModel):
-    kbid: Optional[RestrictedIDString] = "default"
+    kbid: Optional[RestrictedIDString] = cast(RestrictedIDString, "default")
     uuid: Optional[RestrictedIDString] = None
 
     slug: Optional[str] = None
