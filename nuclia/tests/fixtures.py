@@ -44,7 +44,8 @@ def testing_config(testing_kb, testing_nua, testing_user):
         nuclia_auth = NucliaAuth()
         nuclia_auth.set_user_token(testing_user)
         nuclia_auth.kb(TESTING_KB, testing_kb)
-        client_id = nuclia_auth.nua("europe-1", testing_nua)
+        client_id = nuclia_auth.nua(testing_nua)
+        assert client_id
         nuclia_auth._config.set_default_kb(TESTING_KBID)
         nuclia_auth._config.set_default_nua(client_id)
 

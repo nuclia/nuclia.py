@@ -105,7 +105,7 @@ class Config(BaseModel):
         self,
         client_id: str,
         account: str,
-        region: str,
+        base_region: str,
         token: str,
         account_type: Optional[str] = None,
     ):
@@ -121,7 +121,7 @@ class Config(BaseModel):
             NuaKey(
                 account_type=account_type,
                 account=account,
-                region=region,
+                region=base_region,
                 token=token,
                 client_id=client_id,
             )

@@ -112,15 +112,15 @@ class NucliaAuth:
         else:
             print("Invalid service token")
 
-    def nua(self, region: str, token: str) -> Optional[str]:
-        client_id, account_type, account = self.validate_nua(token, region)
-        if account is not None and client_id is not None:
+    def nua(self, token: str) -> Optional[str]:
+        client_id, account_type, account, base_region = self.validate_nua(token)
+        if account is not None and client_id is not None and base_region is not None:
             print("Validated")
             self._config.set_nua_token(
                 client_id=client_id,
                 account_type=account_type,
                 account=account,
-                region=region,
+                base_region=base_region,
                 token=token,
             )
             return client_id
@@ -129,19 +129,28 @@ class NucliaAuth:
             return None
 
     def validate_nua(
-        self, token: str, region: Optional[str] = None
-    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        self, token: str
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
         # Validate the code is ok
-        url = get_global_url(VERIFY_NUA)
+        token_payload = token.split(".")[1]
+        token_payload_decoded = str(base64.b64decode(token_payload + "=="), "utf-8")
+        payload = json.loads(token_payload_decoded)
+        base_path = payload["iss"]
+        url = base_path.strip("/") + VERIFY_NUA
         resp = requests.get(
             url,
             headers={"x-nuclia-nuakey": f"Bearer {token}"},
         )
         if resp.status_code == 200:
             data = resp.json().get("user")
-            return data.get("user_id"), data.get("account_type"), data.get("account_id")
+            return (
+                data.get("user_id"),
+                data.get("account_type"),
+                data.get("account_id"),
+                payload.get("iss"),
+            )
         else:
-            return None, None, None
+            return None, None, None, None
 
     def validate_kb(
         self, url: str, token: Optional[str] = None

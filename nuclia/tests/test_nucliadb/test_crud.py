@@ -2,20 +2,20 @@ from asyncio import BaseEventLoop
 from functools import partial
 
 import pytest
-from nucliadb.standalone.settings import Settings
+from nucliadb_sdk.tests.fixtures import NucliaFixture
 from nucliadb_models.resource import KnowledgeBoxList, KnowledgeBoxObj, ResourceList
 
 from nuclia.sdk import NucliaAuth, NucliaDB, NucliaKB
 
 
 @pytest.mark.asyncio
-async def test_crud(nucliadb: Settings, event_loop: BaseEventLoop):
+async def test_crud(nucliadb: NucliaFixture, event_loop: BaseEventLoop):
     auth = NucliaAuth()
     nkb = NucliaKB()
     ndb = NucliaDB()
 
     await event_loop.run_in_executor(
-        None, auth.nucliadb, f"http://localhost:{nucliadb.http_port}"
+        None, auth.nucliadb, f"http://localhost:{nucliadb.port}"
     )
 
     listing_kbs: KnowledgeBoxList = await event_loop.run_in_executor(None, ndb.list)

@@ -9,12 +9,14 @@ def test_auth_user(testing_user: str):
 
 def test_auth_kb(testing_kb: str):
     na = NucliaAuth()
-    assert na.validate_kb(TESTING_KB, testing_kb)
+    uuid, title = na.validate_kb(TESTING_KB, testing_kb)
+    assert uuid
+    assert title
 
 
 def test_auth_nua(testing_nua: str):
     na = NucliaAuth()
-    client, account_type, account = na.validate_nua(testing_nua)
+    client, account_type, account, region = na.validate_nua(testing_nua)
     assert client
     assert account_type
     assert account
