@@ -2,8 +2,7 @@
 
 ## 1.1.20 (unreleased)
 
-
-- Nothing changed yet.
+- Add more NUA Predict funtionalities (file processing, summarize)
 
 
 ## 1.1.19 (2023-11-15)
