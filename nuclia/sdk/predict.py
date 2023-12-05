@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import Dict, List, Optional
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua
 from nuclia.lib.nua import NuaClient
-from nuclia.lib.nua_responses import Sentence, Tokens
+from nuclia.lib.nua_responses import Sentence, SummarizedModel, Tokens
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -27,3 +27,17 @@ class NucliaPredict:
     def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
         nc: NuaClient = kwargs["nc"]
         return nc.tokens_predict(text, model)
+
+    @nua
+    def summarize(
+        self, texts: Dict[str, str], model: Optional[str] = None, **kwargs
+    ) -> SummarizedModel:
+        nc: NuaClient = kwargs["nc"]
+        return nc.summarize(texts, model)
+
+    @nua
+    def rag(
+        self, question: str, context: List[str], model: Optional[str] = None, **kwargs
+    ) -> bytes:
+        nc: NuaClient = kwargs["nc"]
+        return nc.generate_retrieval(question, context, model)
