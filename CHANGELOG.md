@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.20 (unreleased)
+## 1.1.20 (2023-12-05)
 
 - Add more NUA Predict funtionalities (file processing, summarize)
 
