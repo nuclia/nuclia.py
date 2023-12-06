@@ -2,8 +2,8 @@ from asyncio import BaseEventLoop
 from functools import partial
 
 import pytest
-from nucliadb_sdk.tests.fixtures import NucliaFixture
 from nucliadb_models.resource import KnowledgeBoxList, KnowledgeBoxObj, ResourceList
+from nucliadb_sdk.tests.fixtures import NucliaFixture
 
 from nuclia.sdk import NucliaAuth, NucliaDB, NucliaKB
 

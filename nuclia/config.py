@@ -202,11 +202,11 @@ class Config(BaseModel):
         self.default.account = account
         self.save()
 
-    def get_default_zone(self) -> str:
+    def get_default_zone(self) -> Optional[str]:
         if self.default is None or self.default.zone is None:
             return None
         return self.default.zone
-    
+
     def set_default_zone(self, zone: str):
         if self.default is None:
             self.default = Selection()
@@ -277,6 +277,7 @@ def retrieve_nua(nuas: List[NuaKey], nua: str) -> Optional[NuaKey]:
         pass
     return nua_obj
 
+
 def retrieve_account(accounts: List[Account], account: str) -> Optional[Account]:
     account_obj: Optional[Account] = None
     try:
@@ -284,6 +285,7 @@ def retrieve_account(accounts: List[Account], account: str) -> Optional[Account]
     except StopIteration:
         pass
     return account_obj
+
 
 def set_config_file(path: str):
     global CONFIG_PATH

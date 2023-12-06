@@ -27,7 +27,9 @@ class NucliaKBS:
             )
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    account_id = (USE_NEW_REGIONAL_ENDPOINTS and account_obj.id) or account_obj.slug
+                    account_id = (
+                        USE_NEW_REGIONAL_ENDPOINTS and account_obj.id
+                    ) or account_obj.slug
                     result.extend(self._auth.kbs(account_id))
             self._auth._config.kbs = result
             self._auth._config.save()
@@ -44,8 +46,10 @@ class NucliaKBS:
             if not USE_NEW_REGIONAL_ENDPOINTS:
                 return self._auth.kbs(account)
             else:
-                account_obj = retrieve_account(self._auth._config.accounts, account)
-                return self._auth.kbs(account_obj.id)
+                matching_account = retrieve_account(self._auth._config.accounts or [], account)
+                if not matching_account:
+                    raise ValueError("Account not found")
+                return self._auth.kbs(matching_account.id)
 
     @accounts
     @account
@@ -64,7 +68,11 @@ class NucliaKBS:
         if not slug:
             raise ValueError("slug is required.")
         if USE_NEW_REGIONAL_ENDPOINTS:
-            path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
+            if not zone:
+                raise ValueError("zone is required")
+            path = get_regional_url(
+                zone, KBS_ENDPOINT.format(account=kwargs["account_id"])
+            )
         else:
             path = get_global_url(KBS_ENDPOINT.format(account=kwargs["account"]))
         data = {
@@ -93,9 +101,15 @@ class NucliaKBS:
                 raise ValueError("zone is required")
             kbs = self._auth.kbs(kwargs["account_id"])
             kb_obj = retrieve(kbs, slug)
-            path = get_regional_url(zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=kb_obj.id))
+            if not kb_obj:
+                raise ValueError("Knowledge Box not found")
+            path = get_regional_url(
+                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=kb_obj.id)
+            )
         else:
-            path = get_global_url(KB_ENDPOINT.format(account=kwargs["account"], kb=slug))
+            path = get_global_url(
+                KB_ENDPOINT.format(account=kwargs["account"], kb=slug)
+            )
         return self._auth._request("GET", path)
 
     @accounts
@@ -110,9 +124,13 @@ class NucliaKBS:
             zone = kwargs.get("zone")
             if not zone:
                 raise ValueError("zone is required")
-            path = get_regional_url(zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=slug))
+            path = get_regional_url(
+                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=slug)
+            )
         else:
-            path = get_global_url(KB_ENDPOINT.format(account=kwargs["account"], kb=slug))
+            path = get_global_url(
+                KB_ENDPOINT.format(account=kwargs["account"], kb=slug)
+            )
         return self._auth._request("DELETE", path)
 
     def default(self, kb: str):

@@ -296,26 +296,42 @@ class NucliaAuth:
             region = {zone.id: zone.slug for zone in zones}
             for kb in kbs:
                 zone = region[kb["zone"]]
+                if not zone:
+                    continue
                 url = get_regional_url(zone, f"/api/v1/kb/{kb['id']}")
                 kb_obj = KnowledgeBox(
-                    url=url, id=kb["id"], slug=kb["slug"], title=kb["title"], account=account, region=zone
+                    url=url,
+                    id=kb["id"],
+                    slug=kb["slug"],
+                    title=kb["title"],
+                    account=account,
+                    region=zone,
                 )
                 result.append(kb_obj)
         else:
-            for zone in zones:
-                zoneSlug = zone.slug
+            for zoneObj in zones:
+                zoneSlug = zoneObj.slug
+                if not zoneSlug:
+                    continue
                 path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
                 try:
                     kbs = self._request("GET", path)
                 except UserTokenExpired:
                     return []
                 except requests.exceptions.ConnectionError:
-                    print(f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone")
+                    print(
+                        f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                    )
                     continue
                 for kb in kbs:
                     url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
                     kb_obj = KnowledgeBox(
-                        url=url, id=kb["id"], slug=kb["slug"], title=kb["title"], account=account, region=zone.slug
+                        url=url,
+                        id=kb["id"],
+                        slug=kb["slug"],
+                        title=kb["title"],
+                        account=account,
+                        region=zoneSlug,
                     )
                     result.append(kb_obj)
         return result
@@ -324,6 +340,8 @@ class NucliaAuth:
         if not USE_NEW_REGIONAL_ENDPOINTS:
             account_id = account_slug
         else:
-            account_obj = retrieve_account(self._config.accounts, account_slug)
+            account_obj = retrieve_account(self._config.accounts or [], account_slug)
+            if not account_obj:
+                raise ValueError(f"Account {account_slug} not found")
             account_id = account_obj.id
         return account_id
