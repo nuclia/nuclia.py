@@ -2,7 +2,7 @@ from functools import wraps
 
 import yaml
 
-from nuclia import BASE_DOMAIN
+from nuclia import BASE_DOMAIN, USE_NEW_REGIONAL_ENDPOINTS
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -24,7 +24,11 @@ def kbs(func):
     def wrapper_checkout_kbs(*args, **kwargs):
         if "account" in kwargs:
             auth = get_auth()
-            auth.kbs(kwargs["account"])
+            if not USE_NEW_REGIONAL_ENDPOINTS:
+                auth.kbs(kwargs["account"])
+            else:
+                account_id = auth.get_account_id(kwargs["account"])
+                auth.kbs(account_id)
         return func(*args, **kwargs)
 
     return wrapper_checkout_kbs
@@ -131,13 +135,17 @@ def nua(func):
 def account(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if not kwargs.get("account"):
-            auth = get_auth()
+        account_slug = kwargs.get("account")
+        account_id = kwargs.get("account_id")
+        auth = get_auth()
+        if not account_slug:
             account_slug = auth._config.get_default_account()
             if account_slug is None:
                 raise NotDefinedDefault()
-            else:
-                kwargs["account"] = account_slug
+            kwargs["account"] = account_slug
+        if not account_id:
+            account_id = auth.get_account_id(account_slug)
+            kwargs["account_id"] = account_id
         return func(*args, **kwargs)
 
     return wrapper
@@ -154,3 +162,15 @@ def pretty(func):
         return result
 
     return wrapper
+
+
+def zone(func):
+    @wraps(func)
+    def wrapper_checkout_zone(*args, **kwargs):
+        zone = kwargs.get("zone")
+        if not zone:
+            auth = get_auth()
+            kwargs["zone"] = auth._config.get_default_zone()
+        return func(*args, **kwargs)
+
+    return wrapper_checkout_zone

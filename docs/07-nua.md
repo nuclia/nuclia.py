@@ -88,6 +88,38 @@ It can generate text from a prompt:
   predict.generate(text="How to tell a good story?")
   ```
 
+It can summarize a list of texts:
+
+- CLI:
+
+  ```bash
+  nuclia nua predict summarize --texts='["TEXT1", "TEXT2"]'
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  predict = sdk.NucliaPredict()
+  predict.summarize(texts=["TEXT1", "TEXT2"])
+  ```
+
+It can generate a response to a question given a context:
+
+- CLI:
+
+  ```bash
+  nuclia nua predict rag --question="QUESTION" --context='["TEXT1", "TEXT2"]'
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  predict = sdk.NucliaPredict()
+  predict.rag(question="QUESTION", context=["TEXT1", "TEXT2"])
+  ```
+
 ### Agent
 
 `agent` allows to generate LLM agents from an initial prompt:
@@ -110,3 +142,28 @@ It can generate text from a prompt:
   ```
 
   (with the SDK, you will obtain an agent directly, you can call `ask` on it to generate answers)
+
+### Process
+
+`process` allows to process a file:
+
+- CLI:
+
+  ```bash
+  nuclia nua process file --path="path/to/file.txt"
+  ```
+
+  And you can check the status with:
+
+  ```bash
+  nuclia nua process status
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  process = sdk.NucliaProcess()
+  process.file(path="path/to/file.txt")
+  print(process.status())
+  ```

@@ -8,7 +8,7 @@ from prompt_toolkit import prompt
 
 from nuclia import USE_NEW_REGIONAL_ENDPOINTS, get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no
-from nuclia.config import Account, Config, KnowledgeBox, Zone
+from nuclia.config import Account, Config, KnowledgeBox, Zone, retrieve_account
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
 
 USER = "/api/v1/user/welcome"
@@ -298,7 +298,7 @@ class NucliaAuth:
                 zone = region[kb["zone"]]
                 url = get_regional_url(zone, f"/api/v1/kb/{kb['id']}")
                 kb_obj = KnowledgeBox(
-                    url=url, id=kb["id"], title=kb["title"], account=account, region=zone
+                    url=url, id=kb["id"], slug=kb["slug"], title=kb["title"], account=account, region=zone
                 )
                 result.append(kb_obj)
         else:
@@ -315,7 +315,15 @@ class NucliaAuth:
                 for kb in kbs:
                     url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
                     kb_obj = KnowledgeBox(
-                        url=url, id=kb["id"], title=kb["title"], account=account, region=zone.slug
+                        url=url, id=kb["id"], slug=kb["slug"], title=kb["title"], account=account, region=zone.slug
                     )
                     result.append(kb_obj)
         return result
+
+    def get_account_id(self, account_slug: str) -> str:
+        if not USE_NEW_REGIONAL_ENDPOINTS:
+            account_id = account_slug
+        else:
+            account_obj = retrieve_account(self._config.accounts, account_slug)
+            account_id = account_obj.id
+        return account_id

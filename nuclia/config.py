@@ -21,7 +21,7 @@ class KnowledgeBox(BaseModel):
     account: Optional[str] = None
 
     def __str__(self):
-        return f"{self.id:36} -> {self.title} {'(account: ' + self.account + ')' if self.account else ''}"
+        return f"{self.id:36} -> {self.slug} {'(account: ' + self.account + ')' if self.account else ''}"
 
 
 class NuaKey(BaseModel):
@@ -58,6 +58,7 @@ class Selection(BaseModel):
     kbid: Optional[str] = None
     account: Optional[str] = None
     nucliadb: Optional[str] = None
+    zone: Optional[str] = None
 
 
 class Config(BaseModel):
@@ -201,6 +202,17 @@ class Config(BaseModel):
         self.default.account = account
         self.save()
 
+    def get_default_zone(self) -> str:
+        if self.default is None or self.default.zone is None:
+            return None
+        return self.default.zone
+    
+    def set_default_zone(self, zone: str):
+        if self.default is None:
+            self.default = Selection()
+        self.default.zone = zone
+        self.save()
+
     def get_default_kb(self) -> str:
         if self.default is None or self.default.kbid is None:
             raise NotDefinedDefault()
@@ -265,6 +277,13 @@ def retrieve_nua(nuas: List[NuaKey], nua: str) -> Optional[NuaKey]:
         pass
     return nua_obj
 
+def retrieve_account(accounts: List[Account], account: str) -> Optional[Account]:
+    account_obj: Optional[Account] = None
+    try:
+        account_obj = next(filter(lambda x: x.slug == account, accounts))
+    except StopIteration:
+        pass
+    return account_obj
 
 def set_config_file(path: str):
     global CONFIG_PATH
