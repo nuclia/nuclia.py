@@ -124,8 +124,10 @@ class NucliaKBS:
             zone = kwargs.get("zone")
             if not zone:
                 raise ValueError("zone is required")
+            kbs = self._auth.kbs(kwargs["account_id"])
+            kb_obj = retrieve(kbs, slug)
             path = get_regional_url(
-                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=slug)
+                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=kb_obj.id)
             )
         else:
             path = get_global_url(
