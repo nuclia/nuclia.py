@@ -138,7 +138,7 @@ def account(func):
         account_slug = kwargs.get("account")
         account_id = kwargs.get("account_id")
         auth = get_auth()
-        if not account_slug:
+        if not account_id and not account_slug:
             account_slug = auth._config.get_default_account()
             if account_slug is None:
                 raise NotDefinedDefault()
