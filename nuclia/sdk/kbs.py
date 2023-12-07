@@ -126,6 +126,8 @@ class NucliaKBS:
                 raise ValueError("zone is required")
             kbs = self._auth.kbs(kwargs["account_id"])
             kb_obj = retrieve(kbs, slug)
+            if not kb_obj:
+                raise ValueError("Knowledge Box not found")
             path = get_regional_url(
                 zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=kb_obj.id)
             )
