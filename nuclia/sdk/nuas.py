@@ -1,9 +1,8 @@
-from nuclia import BASE
 from nuclia.config import retrieve_nua
 from nuclia.data import get_auth
 from nuclia.sdk.auth import NucliaAuth
 
-ADD_NUA = BASE + "/api/v1/account/{account}/nua_clients"
+ADD_NUA = "/api/v1/account/{account}/nua_clients"
 
 
 class NucliaNUAS:

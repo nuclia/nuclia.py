@@ -9,3 +9,7 @@ class NucliaZones:
 
     def list(self):
         return self._auth.zones()
+
+    def default(self, zone: str):
+        self._auth._config.set_default_zone(zone)
+        self._auth._config.save()
