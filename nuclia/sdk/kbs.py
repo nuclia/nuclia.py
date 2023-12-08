@@ -92,19 +92,24 @@ class NucliaKBS:
     @zone
     def get(
         self,
-        slug: str,
+        slug: Optional[str]=None,
+        id: Optional[str]=None,
         **kwargs,
     ):
         if USE_NEW_REGIONAL_ENDPOINTS:
             zone = kwargs.get("zone")
             if not zone:
                 raise ValueError("zone is required")
-            kbs = self._auth.kbs(kwargs["account_id"])
-            kb_obj = retrieve(kbs, slug)
-            if not kb_obj:
-                raise ValueError("Knowledge Box not found")
+            if not id and not slug:
+                raise ValueError("id or slug is required")
+            if slug and not id:
+                kbs = self._auth.kbs(kwargs["account_id"])
+                kb_obj = retrieve(kbs, slug)
+                if not kb_obj:
+                    raise ValueError("Knowledge Box not found")
+                id = kb_obj.id
             path = get_regional_url(
-                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=kb_obj.id)
+                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
             )
         else:
             path = get_global_url(
@@ -117,19 +122,24 @@ class NucliaKBS:
     @zone
     def delete(
         self,
-        slug: str,
+        slug: Optional[str]=None,
+        id: Optional[str]=None,
         **kwargs,
     ):
         if USE_NEW_REGIONAL_ENDPOINTS:
             zone = kwargs.get("zone")
             if not zone:
                 raise ValueError("zone is required")
-            kbs = self._auth.kbs(kwargs["account_id"])
-            kb_obj = retrieve(kbs, slug)
-            if not kb_obj:
-                raise ValueError("Knowledge Box not found")
+            if not id and not slug:
+                raise ValueError("id or slug is required")
+            if slug and not id:
+                kbs = self._auth.kbs(kwargs["account_id"])
+                kb_obj = retrieve(kbs, slug)
+                if not kb_obj:
+                    raise ValueError("Knowledge Box not found")
+                id = kb_obj.id
             path = get_regional_url(
-                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=kb_obj.id)
+                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
             )
         else:
             path = get_global_url(
