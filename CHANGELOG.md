@@ -3,7 +3,7 @@
 ## 1.1.21 (unreleased)
 
 
-- Nothing changed yet.
+- Support the new regional endpoints.
 
 
 ## 1.1.20 (2023-12-05)

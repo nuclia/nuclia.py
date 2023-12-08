@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import requests
 
 from nuclia import REGIONAL
-from nuclia.exceptions import NuaAPIException, AlreadyConsumed
+from nuclia.exceptions import AlreadyConsumed, NuaAPIException
 from nuclia.lib.nua_responses import (
     Author,
     ChatModel,
