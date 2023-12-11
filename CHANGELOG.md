@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.22 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 1.1.21 (2023-12-11)
 
 
