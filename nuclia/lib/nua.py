@@ -3,9 +3,11 @@ from time import sleep
 from typing import Dict, List, Optional
 
 import requests
+from nucliadb_protos.writer_pb2 import BrokerMessage
+from nuclia.sdk.logger import logger
 
 from nuclia import REGIONAL
-from nuclia.exceptions import AlreadyConsumed, NuaAPIException
+from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
     Author,
     ChatModel,
@@ -170,32 +172,33 @@ class NuaClient:
         else:
             raise NuaAPIException()
 
-    def wait_for_processing(self, request: PublicPushResponse) -> Optional[bytes]:
-        status = self.processing_status()
-        if (
-            status.account is not None
-            and request.account_seq is not None
-            and status.account.last_delivered_seqid is not None
-            and status.account.last_delivered_seqid >= request.account_seq
-        ):
-            raise AlreadyConsumed()
-
+    def wait_for_processing(
+        self, response: Optional[PublicPushResponse] = None, timeout: int = 10
+    ) -> Optional[BrokerMessage]:
         collect_endpoint = f"{self.url}{PULL_PROCESS}"
 
         pull_resp = PullResponse(status=PullStatus.EMPTY, payload=None, msgid=None)
         count = 0
-        while pull_resp.status == PullStatus.EMPTY and count < 10:
+        bm = None
+        found = False
+        while found is False and count < timeout * 20:
             resp = requests.get(collect_endpoint, headers=self.headers)
-            # b'{"seqid":23257,"account_seq":1996,"queue":"private","uuid":"df8dd975-71e5-40d3-9470-7596a860f3f0"}'
             pull_resp = PullResponse.parse_raw(resp.content)
             count += 1
             if pull_resp.status == PullStatus.EMPTY:
-                sleep(1)
-
-        if pull_resp.payload is not None:
-            return base64.b64decode(pull_resp.payload)
-        else:
-            return None
+                sleep(3)
+            elif pull_resp.payload is not None:
+                bm = BrokerMessage()
+                bm.ParseFromString(base64.b64decode(pull_resp.payload))
+                if response is not None and response.account_seq is not None:
+                    if bm.account_seq == response.account_seq:
+                        found = True
+                    else:
+                        logger.info(
+                            f"Received account seq {bm.account_seq} but waiting for {response.account_seq}, "
+                            "old processing info or a shared NUA key"
+                        )
+        return bm
 
     def processing_status(self) -> ProcessingStatus:
         activity_endpoint = f"{self.url}{STATUS_PROCESS}"
