@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.21 (unreleased)
+## 1.1.21 (2023-12-11)
 
 
 - Support the new regional endpoints.
