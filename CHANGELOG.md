@@ -4,6 +4,7 @@
 
 
 - Support the new regional endpoints.
+- Fix processing
 
 
 ## 1.1.20 (2023-12-05)
