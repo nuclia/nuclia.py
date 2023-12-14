@@ -4,15 +4,12 @@ from typing import Dict, List, Optional
 
 import requests
 from nucliadb_protos.writer_pb2 import BrokerMessage
-from nuclia.sdk.logger import logger
 
 from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
-    Author,
     ChatModel,
     LearningConfig,
-    Message,
     ProcessingStatus,
     PublicPushPayload,
     PublicPushResponse,
@@ -26,6 +23,7 @@ from nuclia.lib.nua_responses import (
     Tokens,
     UserPrompt,
 )
+from nuclia.sdk.logger import logger
 
 SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
@@ -117,20 +115,19 @@ class NuaClient:
             raise NuaAPIException()
 
     def generate_retrieval(
-        self, question: str, context: List[str], model: Optional[str] = None
+        self,
+        question: str,
+        context: List[str],
+        model: Optional[str] = None,
     ) -> bytes:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
             endpoint += f"?model={model}"
-
-        message_context = [
-            Message(author=Author.USER, text=message) for message in context
-        ]
         body = ChatModel(
             question=question,
             retrieval=True,
             user_id="Nuclia PY CLI",
-            context=message_context,
+            query_context=context,
         )
         resp = requests.post(
             endpoint, data=body.json(), headers=self.headers, stream=True
@@ -140,7 +137,6 @@ class NuaClient:
             response = b""
             for chunk in resp.raw.stream(1000, decode_content=True):
                 response += chunk
-
             return response
         else:
             raise NuaAPIException()
