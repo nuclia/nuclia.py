@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.22 (unreleased)
+## 1.1.22 (2023-12-15)
 
 - Fix context format and add test
 
