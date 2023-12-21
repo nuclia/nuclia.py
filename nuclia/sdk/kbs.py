@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from nuclia import get_global_url, get_regional_url
+from nuclia import get_regional_url
 from nuclia.config import retrieve, retrieve_account
 from nuclia.data import get_auth
 from nuclia.decorators import account, accounts, zone
@@ -40,7 +40,9 @@ class NucliaKBS:
 
             return result
         else:
-            matching_account = retrieve_account(self._auth._config.accounts or [], account)
+            matching_account = retrieve_account(
+                self._auth._config.accounts or [], account
+            )
             if not matching_account:
                 raise ValueError("Account not found")
             return self._auth.kbs(matching_account.id)
@@ -63,9 +65,7 @@ class NucliaKBS:
             raise ValueError("slug is required.")
         if not zone:
             raise ValueError("zone is required")
-        path = get_regional_url(
-            zone, KBS_ENDPOINT.format(account=kwargs["account_id"])
-        )
+        path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
         data = {
             "slug": slug,
             "anonymization": anonymization,
@@ -83,8 +83,8 @@ class NucliaKBS:
     @zone
     def get(
         self,
-        slug: Optional[str]=None,
-        id: Optional[str]=None,
+        slug: Optional[str] = None,
+        id: Optional[str] = None,
         **kwargs,
     ):
         zone = kwargs.get("zone")
@@ -108,8 +108,8 @@ class NucliaKBS:
     @zone
     def delete(
         self,
-        slug: Optional[str]=None,
-        id: Optional[str]=None,
+        slug: Optional[str] = None,
+        id: Optional[str] = None,
         **kwargs,
     ):
         zone = kwargs.get("zone")
