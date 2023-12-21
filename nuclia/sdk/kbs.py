@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from nuclia import USE_NEW_REGIONAL_ENDPOINTS, get_global_url, get_regional_url
+from nuclia import get_global_url, get_regional_url
 from nuclia.config import retrieve, retrieve_account
 from nuclia.data import get_auth
 from nuclia.decorators import account, accounts, zone
@@ -27,10 +27,7 @@ class NucliaKBS:
             )
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    account_id = (
-                        USE_NEW_REGIONAL_ENDPOINTS and account_obj.id
-                    ) or account_obj.slug
-                    result.extend(self._auth.kbs(account_id))
+                    result.extend(self._auth.kbs(account_obj.id))
             self._auth._config.kbs = result
             self._auth._config.save()
 
@@ -43,13 +40,10 @@ class NucliaKBS:
 
             return result
         else:
-            if not USE_NEW_REGIONAL_ENDPOINTS:
-                return self._auth.kbs(account)
-            else:
-                matching_account = retrieve_account(self._auth._config.accounts or [], account)
-                if not matching_account:
-                    raise ValueError("Account not found")
-                return self._auth.kbs(matching_account.id)
+            matching_account = retrieve_account(self._auth._config.accounts or [], account)
+            if not matching_account:
+                raise ValueError("Account not found")
+            return self._auth.kbs(matching_account.id)
 
     @accounts
     @account
@@ -67,14 +61,11 @@ class NucliaKBS:
     ):
         if not slug:
             raise ValueError("slug is required.")
-        if USE_NEW_REGIONAL_ENDPOINTS:
-            if not zone:
-                raise ValueError("zone is required")
-            path = get_regional_url(
-                zone, KBS_ENDPOINT.format(account=kwargs["account_id"])
-            )
-        else:
-            path = get_global_url(KBS_ENDPOINT.format(account=kwargs["account"]))
+        if not zone:
+            raise ValueError("zone is required")
+        path = get_regional_url(
+            zone, KBS_ENDPOINT.format(account=kwargs["account_id"])
+        )
         data = {
             "slug": slug,
             "anonymization": anonymization,
@@ -96,25 +87,20 @@ class NucliaKBS:
         id: Optional[str]=None,
         **kwargs,
     ):
-        if USE_NEW_REGIONAL_ENDPOINTS:
-            zone = kwargs.get("zone")
-            if not zone:
-                raise ValueError("zone is required")
-            if not id and not slug:
-                raise ValueError("id or slug is required")
-            if slug and not id:
-                kbs = self._auth.kbs(kwargs["account_id"])
-                kb_obj = retrieve(kbs, slug)
-                if not kb_obj:
-                    raise ValueError("Knowledge Box not found")
-                id = kb_obj.id
-            path = get_regional_url(
-                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
-            )
-        else:
-            path = get_global_url(
-                KB_ENDPOINT.format(account=kwargs["account"], kb=slug)
-            )
+        zone = kwargs.get("zone")
+        if not zone:
+            raise ValueError("zone is required")
+        if not id and not slug:
+            raise ValueError("id or slug is required")
+        if slug and not id:
+            kbs = self._auth.kbs(kwargs["account_id"])
+            kb_obj = retrieve(kbs, slug)
+            if not kb_obj:
+                raise ValueError("Knowledge Box not found")
+            id = kb_obj.id
+        path = get_regional_url(
+            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+        )
         return self._auth._request("GET", path)
 
     @accounts
@@ -126,25 +112,20 @@ class NucliaKBS:
         id: Optional[str]=None,
         **kwargs,
     ):
-        if USE_NEW_REGIONAL_ENDPOINTS:
-            zone = kwargs.get("zone")
-            if not zone:
-                raise ValueError("zone is required")
-            if not id and not slug:
-                raise ValueError("id or slug is required")
-            if slug and not id:
-                kbs = self._auth.kbs(kwargs["account_id"])
-                kb_obj = retrieve(kbs, slug)
-                if not kb_obj:
-                    raise ValueError("Knowledge Box not found")
-                id = kb_obj.id
-            path = get_regional_url(
-                zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
-            )
-        else:
-            path = get_global_url(
-                KB_ENDPOINT.format(account=kwargs["account"], kb=slug)
-            )
+        zone = kwargs.get("zone")
+        if not zone:
+            raise ValueError("zone is required")
+        if not id and not slug:
+            raise ValueError("id or slug is required")
+        if slug and not id:
+            kbs = self._auth.kbs(kwargs["account_id"])
+            kb_obj = retrieve(kbs, slug)
+            if not kb_obj:
+                raise ValueError("Knowledge Box not found")
+            id = kb_obj.id
+        path = get_regional_url(
+            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+        )
         return self._auth._request("DELETE", path)
 
     def default(self, kb: str):

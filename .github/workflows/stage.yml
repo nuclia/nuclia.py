@@ -32,4 +32,4 @@ jobs:
         run: make lint
 
       - name: Test
-        run: USE_NEW_REGIONAL_ENDPOINTS="TRUE" BASE_NUCLIA_DOMAIN="stashify.cloud" GA_TESTING_SERVICE_TOKEN="${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.STAGE_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.STAGE_TESTING_NUA }}" make test
+        run: BASE_NUCLIA_DOMAIN="stashify.cloud" GA_TESTING_SERVICE_TOKEN="${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.STAGE_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.STAGE_TESTING_NUA }}" make test

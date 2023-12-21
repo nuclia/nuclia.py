@@ -1,9 +1,10 @@
 # Changelog
 
-## 1.1.23 (unreleased)
+## 1.2.0 (unreleased)
 
+** BREAKING CHANGE **
 
-- Nothing changed yet.
+- Use the new regional endpoints
 
 
 ## 1.1.22 (2023-12-15)

@@ -2,7 +2,7 @@ from functools import wraps
 
 import yaml
 
-from nuclia import BASE_DOMAIN, USE_NEW_REGIONAL_ENDPOINTS
+from nuclia import BASE_DOMAIN
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
@@ -24,11 +24,8 @@ def kbs(func):
     def wrapper_checkout_kbs(*args, **kwargs):
         if "account" in kwargs:
             auth = get_auth()
-            if not USE_NEW_REGIONAL_ENDPOINTS:
-                auth.kbs(kwargs["account"])
-            else:
-                account_id = auth.get_account_id(kwargs["account"])
-                auth.kbs(account_id)
+            account_id = auth.get_account_id(kwargs["account"])
+            auth.kbs(account_id)
         return func(*args, **kwargs)
 
     return wrapper_checkout_kbs
