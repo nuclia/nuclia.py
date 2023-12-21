@@ -20,11 +20,16 @@ def test_add_and_delete_kb(testing_config):
         assert True
         return
     kbs = NucliaKBS()
-    kb = kbs.add(account=TESTING_ACCOUNT_SLUG, slug=NEW_KB_SLUG, title="Test KB", zone="europe-1")
+    kb = kbs.add(
+        account=TESTING_ACCOUNT_SLUG, slug=NEW_KB_SLUG, title="Test KB", zone="europe-1"
+    )
     assert kb["id"] is not None
     assert kb["slug"] == NEW_KB_SLUG
     assert kb["title"] == "Test KB"
-    assert kbs.get(account=TESTING_ACCOUNT_SLUG, slug=NEW_KB_SLUG, zone="europe-1") is not None
+    assert (
+        kbs.get(account=TESTING_ACCOUNT_SLUG, slug=NEW_KB_SLUG, zone="europe-1")
+        is not None
+    )
 
     kbs.delete(account=TESTING_ACCOUNT_SLUG, id=kb["id"], zone="europe-1")
     with pytest.raises(ValueError):

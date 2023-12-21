@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from prompt_toolkit import prompt
 
-from nuclia import USE_NEW_REGIONAL_ENDPOINTS, get_global_url, get_regional_url
+from nuclia import get_global_url, get_regional_url
 from nuclia.cli.utils import yes_no
 from nuclia.config import Account, Config, KnowledgeBox, Zone, retrieve_account
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
@@ -287,61 +287,35 @@ class NucliaAuth:
     def kbs(self, account: str):
         result = []
         zones = self.zones()
-        if not USE_NEW_REGIONAL_ENDPOINTS:
-            path = get_global_url(LIST_KBS.format(account=account))
+        for zoneObj in zones:
+            zoneSlug = zoneObj.slug
+            if not zoneSlug:
+                continue
+            path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
             try:
                 kbs = self._request("GET", path)
             except UserTokenExpired:
                 return []
-            region = {zone.id: zone.slug for zone in zones}
+            except requests.exceptions.ConnectionError:
+                print(
+                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                )
+                continue
             for kb in kbs:
-                zone = region[kb["zone"]]
-                if not zone:
-                    continue
-                url = get_regional_url(zone, f"/api/v1/kb/{kb['id']}")
+                url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
                 kb_obj = KnowledgeBox(
                     url=url,
                     id=kb["id"],
                     slug=kb["slug"],
                     title=kb["title"],
                     account=account,
-                    region=zone,
+                    region=zoneSlug,
                 )
                 result.append(kb_obj)
-        else:
-            for zoneObj in zones:
-                zoneSlug = zoneObj.slug
-                if not zoneSlug:
-                    continue
-                path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
-                try:
-                    kbs = self._request("GET", path)
-                except UserTokenExpired:
-                    return []
-                except requests.exceptions.ConnectionError:
-                    print(
-                        f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
-                    )
-                    continue
-                for kb in kbs:
-                    url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
-                    kb_obj = KnowledgeBox(
-                        url=url,
-                        id=kb["id"],
-                        slug=kb["slug"],
-                        title=kb["title"],
-                        account=account,
-                        region=zoneSlug,
-                    )
-                    result.append(kb_obj)
         return result
 
     def get_account_id(self, account_slug: str) -> str:
-        if not USE_NEW_REGIONAL_ENDPOINTS:
-            account_id = account_slug
-        else:
-            account_obj = retrieve_account(self._config.accounts or [], account_slug)
-            if not account_obj:
-                raise ValueError(f"Account {account_slug} not found")
-            account_id = account_obj.id
-        return account_id
+        account_obj = retrieve_account(self._config.accounts or [], account_slug)
+        if not account_obj:
+            raise ValueError(f"Account {account_slug} not found")
+        return account_obj.id
