@@ -1,11 +1,12 @@
 from typing import Optional
 
+from nucliadb_protos.writer_pb2 import BrokerMessage
+
 from nuclia.data import get_auth
 from nuclia.decorators import nua
 from nuclia.lib.nua import NuaClient
 from nuclia.lib.nua_responses import LearningConfig, ProcessingStatus
 from nuclia.sdk.auth import NucliaAuth
-from nucliadb_protos.writer_pb2 import BrokerMessage
 
 
 class NucliaProcessing:
