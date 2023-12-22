@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
-          cache: "pip"
+          cache: 'pip'
 
       - name: Install package
         run: make install
@@ -32,4 +32,4 @@ jobs:
         run: make lint
 
       - name: Test
-        run: GA_TESTING_SERVICE_TOKEN="${{ secrets.GA_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.GA_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.GA_TESTING_NUA }}" make test
+        run: GA_TESTING_SERVICE_TOKEN="${{ secrets.GA_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.GA_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.TEST_EUROPE1_NUCLIA_NUA }}" make test
