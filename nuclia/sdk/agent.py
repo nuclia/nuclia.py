@@ -31,7 +31,10 @@ class NucliaAgent:
     ) -> str:
         user_prompt = (
             self.predict.generate(
-                f"Define a prompt for an {agent_definition} that will answer questions about {text}",
+                f"""Define a prompt for an agent that will answer questions about this topic: {agent_definition} taking into account the following guidelines: 
+                {text}
+                IMPORTANT: It does not need to be a perfect prompt, even if you do not have enough information, return a prompt.
+                PROMPT:""",
                 model,
             )
             .decode()
