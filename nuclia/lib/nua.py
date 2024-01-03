@@ -54,9 +54,6 @@ class NuaClient:
         if resp.status_code == 200:
             return Sentence.parse_obj(resp.json())
         else:
-            import pdb
-
-            pdb.set_trace()
             raise NuaAPIException()
 
     def tokens_predict(self, text: str, model: Optional[str] = None) -> Tokens:
