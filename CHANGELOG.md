@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.1 (unreleased)
+## 1.2.1 (2024-01-08)
 
 
 - Improve prompt generation
