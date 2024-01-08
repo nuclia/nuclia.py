@@ -3,7 +3,7 @@
 ## 1.2.1 (unreleased)
 
 
-- Nothing changed yet.
+- Improve prompt generation
 
 
 ## 1.2.0 (2023-12-21)
