@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.2 (unreleased)
+## 1.2.2 (2024-01-11)
 
 
 - Update Nuclia dependencies to get the new AWS region.
