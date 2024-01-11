@@ -3,7 +3,7 @@
 ## 1.2.2 (unreleased)
 
 
-- Nothing changed yet.
+- Update Nuclia dependencies to get the new AWS region.
 
 
 ## 1.2.1 (2024-01-08)

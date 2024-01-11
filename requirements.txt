@@ -3,6 +3,6 @@ pydantic<2.0.0
 pyyaml>=5.4
 requests
 prompt_toolkit
-nucliadb_sdk>=2.30.0.post881
-nucliadb_models>=2.30.0.post881
+nucliadb_sdk>=2.38.0.post97
+nucliadb_models>=2.38.0.post97
 tqdm
