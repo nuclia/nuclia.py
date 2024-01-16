@@ -3,7 +3,7 @@
 ## 1.2.3 (unreleased)
 
 
-- Nothing changed yet.
+- Support resources summarization
 
 
 ## 1.2.2 (2024-01-11)

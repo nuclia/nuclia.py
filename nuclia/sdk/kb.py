@@ -179,3 +179,8 @@ class NucliaKB:
         logger.warning("delete is deprecated, use resource.delete instead")
         ndb: NucliaDBClient = kwargs["ndb"]
         ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
+
+    @kb
+    def summarize(self, *, resources: List[str], **kwargs):
+        ndb: NucliaDBClient = kwargs["ndb"]
+        return ndb.ndb.summarize(kbid=ndb.kbid, resources=resources)
