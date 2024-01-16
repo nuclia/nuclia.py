@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.3 (unreleased)
+## 1.2.3 (2024-01-16)
 
 
 - Support resources summarization
