@@ -15,6 +15,7 @@ RESOURCE_ATTRIBUTES = [
     "conversations",
     "links",
     "texts",
+    "files",
     "usermetadata",
     "fieldmetadata",
     "title",

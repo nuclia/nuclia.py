@@ -3,7 +3,7 @@
 ## 1.2.4 (unreleased)
 
 
-- Nothing changed yet.
+- Allow to set remote files field at creation
 
 
 ## 1.2.3 (2024-01-16)
