@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.4 (unreleased)
+## 1.2.4 (2024-01-18)
 
 
 - Allow to set remote files field at creation
