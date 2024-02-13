@@ -9,6 +9,7 @@ from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
     ChatModel,
+    ConfigSchema,
     LearningConfig,
     ProcessingStatus,
     PublicPushPayload,
@@ -29,10 +30,13 @@ SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
 SUMMARIZE_PREDICT = "/api/v1/predict/summarize"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
-PUSH_PROCESS = "/api/v1/processing/push"
+# PUSH_PROCESS = "/api/v1/processing/push"
 PULL_PROCESS = "/api/v1/processing/pull"
 UPLOAD_PROCESS = "/api/v1/processing/upload"
-STATUS_PROCESS = "/api/v1/processing/status"
+STATUS_PROCESS = "/api/v2/processing/status"
+PUSH_PROCESS = "/api/v2/processing/push"
+SCHEMA = "/api/v1/learning/configuration/schema"
+SCHEMA_KBID = "/api/v1/schema"
 
 
 class NuaClient:
@@ -46,6 +50,16 @@ class NuaClient:
             self.url = REGIONAL.format(region=region).strip("/")
         self.headers = {"X-STF-NUAKEY": f"Bearer {token}"}
 
+    def config_predict(self, kbid: Optional[str] = None) -> ConfigSchema:
+        endpoint = f"{self.url}{SCHEMA}"
+        if kbid is not None:
+            endpoint = f"{self.url}{SCHEMA_KBID}/{kbid}"
+        resp = requests.get(endpoint, headers=self.headers)
+        if resp.status_code == 200:
+            return ConfigSchema.parse_obj(resp.json())
+        else:
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
+
     def sentence_predict(self, text: str, model: Optional[str] = None) -> Sentence:
         endpoint = f"{self.url}{SENTENCE_PREDICT}?text={text}"
         if model:
@@ -54,7 +68,7 @@ class NuaClient:
         if resp.status_code == 200:
             return Sentence.parse_obj(resp.json())
         else:
-            raise NuaAPIException()
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
     def tokens_predict(self, text: str, model: Optional[str] = None) -> Tokens:
         endpoint = f"{self.url}{TOKENS_PREDICT}?text={text}"
@@ -64,7 +78,7 @@ class NuaClient:
         if resp.status_code == 200:
             return Tokens.parse_obj(resp.json())
         else:
-            raise NuaAPIException()
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
     def generate_predict(self, text: str, model: Optional[str] = None) -> bytes:
         endpoint = f"{self.url}{CHAT_PREDICT}"
@@ -87,7 +101,7 @@ class NuaClient:
 
             return response
         else:
-            raise NuaAPIException()
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
     def summarize(
         self, documents: Dict[str, str], model: Optional[str] = None
@@ -109,7 +123,7 @@ class NuaClient:
         if resp.status_code == 200:
             return SummarizedModel.parse_raw(resp.content)
         else:
-            raise NuaAPIException()
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
     def generate_retrieval(
         self,
@@ -136,7 +150,7 @@ class NuaClient:
                 response += chunk
             return response
         else:
-            raise NuaAPIException()
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
     def process_file(
         self, path: str, config: Optional[LearningConfig] = None
@@ -163,7 +177,7 @@ class NuaClient:
         if resp.status_code == 200:
             return PublicPushResponse.parse_raw(resp.content)
         else:
-            raise NuaAPIException()
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
     def wait_for_processing(
         self, response: Optional[PublicPushResponse] = None, timeout: int = 10
