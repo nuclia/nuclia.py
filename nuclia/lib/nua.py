@@ -1,7 +1,6 @@
 import base64
-from time import sleep
 from typing import Dict, List, Optional
-
+from time import sleep
 import requests
 from nucliadb_protos.writer_pb2 import BrokerMessage
 
@@ -10,12 +9,13 @@ from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
     ChatModel,
     ConfigSchema,
-    LearningConfig,
-    ProcessingStatus,
-    PublicPushPayload,
-    PublicPushResponse,
-    PullResponse,
-    PullStatus,
+    LearningConfigurationCreation,
+    LearningConfigurationUpdate,
+    ProcessRequestStatus,
+    ProcessRequestStatusResults,
+    PushPayload,
+    PushResponseV2,
+    RestrictedIDString,
     Sentence,
     Source,
     SummarizedModel,
@@ -24,14 +24,11 @@ from nuclia.lib.nua_responses import (
     Tokens,
     UserPrompt,
 )
-from nuclia.sdk.logger import logger
 
 SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
 SUMMARIZE_PREDICT = "/api/v1/predict/summarize"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
-# PUSH_PROCESS = "/api/v1/processing/push"
-PULL_PROCESS = "/api/v1/processing/pull"
 UPLOAD_PROCESS = "/api/v1/processing/upload"
 STATUS_PROCESS = "/api/v2/processing/status"
 PUSH_PROCESS = "/api/v2/processing/push"
@@ -50,7 +47,19 @@ class NuaClient:
             self.url = REGIONAL.format(region=region).strip("/")
         self.headers = {"X-STF-NUAKEY": f"Bearer {token}"}
 
-    def config_predict(self, kbid: Optional[str] = None) -> ConfigSchema:
+    def add_config_predict(self, kbid: str, config: LearningConfigurationCreation):
+        endpoint = f"{self.url}{SCHEMA_KBID}/{kbid}"
+        resp = requests.post(endpoint, json=config.dict(), headers=self.headers)
+        if resp.status_code != 200:
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
+
+    def update_config_predict(self, kbid: str, config: LearningConfigurationUpdate):
+        endpoint = f"{self.url}{SCHEMA_KBID}/{kbid}"
+        resp = requests.post(endpoint, json=config.dict(), headers=self.headers)
+        if resp.status_code != 200:
+            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
+
+    def schema_predict(self, kbid: Optional[str] = None) -> ConfigSchema:
         endpoint = f"{self.url}{SCHEMA}"
         if kbid is not None:
             endpoint = f"{self.url}{SCHEMA_KBID}/{kbid}"
@@ -152,9 +161,7 @@ class NuaClient:
         else:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
-    def process_file(
-        self, path: str, config: Optional[LearningConfig] = None
-    ) -> PublicPushResponse:
+    def process_file(self, path: str, kbid: Optional[str] = None) -> PushResponseV2:
         filename = path.split("/")[-1]
         upload_endpoint = f"{self.url}{UPLOAD_PROCESS}"
 
@@ -165,49 +172,44 @@ class NuaClient:
 
         resp = requests.post(upload_endpoint, data=data, headers=headers)
 
-        # file_token =
-        payload = PublicPushPayload(
-            uuid=None, source=Source.HTTP, learning_config=config
+        payload = PushPayload(
+            uuid=None, source=Source.HTTP, kbid=RestrictedIDString(kbid)
         )
+
         payload.filefield[filename] = resp.content.decode()
         process_endpoint = f"{self.url}{PUSH_PROCESS}"
         resp = requests.post(
             process_endpoint, data=payload.json(), headers=self.headers
         )
         if resp.status_code == 200:
-            return PublicPushResponse.parse_raw(resp.content)
+            return PushResponseV2.parse_raw(resp.content)
         else:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
     def wait_for_processing(
-        self, response: Optional[PublicPushResponse] = None, timeout: int = 10
+        self, response: PushResponseV2, timeout: int = 30
     ) -> Optional[BrokerMessage]:
-        collect_endpoint = f"{self.url}{PULL_PROCESS}"
 
-        pull_resp = PullResponse(status=PullStatus.EMPTY, payload=None, msgid=None)
-        count = 0
+        resp = self.processing_id_status(response.processing_id)
+        count = timeout
+        while resp.completed is False and resp.failed is False and count > 0:
+            resp = self.processing_id_status(response.processing_id)
+            sleep(3)
+            count -= 1
+
         bm = None
-        found = False
-        while found is False and count < timeout * 20:
-            resp = requests.get(collect_endpoint, headers=self.headers)
-            pull_resp = PullResponse.parse_raw(resp.content)
-            count += 1
-            if pull_resp.status == PullStatus.EMPTY:
-                sleep(3)
-            elif pull_resp.payload is not None:
-                bm = BrokerMessage()
-                bm.ParseFromString(base64.b64decode(pull_resp.payload))
-                if response is not None and response.account_seq is not None:
-                    if bm.account_seq == response.account_seq:
-                        found = True
-                    else:
-                        logger.info(
-                            f"Received account seq {bm.account_seq} but waiting for {response.account_seq}, "
-                            "old processing info or a shared NUA key"
-                        )
+        if resp.response:
+            bm = BrokerMessage()
+            bm.ParseFromString(base64.b64decode(resp.response))
+
         return bm
 
-    def processing_status(self) -> ProcessingStatus:
+    def processing_status(self) -> ProcessRequestStatusResults:
         activity_endpoint = f"{self.url}{STATUS_PROCESS}"
         resp = requests.get(activity_endpoint, headers=self.headers)
-        return ProcessingStatus.parse_raw(resp.content)
+        return ProcessRequestStatusResults.parse_raw(resp.content)
+
+    def processing_id_status(self, process_id: str) -> ProcessRequestStatus:
+        activity_endpoint = f"{self.url}{STATUS_PROCESS}/{process_id}"
+        resp = requests.get(activity_endpoint, headers=self.headers)
+        return ProcessRequestStatus.parse_raw(resp.content)

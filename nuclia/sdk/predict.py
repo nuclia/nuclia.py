@@ -3,7 +3,13 @@ from typing import Dict, List, Optional
 from nuclia.data import get_auth
 from nuclia.decorators import nua
 from nuclia.lib.nua import NuaClient
-from nuclia.lib.nua_responses import ConfigSchema, Sentence, SummarizedModel, Tokens
+from nuclia.lib.nua_responses import (
+    ConfigSchema,
+    LearningConfigurationCreation,
+    Sentence,
+    SummarizedModel,
+    Tokens,
+)
 from nuclia.sdk.auth import NucliaAuth
 
 
@@ -16,7 +22,13 @@ class NucliaPredict:
     @nua
     def config(self, kbid: Optional[str] = None, **kwargs) -> ConfigSchema:
         nc: NuaClient = kwargs["nc"]
-        return nc.config_predict(kbid)
+        return nc.schema_predict(kbid)
+
+    @nua
+    def set_config(self, kbid: Optional[str] = None, **kwargs) -> ConfigSchema:
+        nc: NuaClient = kwargs["nc"]
+        config = LearningConfigurationCreation()
+        return nc.add_config_predict(kbid, config)
 
     @nua
     def sentence(self, text: str, model: Optional[str] = None, **kwargs) -> Sentence:

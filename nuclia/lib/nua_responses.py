@@ -228,14 +228,6 @@ class PushProcessingOptions(BaseModel):
     ml_text: bool = True
 
 
-class LearningConfig(BaseModel):
-    semantic_model: Optional[str] = None
-    generative_model: Optional[str] = None
-    ner_model: Optional[str] = None
-    anonymization_model: Optional[str] = None
-    visual_labeling: Optional[str] = None
-
-
 class PushPayload(BaseModel):
     kbid: Optional[RestrictedIDString] = cast(RestrictedIDString, "default")
     uuid: Optional[RestrictedIDString] = None
@@ -267,8 +259,6 @@ class PushPayload(BaseModel):
         default_factory=PushProcessingOptions
     )
 
-    learning_config: Optional[LearningConfig] = None
-
 
 class PublicPushPayload(PushPayload):
     # If provided, will override the webhookconfig on the nua-token (if any)
@@ -292,3 +282,128 @@ class ProcessingStatusInfo(BaseModel):
 class ProcessingStatus(BaseModel):
     shared: ProcessingStatusInfo
     account: Optional[ProcessingStatusInfo]
+
+
+class ProcessRequestStatus(BaseModel):
+    processing_id: str
+    resource_id: Optional[str]
+    kbid: Optional[str]
+    title: Optional[str]
+    labels: list[str]
+    completed: bool
+    scheduled: bool
+    timestamp: datetime
+    completed_at: Optional[datetime]
+    scheduled_at: Optional[datetime]
+    failed: bool = False
+    retries: int = 0
+    schedule_eta: float = 0.0
+    schedule_order: int = 0
+    response: Optional[str] = None
+
+
+class ProcessRequestStatusResults(BaseModel):
+    results: list[ProcessRequestStatus]
+    cursor: Optional[str]
+
+
+class PushResponseV2(BaseModel):
+    processing_id: str
+
+
+class Summary(str, Enum):
+    EXTENDED = "extended"
+    SIMPLE = "simple"
+
+
+class SummaryPrompt(BaseModel):
+    prompt: str
+
+
+class OpenAIKey(BaseModel):
+    key: str
+    org: str
+
+
+class AzureOpenAIKey(BaseModel):
+    key: str
+    url: str
+    deployment: str
+    model: str
+
+
+class PalmKey(BaseModel):
+    credentials: str
+    location: str
+
+
+class CohereKey(BaseModel):
+    key: str
+
+
+class AnthropicKey(BaseModel):
+    key: str
+
+
+class OpenAIUserPrompt(BaseModel):
+    system: str
+    prompt: str
+
+
+class AzureUserPrompt(BaseModel):
+    system: str
+    prompt: str
+
+
+class PalmUserPrompt(BaseModel):
+    prompt: str
+
+
+class CohereUserPrompt(BaseModel):
+    prompt: str
+
+
+class AnthropicUserPrompt(BaseModel):
+    prompt: str
+
+
+class TextGenerationUserPrompt(BaseModel):
+    prompt: str
+
+
+class UserPrompts(BaseModel):
+    openai: Optional[OpenAIUserPrompt] = None
+    azure_openai: Optional[AzureUserPrompt] = None
+    palm: Optional[PalmUserPrompt] = None
+    cohere: Optional[CohereUserPrompt] = None
+    anthropic: Optional[AnthropicUserPrompt] = None
+    text_generation: Optional[TextGenerationUserPrompt] = None
+
+
+class UserLearningKeys(BaseModel):
+    openai: Optional[OpenAIKey] = None
+    azure_openai: Optional[AzureOpenAIKey] = None
+    palm: Optional[PalmKey] = None
+    cohere: Optional[CohereKey] = None
+    anthropic: Optional[AnthropicKey] = None
+
+
+class LearningConfigurationUpdate(BaseModel):
+    # Validate its enum or string
+    anonymization_model: Optional[str] = None
+    visual_labeling: Optional[str] = None
+    generative_model: Optional[str] = None
+    ner_model: Optional[str] = None
+    relation_model: Optional[str] = None
+    user_keys: Optional[UserLearningKeys] = None
+    user_prompts: Optional[UserPrompts] = None
+    summary: Optional[Summary] = Summary.SIMPLE
+    summary_model: Optional[str] = None
+    summary_prompt: Optional[SummaryPrompt] = None
+    resource_labelers_models: Optional[List[str]] = None
+    paragraph_labelers_models: Optional[List[str]] = None
+    intent_models: Optional[List[str]] = None
+
+
+class LearningConfigurationCreation(LearningConfigurationUpdate):
+    semantic_model: Optional[str] = None
