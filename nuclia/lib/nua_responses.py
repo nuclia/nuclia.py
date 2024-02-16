@@ -274,9 +274,9 @@ class PublicPushResponse(BaseModel):
 
 
 class ProcessingStatusInfo(BaseModel):
-    last_delivered_seqid: Optional[
-        int
-    ] = None  # When none, means we already don't have information about this queue
+    last_delivered_seqid: Optional[int] = (
+        None  # When none, means we already don't have information about this queue
+    )
 
 
 class ProcessingStatus(BaseModel):
@@ -411,7 +411,7 @@ class LearningConfigurationCreation(LearningConfigurationUpdate):
 
 class Empty(BaseModel):
     @classmethod
-    def parse_raw(
+    def parse_raw(  # type: ignore
         cls,
         b: bytes,
     ):
@@ -422,7 +422,7 @@ class ChatResponse(BaseModel):
     answer: str
 
     @classmethod
-    def parse_raw(
+    def parse_raw(  # type: ignore
         cls,
         b: bytes,
     ):

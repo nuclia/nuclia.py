@@ -138,16 +138,6 @@ class NucliaKB:
         )
 
     @kb
-    def del_configuration(self, **kwargs) -> None:
-        ndb: NucliaDBClient = kwargs["ndb"]
-        ndb.ndb.delete_configuration(kbid=ndb.kbid)
-
-    @kb
-    def get_configuration(self, **kwargs) -> KBConfiguration:
-        ndb: NucliaDBClient = kwargs["ndb"]
-        return ndb.ndb.get_configuration(kbid=ndb.kbid)
-
-    @kb
     @pretty
     def get_resource_by_id(self, *, rid: str, **kwargs) -> Resource:
         warn(

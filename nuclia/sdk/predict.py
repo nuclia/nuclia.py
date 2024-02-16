@@ -27,9 +27,7 @@ class NucliaPredict:
         return nc.schema_predict(kbid)
 
     @nua
-    def config(
-        self, kbid: Optional[str] = None, **kwargs
-    ) -> StoredLearningConfiguration:
+    def config(self, kbid: str, **kwargs) -> StoredLearningConfiguration:
         nc: NuaClient = kwargs["nc"]
         return nc.config_predict(kbid)
 
@@ -37,6 +35,11 @@ class NucliaPredict:
     def set_config(self, kbid: str, config: LearningConfigurationCreation, **kwargs):
         nc: NuaClient = kwargs["nc"]
         nc.add_config_predict(kbid, config)
+
+    @nua
+    def del_config(self, kbid: str, **kwargs):
+        nc: NuaClient = kwargs["nc"]
+        nc.del_config_predict(kbid)
 
     @nua
     def sentence(self, text: str, model: Optional[str] = None, **kwargs) -> Sentence:

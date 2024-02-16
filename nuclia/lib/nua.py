@@ -78,11 +78,19 @@ class NuaClient:
 
     def add_config_predict(self, kbid: str, config: LearningConfigurationCreation):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
-        self._request("POST", endpoint, json=config.dict(), output=Empty)
+        self._request(
+            "POST", endpoint, json=config.dict(exclude_none=True), output=Empty
+        )
+
+    def del_config_predict(self, kbid: str):
+        endpoint = f"{self.url}{CONFIG}/{kbid}"
+        self._request("DELETE", endpoint, output=Empty)
 
     def update_config_predict(self, kbid: str, config: LearningConfigurationUpdate):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
-        self._request("POST", endpoint, json=config.dict(), output=Empty)
+        self._request(
+            "POST", endpoint, json=config.dict(exclude_none=True), output=Empty
+        )
 
     def schema_predict(self, kbid: Optional[str] = None) -> ConfigSchema:
         endpoint = f"{self.url}{SCHEMA}"
@@ -90,7 +98,7 @@ class NuaClient:
             endpoint = f"{self.url}{SCHEMA_KBID}/{kbid}"
         return self._request("GET", endpoint, output=ConfigSchema)
 
-    def config_predict(self, kbid: Optional[str] = None) -> StoredLearningConfiguration:
+    def config_predict(self, kbid: str) -> StoredLearningConfiguration:
         endpoint = f"{self.url}{CONFIG}"
         if kbid is not None:
             endpoint = f"{self.url}{CONFIG}/{kbid}"
@@ -108,7 +116,9 @@ class NuaClient:
             endpoint += f"&model={model}"
         return self._request("GET", endpoint, output=Tokens)
 
-    def generate_predict(self, text: str, model: Optional[str] = None) -> ChatResponse:
+    def generate_predict(
+        self, text: str, model: Optional[str] = None, timeout: int = 300
+    ) -> ChatResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
             endpoint += f"?model={model}"
@@ -119,7 +129,9 @@ class NuaClient:
             user_id="Nuclia PY CLI",
             user_prompt=UserPrompt(prompt=text),
         )
-        return self._request("POST", endpoint, json=body.dict(), output=ChatResponse)
+        return self._request(
+            "POST", endpoint, json=body.dict(), output=ChatResponse, timeout=timeout
+        )
 
     def summarize(
         self, documents: Dict[str, str], model: Optional[str] = None, timeout: int = 300
@@ -240,8 +252,9 @@ class AsyncNuaClient:
         url: str,
         output: Type[ConvertType],
         json: Optional[Dict[Any, Any]] = None,
+        timeout: int = 60,
     ) -> ConvertType:
-        resp = await self.client.request(method, url, json=json)
+        resp = await self.client.request(method, url, json=json, timeout=timeout)
         if resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
@@ -255,13 +268,21 @@ class AsyncNuaClient:
         self, kbid: str, config: LearningConfigurationCreation
     ):
         endpoint = f"{CONFIG}/{kbid}"
-        await self._request("GET", endpoint, json=config.dict(), output=Empty)
+        await self._request(
+            "GET", endpoint, json=config.dict(exclude_none=True), output=Empty
+        )
+
+    async def del_config_predict(self, kbid: str):
+        endpoint = f"{self.url}{CONFIG}/{kbid}"
+        await self._request("DELETE", endpoint, output=Empty)
 
     async def update_config_predict(
         self, kbid: str, config: LearningConfigurationUpdate
     ):
         endpoint = f"{CONFIG}/{kbid}"
-        await self._request("POST", endpoint, json=config.dict(), output=Empty)
+        await self._request(
+            "POST", endpoint, json=config.dict(exclude_none=True), output=Empty
+        )
 
     async def schema_predict(self, kbid: Optional[str] = None) -> ConfigSchema:
         endpoint = f"{SCHEMA}"
@@ -292,7 +313,7 @@ class AsyncNuaClient:
         return await self._request("GET", endpoint, output=Tokens)
 
     async def generate_predict(
-        self, text: str, model: Optional[str] = None
+        self, text: str, model: Optional[str] = None, timeout: int = 300
     ) -> ChatResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
@@ -306,11 +327,11 @@ class AsyncNuaClient:
         )
 
         return await self._request(
-            "POST", endpoint, json=body.dict(), output=ChatResponse
+            "POST", endpoint, json=body.dict(), output=ChatResponse, timeout=timeout
         )
 
     async def summarize(
-        self, documents: Dict[str, str], model: Optional[str] = None
+        self, documents: Dict[str, str], model: Optional[str] = None, timeout: int = 300
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
         if model:
@@ -323,7 +344,7 @@ class AsyncNuaClient:
             }
         )
         return await self._request(
-            "POST", endpoint, json=body.dict(), output=SummarizedModel
+            "POST", endpoint, json=body.dict(), output=SummarizedModel, timeout=timeout
         )
 
     async def generate_retrieval(

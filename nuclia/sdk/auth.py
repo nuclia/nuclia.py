@@ -291,7 +291,7 @@ class NucliaAuth(BaseNucliaAuth):
 
     def accounts(self) -> List[Account]:
         accounts = self._request("GET", get_global_url(ACCOUNTS))
-        result = []
+        result: List[Account] = []
         self._config.accounts = []
         if accounts is None:
             return result
@@ -307,7 +307,7 @@ class NucliaAuth(BaseNucliaAuth):
         if self._config.accounts is None:
             self._config.accounts = []
         self._config.zones = []
-        result = []
+        result: List[Zone] = []
         if zones is None:
             return result
         for zone in zones:
@@ -317,8 +317,8 @@ class NucliaAuth(BaseNucliaAuth):
         self._config.save()
         return result
 
-    def kbs(self, account: str):
-        result = []
+    def kbs(self, account: str) -> List[KnowledgeBox]:
+        result: List[KnowledgeBox] = []
         zones = self.zones()
         for zoneObj in zones:
             zoneSlug = zoneObj.slug
@@ -562,7 +562,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
 
     async def accounts(self) -> List[Account]:
         accounts = await self._request("GET", get_global_url(ACCOUNTS))
-        result = []
+        result: List[Account] = []
         self._config.accounts = []
         if accounts is None:
             return result
@@ -578,7 +578,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         if self._config.accounts is None:
             self._config.accounts = []
         self._config.zones = []
-        result = []
+        result: List[Zone] = []
         if zones is None:
             return result
         for zone in zones:
@@ -588,8 +588,8 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         self._config.save()
         return result
 
-    async def kbs(self, account: str):
-        result = []
+    async def kbs(self, account: str) -> List[KnowledgeBox]:
+        result: List[KnowledgeBox] = []
         zones = await self.zones()
         for zoneObj in zones:
             zoneSlug = zoneObj.slug
