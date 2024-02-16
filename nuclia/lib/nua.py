@@ -64,8 +64,9 @@ class NuaClient:
         url: str,
         output: Type[ConvertType],
         json: Optional[Dict[Any, Any]] = None,
+        timeout: int = 60,
     ) -> ConvertType:
-        resp = self.client.request(method, url, json=json)
+        resp = self.client.request(method, url, json=json, timeout=timeout)
         if resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
@@ -121,7 +122,7 @@ class NuaClient:
         return self._request("POST", endpoint, json=body.dict(), output=ChatResponse)
 
     def summarize(
-        self, documents: Dict[str, str], model: Optional[str] = None
+        self, documents: Dict[str, str], model: Optional[str] = None, timeout: int = 300
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
         if model:
@@ -133,7 +134,9 @@ class NuaClient:
                 for key, document in documents.items()
             }
         )
-        return self._request("POST", endpoint, json=body.dict(), output=SummarizedModel)
+        return self._request(
+            "POST", endpoint, json=body.dict(), output=SummarizedModel, timeout=timeout
+        )
 
     def generate_retrieval(
         self,
@@ -152,7 +155,7 @@ class NuaClient:
         )
         return self._request("POST", endpoint, json=body.dict(), output=ChatResponse)
 
-    def process_file(self, path: str, kbid: Optional[str] = None) -> PushResponseV2:
+    def process_file(self, path: str, kbid: str = "default") -> PushResponseV2:
         filename = path.split("/")[-1]
         upload_endpoint = f"{self.url}{UPLOAD_PROCESS}"
 

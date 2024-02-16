@@ -82,6 +82,18 @@ class NucliaAuth(BaseNucliaAuth):
                 print()
                 print(self._config.get_kb(self._config.default.kbid))
                 print()
+            if self._config.default.nua:
+                print("Default NUA")
+                print("===========")
+                print()
+                print(self._config.get_nua(self._config.default.nua))
+                print()
+            if self._config.default.nucliadb:
+                print("Default NUCLIADB")
+                print("================")
+                print()
+                print(self._config.default.nucliadb)
+                print()
 
         if self._config.token:
             print("User Auth")

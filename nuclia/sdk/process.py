@@ -17,7 +17,7 @@ class NucliaProcessing:
 
     @nua
     def process_file(
-        self, path: str, kbid: Optional[str] = None, timeout: int = 300, **kwargs
+        self, path: str, kbid: str = "default", timeout: int = 300, **kwargs
     ) -> Optional[BrokerMessage]:
         nc: NuaClient = kwargs["nc"]
         response = nc.process_file(path, kbid)
