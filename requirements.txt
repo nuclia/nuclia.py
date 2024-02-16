@@ -7,3 +7,4 @@ prompt_toolkit
 nucliadb_sdk>=2.43.0.post218
 nucliadb_models>=2.43.0.post218
 tqdm
+aiofiles
