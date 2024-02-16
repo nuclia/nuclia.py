@@ -3,12 +3,18 @@ import json
 import webbrowser
 from typing import Any, Dict, List, Optional, Tuple
 
-import requests
-from httpx import AsyncClient
+from httpx import AsyncClient, Client, ConnectError
 from prompt_toolkit import prompt
 
 from nuclia import get_global_url, get_regional_url
-from nuclia.config import Account, Config, KnowledgeBox, Zone, retrieve_account
+from nuclia.config import (
+    Account,
+    Config,
+    KnowledgeBox,
+    Zone,
+    retrieve_account,
+    retrieve_nua,
+)
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
 
 USER = "/api/v1/user/welcome"
@@ -19,7 +25,7 @@ LIST_KBS = "/api/v1/account/{account}/kbs"
 VERIFY_NUA = "/api/authorizer/info"
 
 
-class NucliaAuth:
+class BaseNucliaAuth:
     _inner_config: Optional[Config] = None
 
     @property
@@ -29,6 +35,38 @@ class NucliaAuth:
 
             self._inner_config = get_config()
         return self._inner_config
+
+    def get_account_id(self, account_slug: str) -> str:
+        account_obj = retrieve_account(self._config.accounts or [], account_slug)
+        if not account_obj:
+            raise ValueError(f"Account {account_slug} not found")
+        return account_obj.id
+
+    def list_nuas(self):
+        result = []
+        result.extend(
+            self._config.nuas_token if self._config.nuas_token is not None else []
+        )
+        return result
+
+    def default_nua(self, nua: str):
+        nuas = self._config.nuas_token if self._config.nuas_token is not None else []
+        nua_obj = retrieve_nua(nuas, nua)
+
+        if nua_obj is None:
+            raise KeyError("NUA KEY not found")
+        self._config.set_default_nua(nua_obj.client_id)
+        self._config.save()
+
+    def default_kb(self, kbid: str):
+        self._config.set_default_kb(kbid=kbid)
+
+    def unset_kb(self, kbid: str):
+        self._config.unset_default_kb(kbid=kbid)
+
+
+class NucliaAuth(BaseNucliaAuth):
+    client = Client()
 
     def show(self):
         if self._config.default:
@@ -74,15 +112,12 @@ class NucliaAuth:
         """
         Setup a local NucliaDB. Needs to be the base url of the NucliaDB server
         """
-        resp = requests.get(url)
+        resp = self.client.get(url)
         if resp.status_code != 200 or b"Nuclia" not in resp.content:
             raise Exception("Not a valid URL")
         self._config.set_default_nucliadb(nucliadb=url)
 
-    def unset_kb(self, kbid: str):
-        self._config.unset_default_kb(kbid=kbid)
-
-    def kb(self, url: str, token: Optional[str] = None):
+    def kb(self, url: str, token: Optional[str] = None) -> Optional[str]:
         url = url.strip("/")
         kbid, title = self.validate_kb(url, token)
         if kbid:
@@ -91,6 +126,7 @@ class NucliaAuth:
             self._config.set_default_kb(kbid=kbid)
         else:
             print("Invalid service token")
+        return kbid
 
     def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = self.validate_nua(token)
@@ -117,7 +153,7 @@ class NucliaAuth:
         payload = json.loads(token_payload_decoded)
         base_path = payload["iss"]
         url = base_path.strip("/") + VERIFY_NUA
-        resp = requests.get(
+        resp = self.client.get(
             url,
             headers={"x-nuclia-nuakey": f"Bearer {token}"},
         )
@@ -138,13 +174,13 @@ class NucliaAuth:
         # Validate the code is ok
         if token is None:
             # Validate OSS version
-            resp = requests.get(
+            resp = self.client.get(
                 url,
                 headers={"X-NucliaDB-ROLES": f"READER"},
             )
         else:
             # Validate Cloud version
-            resp = requests.get(
+            resp = self.client.get(
                 url,
                 headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
             )
@@ -156,6 +192,7 @@ class NucliaAuth:
 
     def _show_user(self):
         resp = self._request("GET", get_global_url(MEMBER))
+        assert resp
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
 
@@ -199,7 +236,7 @@ class NucliaAuth:
         # Validate the code is ok
         if code is None:
             code = self._config.token
-        resp = requests.get(
+        resp = self.client.get(
             get_global_url(USER),
             headers={"Authorization": f"Bearer {code}"},
         )
@@ -224,7 +261,7 @@ class NucliaAuth:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
             kwargs["data"] = json.dumps(data)
-        resp = requests.request(
+        resp = self.client.request(
             method,
             path,
             **kwargs,
@@ -244,6 +281,8 @@ class NucliaAuth:
         accounts = self._request("GET", get_global_url(ACCOUNTS))
         result = []
         self._config.accounts = []
+        if accounts is None:
+            return result
         for account in accounts:
             account_obj = Account.parse_obj(account)
             result.append(account_obj)
@@ -257,6 +296,8 @@ class NucliaAuth:
             self._config.accounts = []
         self._config.zones = []
         result = []
+        if zones is None:
+            return result
         for zone in zones:
             zone_obj = Zone.parse_obj(zone)
             result.append(zone_obj)
@@ -276,41 +317,28 @@ class NucliaAuth:
                 kbs = self._request("GET", path)
             except UserTokenExpired:
                 return []
-            except requests.exceptions.ConnectionError:
+            except ConnectError:
                 print(
                     f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                 )
                 continue
-            for kb in kbs:
-                url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
-                kb_obj = KnowledgeBox(
-                    url=url,
-                    id=kb["id"],
-                    slug=kb["slug"],
-                    title=kb["title"],
-                    account=account,
-                    region=zoneSlug,
-                )
-                result.append(kb_obj)
+            if kbs is not None:
+                for kb in kbs:
+                    url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
+                    kb_obj = KnowledgeBox(
+                        url=url,
+                        id=kb["id"],
+                        slug=kb["slug"],
+                        title=kb["title"],
+                        account=account,
+                        region=zoneSlug,
+                    )
+                    result.append(kb_obj)
         return result
 
-    def get_account_id(self, account_slug: str) -> str:
-        account_obj = retrieve_account(self._config.accounts or [], account_slug)
-        if not account_obj:
-            raise ValueError(f"Account {account_slug} not found")
-        return account_obj.id
 
-
-class AsyncNucliaAuth:
-    _inner_config: Optional[Config] = None
-
-    @property
-    def _config(self) -> Config:
-        if self._inner_config is None:
-            from nuclia.data import get_config
-
-            self._inner_config = get_config()
-        return self._inner_config
+class AsyncNucliaAuth(BaseNucliaAuth):
+    client = AsyncClient()
 
     async def show(self):
         if self._config.default:
@@ -356,14 +384,10 @@ class AsyncNucliaAuth:
         """
         Setup a local NucliaDB. Needs to be the base url of the NucliaDB server
         """
-        client = AsyncClient()
-        resp = await client.get(url)
-        if resp.status_code != 200 or b"Nuclia" not in await resp.content:
+        resp = await self.client.get(url)
+        if resp.status_code != 200 or b"Nuclia" not in resp.content:
             raise Exception("Not a valid URL")
         self._config.set_default_nucliadb(nucliadb=url)
-
-    async def unset_kb(self, kbid: str):
-        self._config.unset_default_kb(kbid=kbid)
 
     async def kb(self, url: str, token: Optional[str] = None):
         url = url.strip("/")
@@ -400,8 +424,7 @@ class AsyncNucliaAuth:
         payload = json.loads(token_payload_decoded)
         base_path = payload["iss"]
         url = base_path.strip("/") + VERIFY_NUA
-        client = AsyncClient()
-        resp = await client.get(
+        resp = await self.client.get(
             url,
             headers={"x-nuclia-nuakey": f"Bearer {token}"},
         )
@@ -419,17 +442,16 @@ class AsyncNucliaAuth:
     async def validate_kb(
         self, url: str, token: Optional[str] = None
     ) -> Tuple[Optional[str], Optional[str]]:
-        client = AsyncClient()
         # Validate the code is ok
         if token is None:
             # Validate OSS version
-            resp = await client.get(
+            resp = await self.client.get(
                 url,
                 headers={"X-NucliaDB-ROLES": f"READER"},
             )
         else:
             # Validate Cloud version
-            resp = await client.get(
+            resp = await self.client.get(
                 url,
                 headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
             )
@@ -441,6 +463,7 @@ class AsyncNucliaAuth:
 
     async def _show_user(self):
         resp = await self._request("GET", get_global_url(MEMBER))
+        assert resp
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
 
@@ -484,8 +507,7 @@ class AsyncNucliaAuth:
         # Validate the code is ok
         if code is None:
             code = self._config.token
-        client = AsyncClient()
-        resp = await client.get(
+        resp = await self.client.get(
             get_global_url(USER),
             headers={"Authorization": f"Bearer {code}"},
         )
@@ -510,8 +532,7 @@ class AsyncNucliaAuth:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
             kwargs["data"] = json.dumps(data)
-        client = AsyncClient()
-        resp = await client.request(
+        resp = await self.client.request(
             method,
             path,
             **kwargs,
@@ -531,6 +552,8 @@ class AsyncNucliaAuth:
         accounts = await self._request("GET", get_global_url(ACCOUNTS))
         result = []
         self._config.accounts = []
+        if accounts is None:
+            return result
         for account in accounts:
             account_obj = Account.parse_obj(account)
             result.append(account_obj)
@@ -544,6 +567,8 @@ class AsyncNucliaAuth:
             self._config.accounts = []
         self._config.zones = []
         result = []
+        if zones is None:
+            return result
         for zone in zones:
             zone_obj = Zone.parse_obj(zone)
             result.append(zone_obj)
@@ -562,27 +587,22 @@ class AsyncNucliaAuth:
             try:
                 kbs = await self._request("GET", path)
             except UserTokenExpired:
-                return []
-            except requests.exceptions.ConnectionError:
+                return result
+            except ConnectionError:
                 print(
                     f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                 )
                 continue
-            for kb in kbs:
-                url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
-                kb_obj = KnowledgeBox(
-                    url=url,
-                    id=kb["id"],
-                    slug=kb["slug"],
-                    title=kb["title"],
-                    account=account,
-                    region=zoneSlug,
-                )
-                result.append(kb_obj)
+            if kbs is not None:
+                for kb in kbs:
+                    url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
+                    kb_obj = KnowledgeBox(
+                        url=url,
+                        id=kb["id"],
+                        slug=kb["slug"],
+                        title=kb["title"],
+                        account=account,
+                        region=zoneSlug,
+                    )
+                    result.append(kb_obj)
         return result
-
-    def get_account_id(self, account_slug: str) -> str:
-        account_obj = retrieve_account(self._config.accounts or [], account_slug)
-        if not account_obj:
-            raise ValueError(f"Account {account_slug} not found")
-        return account_obj.id

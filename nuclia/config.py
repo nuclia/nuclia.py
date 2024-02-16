@@ -4,7 +4,6 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
-from nuclia.cli.utils import yes_no
 from nuclia.exceptions import NotDefinedDefault
 
 CONFIG_DIR = "~/.nuclia"

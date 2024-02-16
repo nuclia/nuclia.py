@@ -18,4 +18,4 @@ def test_rag(testing_config):
         ],
         model="chatgpt",
     )
-    assert b"Eudald" in generated
+    assert "Eudald" in generated.answer

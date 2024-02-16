@@ -274,9 +274,9 @@ class PublicPushResponse(BaseModel):
 
 
 class ProcessingStatusInfo(BaseModel):
-    last_delivered_seqid: Optional[int] = (
-        None  # When none, means we already don't have information about this queue
-    )
+    last_delivered_seqid: Optional[
+        int
+    ] = None  # When none, means we already don't have information about this queue
 
 
 class ProcessingStatus(BaseModel):
@@ -407,3 +407,49 @@ class LearningConfigurationUpdate(BaseModel):
 
 class LearningConfigurationCreation(LearningConfigurationUpdate):
     semantic_model: Optional[str] = None
+
+
+class Empty(BaseModel):
+    @classmethod
+    def parse_raw(
+        cls,
+        b: bytes,
+    ):
+        return Empty()
+
+
+class ChatResponse(BaseModel):
+    answer: str
+
+    @classmethod
+    def parse_raw(
+        cls,
+        b: bytes,
+    ):
+        return ChatResponse(answer=b.decode())
+
+
+class StoredLearningConfiguration(BaseModel):
+    resource_labelers_models: Optional[List[str]] = None
+    paragraph_labelers_models: Optional[List[str]] = None
+    intent_models: Optional[List[str]] = None
+
+    semantic_model: str
+    anonymization_model: str
+    generative_model: str
+    ner_model: str
+    relation_model: str
+    visual_labeling: str
+
+    user_keys: Optional[UserLearningKeys] = None
+    user_prompts: Optional[UserPrompts] = None
+
+    semantic_vector_similarity: str
+
+    semantic_vector_size: int
+
+    semantic_threshold: float
+
+    summary: str
+    summary_model: str
+    summary_prompt: Optional[SummaryPrompt] = None

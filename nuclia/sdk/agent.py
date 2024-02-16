@@ -29,19 +29,15 @@ class NucliaAgent:
     def generate_prompt(
         self, text: str, agent_definition: str, model: Optional[str] = None
     ) -> str:
-        user_prompt = (
-            self.predict.generate(
-                f"""Define a prompt for an agent that will answer questions about this topic: {agent_definition}
+        user_prompt = self.predict.generate(
+            f"""Define a prompt for an agent that will answer questions about this topic: {agent_definition}
                 taking into account the following guidelines:
                 {text}
                 IMPORTANT:
                 It does not need to be a perfect prompt, even if you do not have enough information, return a prompt.
                 PROMPT:""",
-                model,
-            )
-            .decode()
-            .replace("Prompt: ", "")[:-1]
-        )
+            model,
+        ).answer.replace("Prompt: ", "")[:-1]
 
         agent_prompt = (
             "Answer the following question based on the provided context: \n[START OF CONTEXT]\n{context}\n[END OF CONTEXT] Question: "  # noqa
