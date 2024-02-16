@@ -4,6 +4,6 @@ pyyaml>=5.4
 requests
 httpx
 prompt_toolkit
-nucliadb_sdk>=2.39.0.post109
-nucliadb_models>=2.39.0.post109
+nucliadb_sdk>=2.43.0.post218
+nucliadb_models>=2.43.0.post218
 tqdm

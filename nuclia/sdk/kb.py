@@ -1,7 +1,6 @@
 from typing import List, Optional
 from warnings import warn
 
-from nucliadb_models.configuration import KBConfiguration
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
 from nucliadb_models.resource import Resource, ResourceList
 
