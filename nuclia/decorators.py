@@ -1,3 +1,4 @@
+import asyncio
 from functools import wraps
 
 import yaml
@@ -6,7 +7,7 @@ from nuclia import BASE_DOMAIN
 from nuclia.data import get_auth
 from nuclia.exceptions import NotDefinedDefault
 from nuclia.lib.kb import Environment, NucliaDBClient
-from nuclia.lib.nua import NuaClient
+from nuclia.lib.nua import AsyncNuaClient, NuaClient
 
 
 def accounts(func):
@@ -113,6 +114,21 @@ def nucliadb(func):
 
 def nua(func):
     @wraps(func)
+    async def async_wrapper_checkout_nua(*args, **kwargs):
+        auth = get_auth()
+        nua_id = auth._config.get_default_nua()
+        if nua_id is None:
+            raise NotDefinedDefault()
+
+        nua_obj = auth._config.get_nua(nua_id)
+        nc = AsyncNuaClient(
+            region=nua_obj.region, account=nua_obj.account, token=nua_obj.token
+        )
+
+        kwargs["nc"] = nc
+        return await func(*args, **kwargs)
+
+    @wraps(func)
     def wrapper_checkout_nua(*args, **kwargs):
         auth = get_auth()
         nua_id = auth._config.get_default_nua()
@@ -123,10 +139,14 @@ def nua(func):
         nc = NuaClient(
             region=nua_obj.region, account=nua_obj.account, token=nua_obj.token
         )
+
         kwargs["nc"] = nc
         return func(*args, **kwargs)
 
-    return wrapper_checkout_nua
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper_checkout_nua
+    else:
+        return wrapper_checkout_nua
 
 
 def account(func):
@@ -135,13 +155,13 @@ def account(func):
         account_slug = kwargs.get("account")
         account_id = kwargs.get("account_id")
         auth = get_auth()
-        if not account_id and not account_slug:
+        if account_id is None and account_slug is None:
             account_slug = auth._config.get_default_account()
             if account_slug is None:
                 raise NotDefinedDefault()
             kwargs["account"] = account_slug
-        if not account_id:
-            account_id = auth.get_account_id(account_slug)
+        if account_id is None:
+            account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id
         return func(*args, **kwargs)
 

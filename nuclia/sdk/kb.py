@@ -1,7 +1,6 @@
 from typing import List, Optional
 from warnings import warn
 
-from nucliadb_models.configuration import KBConfiguration
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
 from nucliadb_models.resource import Resource, ResourceList
 
@@ -136,16 +135,6 @@ class NucliaKB:
             anonymization_model=anonymization_model,
             visual_labeling=visual_labeling,
         )
-
-    @kb
-    def del_configuration(self, **kwargs) -> None:
-        ndb: NucliaDBClient = kwargs["ndb"]
-        ndb.ndb.delete_configuration(kbid=ndb.kbid)
-
-    @kb
-    def get_configuration(self, **kwargs) -> KBConfiguration:
-        ndb: NucliaDBClient = kwargs["ndb"]
-        return ndb.ndb.get_configuration(kbid=ndb.kbid)
 
     @kb
     @pretty

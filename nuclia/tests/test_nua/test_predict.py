@@ -16,6 +16,6 @@ def test_rag(testing_config):
             "Nuclia CTO is Ramon Navarro",
             "Eudald Camprubí is CEO at the same company as Ramon Navarro",
         ],
-        model="chatgpt",
+        model="chatgpt-azure-3",
     )
-    assert b"Eudald" in generated
+    assert "Eudald" in generated.answer

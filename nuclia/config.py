@@ -4,7 +4,6 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
-from nuclia.cli.utils import yes_no
 from nuclia.exceptions import NotDefinedDefault
 
 CONFIG_DIR = "~/.nuclia"
@@ -149,7 +148,6 @@ class Config(BaseModel):
         kbid: str,
         token: Optional[str] = None,
         title: Optional[str] = None,
-        interactive: bool = True,
     ):
         self._del_kbid(kbid)
         region = (
@@ -160,11 +158,8 @@ class Config(BaseModel):
         kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title, region=region)
         self.kbs_token.append(kb_obj)
 
-        if interactive is False or yes_no(
-            f"Do you want to setup KB {url} as default one?"
-        ):
-            if self.default is None:
-                self.default = Selection()
+        if self.default is None:
+            self.default = Selection()
             self.default.kbid = kbid
 
         self.save()
