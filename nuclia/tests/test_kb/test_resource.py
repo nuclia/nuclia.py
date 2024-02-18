@@ -20,8 +20,13 @@ def test_resource(testing_config):
     assert res
     assert res.id == res_id
 
+    assert res.title == "res1"
+
     nresource.update(
-        rid=res_id, title="My great resource", texts={"text1": {"body": "Hello here"}}
+        rid=res_id,
+        title="My great resource",
+        texts={"text1": {"body": "Hello here"}},
+        headers={"x-synchronous": "true"},
     )
     res = nresource.get(slug="res1", show=["basic", "values"])
 

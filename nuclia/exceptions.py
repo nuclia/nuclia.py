@@ -15,7 +15,11 @@ class NotDefinedDefault(Exception):
 
 
 class NuaAPIException(Exception):
-    pass
+    def __init__(self, code: int, detail: str):
+        self.code = code
+        self.detail = detail
+        message = f"Exception calling NUA API: {self.code} {self.detail}"
+        super().__init__(message)
 
 
 class AlreadyConsumed(Exception):

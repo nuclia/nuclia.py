@@ -35,7 +35,7 @@ class NucliaDB:
             slug=slug, title=title, similarity=similarity
         )
         if default:
-            self._auth.kb(url=f"{ndb.ndb.base_url}/v1/kb/{kb.uuid}", interactive=False)
+            self._auth.kb(url=f"{ndb.ndb.base_url}/v1/kb/{kb.uuid}")
         return kb
 
     @nucliadb

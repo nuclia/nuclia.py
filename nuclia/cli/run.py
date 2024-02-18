@@ -12,7 +12,6 @@ from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
 from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
-from nuclia.sdk.nuas import NucliaNUAS
 from nuclia.sdk.zones import NucliaZones
 
 from .utils import CustomFormatter
@@ -25,7 +24,6 @@ class NucliaCLI(object):
         self.zones = NucliaZones()
         self.kbs = self.knowledgeboxes = NucliaKBS()
         self.kb = self.knowledgebox = NucliaKB()
-        self.nuas = NucliaNUAS()
         self.nua = NucliaNUA()
 
     def version(self):
