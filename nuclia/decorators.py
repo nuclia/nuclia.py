@@ -160,7 +160,7 @@ def account(func):
             if account_slug is None:
                 raise NotDefinedDefault()
             kwargs["account"] = account_slug
-        if account_id is not None:
+        if account_id is None:
             account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id
         return func(*args, **kwargs)
