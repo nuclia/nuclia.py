@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0 (2024-02-18)
 
 
 - Support AsyncIO Auth and Predict
