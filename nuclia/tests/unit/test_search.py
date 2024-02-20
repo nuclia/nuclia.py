@@ -10,6 +10,6 @@ def test_parse_filters():
     assert _parse_filters(["foo", "bar"], "all") == ["foo", "bar"]
     assert _parse_filters(["foo", "bar"], "ALL") == ["foo", "bar"]
     assert _parse_filters(["foo", "bar"], "any") == [Filter(any=["foo", "bar"])]
-    assert _parse_filters(["foo", "bar"], "any") == [Filter(any=["foo", "bar"])]
+    assert _parse_filters(["foo", "bar"], "none") == [Filter(none=["foo", "bar"])]
     with pytest.raises(ValueError):
         _parse_filters(["foo", "bar"], "invalid")
