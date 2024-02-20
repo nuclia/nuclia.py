@@ -1,7 +1,6 @@
 from typing import Optional
 
 from nucliadb_models.resource import KnowledgeBoxList, KnowledgeBoxObj
-from nucliadb_models.vectors import VectorSimilarity
 
 from nuclia.data import get_auth
 from nuclia.decorators import nucliadb
@@ -26,13 +25,13 @@ class NucliaDB:
         *,
         slug: str,
         title: str,
-        similarity: Optional[VectorSimilarity] = None,
+        learning_config: Optional[dict] = None,
         default: bool = False,
         **kwargs,
     ) -> KnowledgeBoxObj:
         ndb: NucliaDBClient = kwargs["ndb"]
         kb: KnowledgeBoxObj = ndb.ndb.create_knowledge_box(
-            slug=slug, title=title, similarity=similarity
+            slug=slug, title=title, learning_config=learning_config
         )
         if default:
             self._auth.kb(url=f"{ndb.ndb.base_url}/v1/kb/{kb.uuid}")
