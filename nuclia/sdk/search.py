@@ -1,9 +1,11 @@
 import base64
 from dataclasses import dataclass
+from enum import Enum
 from typing import List, Optional, Union
 
 from nucliadb_models.search import (
     ChatRequest,
+    Filter,
     FindRequest,
     KnowledgeboxFindResults,
     Relations,
@@ -15,6 +17,32 @@ from nuclia.data import get_auth
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
+
+
+class FiltersOperator(str, Enum):
+    ALL = "all"
+    ANY = "any"
+    NONE = "none"
+    NOT_ALL = "not_all"
+
+
+def _parse_filters(
+    filters: Optional[List[str]], operator: str
+) -> Union[list[str], list[Filter]]:
+    if filters is None:
+        return []
+    try:
+        operator_type = FiltersOperator(operator.lower())
+    except ValueError:
+        raise ValueError(
+            f"Invalid operator {operator}. Must be one of {', '.join(FiltersOperator)}"
+        )
+    if operator_type == FiltersOperator.ALL:
+        # We do not use the `all` operator on purpose to have more backward compatibility with
+        # previous versions of the NucliaDB API.
+        # The `all` operator is implicit when no operator is specified.
+        return filters
+    return [Filter.parse_obj({operator_type.value: filters})]
 
 
 @dataclass
@@ -49,7 +77,8 @@ class NucliaSearch:
         *,
         query: Union[str, SearchRequest] = "",
         filters: Optional[List[str]] = None,
-        **kwargs
+        filters_operator: str = FiltersOperator.ALL.value,
+        **kwargs,
     ):
         """
         Perform a search query.
@@ -58,7 +87,9 @@ class NucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = SearchRequest(query=query, filters=(filters or []))
+            req = SearchRequest(
+                query=query, filters=_parse_filters(filters, filters_operator)
+            )
         else:
             req = query
 
@@ -73,17 +104,21 @@ class NucliaSearch:
         highlight: Optional[bool] = False,
         relations: Optional[bool] = False,
         filters: Optional[List[str]] = None,
-        **kwargs
+        filters_operator: str = FiltersOperator.ALL.value,
+        **kwargs,
     ):
         """
         Perform a find query.
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
         """
-
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str) and highlight is not None:
-            req = FindRequest(query=query, highlight=highlight, filters=(filters or []))
+            req = FindRequest(
+                query=query,
+                highlight=highlight,
+                filters=_parse_filters(filters, filters_operator),
+            )
         elif isinstance(query, FindRequest):
             req = query
         else:
@@ -100,7 +135,8 @@ class NucliaSearch:
         *,
         query: Union[str, ChatRequest],
         filters: Optional[List[str]] = None,
-        **kwargs
+        filters_operator: str = FiltersOperator.ALL.value,
+        **kwargs,
     ):
         """
         Answer a question.
@@ -109,7 +145,9 @@ class NucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = ChatRequest(query=query, filters=(filters or []))
+            req = ChatRequest(
+                query=query, filters=_parse_filters(filters, filters_operator)
+            )
         else:
             req = query
         response = ndb.chat(req)
