@@ -83,6 +83,7 @@ Here are some examples:
   search = sdk.NucliaSearch()
   search.chat(
     query="My question",
-    filters=['/classification.labels/region/Europe','/classification.labels/region/Asia'], filters_operator="any"
+    filters=['/classification.labels/region/Europe','/classification.labels/region/Asia'],
+    filters_operator="any"
   )
   ```
