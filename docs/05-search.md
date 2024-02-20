@@ -71,7 +71,9 @@ Here are some examples:
 - CLI:
 
   ```bash
-  nuclia kb search find --query="My search" --filters="['/classification.labels/region/Europe','/classification.labels/region/Asia']" --filters_operator="any"
+  nuclia kb search find --query="My search" \
+    --filters="['/classification.labels/region/Europe','/classification.labels/region/Asia']" \
+    --filters_operator="any"
   ```
 
 - SDK:
@@ -79,5 +81,8 @@ Here are some examples:
   ```python
   from nuclia import sdk
   search = sdk.NucliaSearch()
-  search.chat(query="My question", filters=['/classification.labels/region/Europe','/classification.labels/region/Asia'], filters_operator="any")
+  search.chat(
+    query="My question",
+    filters=['/classification.labels/region/Europe','/classification.labels/region/Asia'], filters_operator="any"
+  )
   ```
