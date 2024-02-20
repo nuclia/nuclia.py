@@ -25,13 +25,13 @@ class NucliaDB:
         *,
         slug: str,
         title: str,
-        learning_config: Optional[dict] = None,
+        learning_configuration: Optional[dict] = None,
         default: bool = False,
         **kwargs,
     ) -> KnowledgeBoxObj:
         ndb: NucliaDBClient = kwargs["ndb"]
         kb: KnowledgeBoxObj = ndb.ndb.create_knowledge_box(
-            slug=slug, title=title, learning_config=learning_config
+            slug=slug, title=title, learning_configuration=learning_configuration
         )
         if default:
             self._auth.kb(url=f"{ndb.ndb.base_url}/v1/kb/{kb.uuid}")
