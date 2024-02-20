@@ -3,7 +3,7 @@
 ## 2.0.1 (unreleased)
 
 
-- Nothing changed yet.
+- Use `learning_configuration` for creating KBs instead of `vector_similarity`
 
 
 ## 2.0.0 (2024-02-18)
