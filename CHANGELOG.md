@@ -4,6 +4,7 @@
 
 
 - Delete and update resources by slug natively with nucliadb-sdk
+- Support `all`, `any`, `none` and `not_all` operators in `filters` parameter 
 
 
 ## 2.0.0 (2024-02-18)
