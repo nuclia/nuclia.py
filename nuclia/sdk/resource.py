@@ -92,12 +92,18 @@ class NucliaResource:
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
         ndb = kwargs["ndb"]
+        kw = {
+            "kbid": ndb.kbid,
+        }
+        for param in RESOURCE_ATTRIBUTES:
+            if param in kwargs:
+                kw[param] = kwargs.get(param)
         if rid:
-            self._update_resource(kbid=ndb.kbid, rid=rid, **kwargs)
+            kw["rid"] = rid
+            ndb.ndb.update_resource(**kw)
         elif slug:
-            # TODO: delete directly when nucliadb sdk will support update by slug
-            res = ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
-            self._update_resource(kbid=ndb.kbid, rid=res.id, **kwargs)
+            kw["rslug"] = slug
+            ndb.ndb.update_resource_by_slug(**kw)
         else:
             raise ValueError("Either rid or slug must be provided")
 
@@ -109,19 +115,6 @@ class NucliaResource:
         if rid:
             ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
         elif slug:
-            # TODO: delete directly when nucliadb sdk will support delete by slug
-            res = ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
-            ndb.ndb.delete_resource(kbid=ndb.kbid, rid=res.id)
+            ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
         else:
             raise ValueError("Either rid or slug must be provided")
-
-    def _update_resource(self, rid: str, **kwargs):
-        ndb = kwargs["ndb"]
-        kw = {
-            "kbid": ndb.kbid,
-            "rid": rid,
-        }
-        for param in RESOURCE_ATTRIBUTES:
-            if param in kwargs:
-                kw[param] = kwargs.get(param)
-        ndb.ndb.update_resource(**kw)
