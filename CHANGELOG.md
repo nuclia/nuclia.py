@@ -3,7 +3,7 @@
 ## 2.0.1 (unreleased)
 
 
-- Nothing changed yet.
+- Delete and update resources by slug natively with nucliadb-sdk
 
 
 ## 2.0.0 (2024-02-18)
