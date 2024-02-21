@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.1 (unreleased)
+## 2.0.1 (2024-02-21)
 
 
 - Delete and update resources by slug natively with nucliadb-sdk
