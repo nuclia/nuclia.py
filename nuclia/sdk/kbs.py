@@ -37,7 +37,6 @@ class NucliaKBS:
                 if self._auth._config.kbs_token is not None
                 else []
             )
-
             return result
         else:
             matching_account = retrieve_account(
