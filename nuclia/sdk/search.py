@@ -4,6 +4,7 @@ from typing import List, Optional, Union
 
 from nucliadb_models.search import (
     ChatRequest,
+    Filter,
     FindRequest,
     KnowledgeboxFindResults,
     Relations,
@@ -48,8 +49,8 @@ class NucliaSearch:
         self,
         *,
         query: Union[str, SearchRequest] = "",
-        filters: Optional[List[str]] = None,
-        **kwargs
+        filters: Optional[Union[List[str], List[Filter]]] = None,
+        **kwargs,
     ):
         """
         Perform a search query.
@@ -72,18 +73,21 @@ class NucliaSearch:
         query: Union[str, FindRequest] = "",
         highlight: Optional[bool] = False,
         relations: Optional[bool] = False,
-        filters: Optional[List[str]] = None,
-        **kwargs
+        filters: Optional[Union[List[str], List[Filter]]] = None,
+        **kwargs,
     ):
         """
         Perform a find query.
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
         """
-
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str) and highlight is not None:
-            req = FindRequest(query=query, highlight=highlight, filters=(filters or []))
+            req = FindRequest(
+                query=query,
+                highlight=highlight,
+                filters=filters or [],
+            )
         elif isinstance(query, FindRequest):
             req = query
         else:
@@ -99,8 +103,8 @@ class NucliaSearch:
         self,
         *,
         query: Union[str, ChatRequest],
-        filters: Optional[List[str]] = None,
-        **kwargs
+        filters: Optional[Union[List[str], List[Filter]]] = None,
+        **kwargs,
     ):
         """
         Answer a question.
@@ -109,7 +113,7 @@ class NucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = ChatRequest(query=query, filters=(filters or []))
+            req = ChatRequest(query=query, filters=filters or [])
         else:
             req = query
         response = ndb.chat(req)

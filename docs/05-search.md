@@ -54,3 +54,35 @@ Based on a `find` request, Nuclia uses a generative AI to answer the question ba
   search = sdk.NucliaSearch()
   search.chat(query="My question")
   ```
+
+## Filtering
+
+Any endpoint that involves search (`search`, `find` and `chat`) also support more advanced filtering expressions. Expressions can have one of the following operators:
+
+- `all`: this is the default. Will make search return results containing all specified filter labels.
+- `any`: returns results containing at least one of the labels.
+- `none`: returns results that do not contain any of the labels.
+- `not_all`: returns results that do not contain all specified labels.
+
+Note that multiple expressions can be chained in the `filters` parameter and the conjunction of all of them will be computed.
+
+Here are some examples:
+
+- CLI:
+
+  ```bash
+  nuclia kb search find --query="My search" --filters="[{'any':['/icon/application/pdf','/icon/image/mp4']}]"
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  from nucliadb_models.search import Filter
+
+  search = sdk.NucliaSearch()
+  search.chat(
+    query="My question",
+    filters=[Filter(any=['/classification.labels/region/Europe','/classification.labels/region/Asia'])],
+  )
+  ```
