@@ -225,6 +225,7 @@ class NucliaUpload:
         """Upload a remote url to a Nuclia KnowledgeBox"""
         ndb = kwargs["ndb"]
         with requests.get(origin, stream=True) as r:
+            r.raise_for_status()
             filename = origin.split("/")[-1]
             size_str = r.headers.get("Content-Length")
             if size_str is None:
