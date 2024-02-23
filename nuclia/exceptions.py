@@ -24,3 +24,7 @@ class NuaAPIException(Exception):
 
 class AlreadyConsumed(Exception):
     pass
+
+
+class GettingRemoteFileError(Exception):
+    pass
