@@ -230,7 +230,7 @@ class NucliaUpload:
                 r.raise_for_status()
             except Exception as ex:
                 raise GettingRemoteFileError(
-                    f"Error getting remote file {origin}: {ex}"
+                    f"Unable to get remote file {origin}: {ex}"
                 ) from ex
             filename = origin.split("/")[-1]
             size_str = r.headers.get("Content-Length")
