@@ -3,7 +3,7 @@
 ## 2.0.2 (unreleased)
 
 
-- Nothing changed yet.
+- Check errors when getting remote files
 
 
 ## 2.0.1 (2024-02-21)
