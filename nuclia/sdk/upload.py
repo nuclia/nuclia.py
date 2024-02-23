@@ -15,6 +15,7 @@ from nucliadb_sdk import exceptions
 from tqdm import tqdm
 
 from nuclia.data import get_auth
+from nuclia.exceptions import GettingRemoteFileError
 from nuclia.decorators import kb
 from nuclia.lib.conversations import Conversation
 from nuclia.lib.kb import NucliaDBClient
@@ -225,7 +226,12 @@ class NucliaUpload:
         """Upload a remote url to a Nuclia KnowledgeBox"""
         ndb = kwargs["ndb"]
         with requests.get(origin, stream=True) as r:
-            r.raise_for_status()
+            try:
+                r.raise_for_status()
+            except Exception as ex:
+                raise GettingRemoteFileError(
+                    f"Error getting remote file {origin}: {ex}"
+                ) from ex
             filename = origin.split("/")[-1]
             size_str = r.headers.get("Content-Length")
             if size_str is None:
