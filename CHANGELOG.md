@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.2 (unreleased)
+## 2.0.2 (2024-02-23)
 
 
 - Check errors when getting remote files
