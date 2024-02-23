@@ -16,11 +16,15 @@ from tqdm import tqdm
 
 from nuclia.data import get_auth
 from nuclia.decorators import kb
+from nuclia.exceptions import GettingRemoteFileError
 from nuclia.lib.conversations import Conversation
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import RESOURCE_ATTRIBUTES, NucliaResource
+
+MB = 1024 * 1024
+CHUNK_SIZE = 5 * MB
 
 
 class NucliaUpload:
@@ -85,8 +89,8 @@ class NucliaUpload:
                 )
 
                 offset = 0
-                for _ in tqdm(range((size // 524288) + 1)):
-                    chunk = upload_file.read(524288)
+                for _ in tqdm(range((size // CHUNK_SIZE) + 1)):
+                    chunk = upload_file.read(CHUNK_SIZE)
                     offset = ndb.patch_tus_upload(
                         upload_url=upload_url, data=chunk, offset=offset
                     )
@@ -225,6 +229,12 @@ class NucliaUpload:
         """Upload a remote url to a Nuclia KnowledgeBox"""
         ndb = kwargs["ndb"]
         with requests.get(origin, stream=True) as r:
+            try:
+                r.raise_for_status()
+            except Exception as ex:
+                raise GettingRemoteFileError(
+                    f"Unable to get remote file {origin}: {ex}"
+                ) from ex
             filename = origin.split("/")[-1]
             size_str = r.headers.get("Content-Length")
             if size_str is None:
@@ -243,8 +253,8 @@ class NucliaUpload:
                     content_type=mimetype,
                 )
                 offset = 0
-                for _ in tqdm(range((size // 524288) + 1)):
-                    chunk = r.raw.read(524288)
+                for _ in tqdm(range((size // CHUNK_SIZE) + 1)):
+                    chunk = r.raw.read(CHUNK_SIZE)
                     offset = ndb.patch_tus_upload(upload_url, chunk, offset)
             except Exception as e:
                 print(e)

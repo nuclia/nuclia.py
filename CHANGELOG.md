@@ -3,7 +3,8 @@
 ## 2.0.2 (unreleased)
 
 
-- Nothing changed yet.
+- Check errors when getting remote files
+- Increase uploads chunk size to work with both s3 and gcs
 
 
 ## 2.0.1 (2024-02-21)
