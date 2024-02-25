@@ -366,8 +366,8 @@ class AsyncNucliaUpload:
                     md5=md5_hash.hexdigest(),
                 )
                 offset = 0
-                for _ in tqdm(range((size // 524288) + 1)):
-                    chunk = await upload_file.read(524288)
+                for _ in tqdm(range((size // CHUNK_SIZE) + 1)):
+                    chunk = await upload_file.read(CHUNK_SIZE)
                     offset = await ndb.patch_tus_upload(
                         upload_url=upload_url, data=chunk, offset=offset
                     )
@@ -529,9 +529,11 @@ class AsyncNucliaUpload:
                     content_type=mimetype,
                 )
                 offset = 0
-                for _ in tqdm(range((size // 524288) + 1)):
-                    chunk = await r.read(524288)
-                    offset = await ndb.patch_tus_upload(upload_url, chunk, offset)
+                with tqdm(total=(size // CHUNK_SIZE) + 1) as p_bar:
+                    async for chunk in r.aiter_raw(CHUNK_SIZE):
+                        offset = await ndb.patch_tus_upload(upload_url, chunk, offset)
+                        p_bar.update(1)
+
             except Exception as e:
                 print(e)
                 if is_new_resource:
