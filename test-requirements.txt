@@ -7,3 +7,5 @@ nats-py==2.5.0
 pytest_lazy_fixtures==1.0.1
 pytest_docker_fixtures
 types-aiofiles
+types-PyYAML
+types-tqdm
