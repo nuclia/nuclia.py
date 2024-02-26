@@ -9,7 +9,10 @@ from .nua import NucliaNUA  # noqa
 from .nucliadb import NucliaDB  # noqa
 from .predict import AsyncNucliaPredict  # noqa
 from .predict import NucliaPredict  # noqa
+from .resource import AsyncNucliaResource  # noqa
 from .resource import NucliaResource  # noqa
+from .search import AsyncNucliaSearch  # noqa
 from .search import NucliaSearch  # noqa
+from .upload import AsyncNucliaUpload  # noqa
 from .upload import NucliaUpload  # noqa
 from .zones import NucliaZones  # noqa
