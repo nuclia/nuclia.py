@@ -3,7 +3,8 @@
 ## 2.0.3 (unreleased)
 
 
-- Nothing changed yet.
+- Fix upload chunk size
+- Support async
 
 
 ## 2.0.2 (2024-02-23)
