@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.3 (unreleased)
+## 2.0.3 (2024-02-26)
 
 
 - Fix upload chunk size
