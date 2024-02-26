@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from nuclia.config import Config
-    from nuclia.sdk.auth import NucliaAuth
+    from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 
 @dataclass
 class DataConfig:
     config: Optional[Config] = None
     auth: Optional[NucliaAuth] = None
+    async_auth: Optional[AsyncNucliaAuth] = None
 
 
 DATA = DataConfig()
@@ -36,3 +37,12 @@ def get_auth() -> NucliaAuth:
 
         DATA.auth = NucliaAuth()
     return DATA.auth
+
+
+def get_async_auth() -> AsyncNucliaAuth:
+    get_config()
+    if DATA.async_auth is None:
+        from nuclia.sdk.auth import AsyncNucliaAuth
+
+        DATA.async_auth = AsyncNucliaAuth()
+    return DATA.async_auth

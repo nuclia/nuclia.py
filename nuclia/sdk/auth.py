@@ -401,15 +401,17 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             raise Exception("Not a valid URL")
         self._config.set_default_nucliadb(nucliadb=url)
 
-    async def kb(self, url: str, token: Optional[str] = None):
+    async def kb(self, url: str, token: Optional[str] = None) -> bool:
         url = url.strip("/")
         kbid, title = await self.validate_kb(url, token)
         if kbid:
             print("Validated")
             self._config.set_kb_token(url=url, token=token, title=title, kbid=kbid)
             self._config.set_default_kb(kbid=kbid)
+            return True
         else:
             print("Invalid service token")
+            return False
 
     async def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = await self.validate_nua(token)

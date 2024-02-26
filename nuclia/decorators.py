@@ -4,9 +4,9 @@ from functools import wraps
 import yaml
 
 from nuclia import BASE_DOMAIN
-from nuclia.data import get_auth
+from nuclia.data import get_async_auth, get_auth
 from nuclia.exceptions import NotDefinedDefault
-from nuclia.lib.kb import Environment, NucliaDBClient
+from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
 
 
@@ -33,6 +33,58 @@ def kbs(func):
 
 
 def kb(func):
+    @wraps(func)
+    async def async_wrapper_checkout_kb(*args, **kwargs):
+        if "ndb" in kwargs:
+            return await func(*args, **kwargs)
+        url = kwargs.get("url")
+        api_key = kwargs.get("api_key")
+        auth = get_async_auth()
+        if url is None:
+            # Get default KB
+            kbid = auth._config.get_default_kb()
+            if kbid is None:
+                raise NotDefinedDefault()
+
+            kb_obj = auth._config.get_kb(kbid)
+
+            if kb_obj.region is None:
+                # OSS
+                ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
+            else:
+                if kb_obj.token is None and await auth._validate_user_token():
+                    # User token auth
+                    ndb = AsyncNucliaDBClient(
+                        environment=Environment.CLOUD,
+                        url=kb_obj.url,
+                        user_token=auth._config.token,
+                        region=kb_obj.region,
+                    )
+                elif kb_obj.token is None:
+                    # Public
+                    ndb = AsyncNucliaDBClient(
+                        environment=Environment.CLOUD,
+                        url=kb_obj.url,
+                        region=kb_obj.region,
+                    )
+                else:
+                    ndb = AsyncNucliaDBClient(
+                        environment=Environment.CLOUD,
+                        url=kb_obj.url,
+                        api_key=kb_obj.token,
+                        region=kb_obj.region,
+                    )
+
+        elif url.find(BASE_DOMAIN) >= 0:
+            region = url.split(".")[0].split("/")[-1]
+            ndb = AsyncNucliaDBClient(
+                environment=Environment.CLOUD, url=url, api_key=api_key, region=region
+            )
+        else:
+            ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=url)
+        kwargs["ndb"] = ndb
+        return await func(*args, **kwargs)
+
     @wraps(func)
     def wrapper_checkout_kb(*args, **kwargs):
         if "ndb" in kwargs:
@@ -85,7 +137,10 @@ def kb(func):
         kwargs["ndb"] = ndb
         return func(*args, **kwargs)
 
-    return wrapper_checkout_kb
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper_checkout_kb
+    else:
+        return wrapper_checkout_kb
 
 
 def nucliadb(func):
@@ -178,7 +233,19 @@ def pretty(func):
             return yaml.dump(result)
         return result
 
-    return wrapper
+    @wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        result = await func(*args, **kwargs)
+        if kwargs.get("json"):
+            return result.json(indent=2)
+        if kwargs.get("yaml"):
+            return yaml.dump(result)
+        return result
+
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+        return wrapper
 
 
 def zone(func):

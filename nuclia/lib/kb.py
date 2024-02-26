@@ -1,11 +1,11 @@
 import base64
 from enum import Enum
-from typing import Optional
+from typing import Dict, Optional
 
 import httpx
 import requests
 from nucliadb_models.search import ChatRequest
-from nucliadb_sdk import NucliaDB, Region
+from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 
 from nuclia.lib.utils import handle_http_errors
 
@@ -31,14 +31,16 @@ class Environment(str, Enum):
     OSS = "OSS"
 
 
-class NucliaDBClient:
+class BaseNucliaDBClient:
     environment: Environment
     base_url: str
     api_key: Optional[str]
     url: Optional[str] = None
-    reader_session: Optional[httpx.Client] = None
-    stream_session: Optional[requests.Session] = None
-    writer_session: Optional[httpx.Client] = None
+    region: Region
+    headers: Dict[str, str]
+
+    reader_headers: Dict[str, str]
+    writer_headers: Dict[str, str]
 
     def __init__(
         self,
@@ -51,22 +53,19 @@ class NucliaDBClient:
         base_url: Optional[str] = None,
     ):
         if environment == Environment.OSS:
-            region_obj = Region.ON_PREM
+            self.region = Region.ON_PREM
         else:
-            region_obj = Region(region)
+            self.region = Region(region)
 
-        headers = {}
+        self.headers = {}
         if user_token is not None:
-            headers["Authorization"] = f"Bearer {user_token}"
-        headers["X-SYNCHRONOUS"] = "True"
+            self.headers["Authorization"] = f"Bearer {user_token}"
+        self.headers["X-SYNCHRONOUS"] = "True"
         if base_url is not None:
             v2url = base_url
         if base_url is None and url is not None:
             v2url = "/".join(url.split("/")[:-3])
         self.base_url = v2url
-        self.ndb = NucliaDB(
-            region=region_obj, url=v2url, api_key=api_key, headers=headers
-        )
         self.api_key = api_key
         self.environment = environment
 
@@ -75,10 +74,10 @@ class NucliaDBClient:
             self.url = url
 
         if environment == Environment.CLOUD and api_key is not None:
-            reader_headers = {
+            self.reader_headers = {
                 "X-NUCLIA-SERVICEACCOUNT": f"Bearer {api_key}",
             }
-            writer_headers = {
+            self.writer_headers = {
                 "X-NUCLIA-SERVICEACCOUNT": f"Bearer {api_key}",
                 "X-SYNCHRONOUS": "True",
             }
@@ -87,10 +86,10 @@ class NucliaDBClient:
             and api_key is None
             and user_token is not None
         ):
-            reader_headers = {
+            self.reader_headers = {
                 "Authorization": f"Bearer {user_token}",
             }
-            writer_headers = {
+            self.writer_headers = {
                 "Authorization": f"Bearer {user_token}",
                 "X-SYNCHRONOUS": "True",
             }
@@ -98,25 +97,54 @@ class NucliaDBClient:
             environment == Environment.CLOUD and api_key is None and user_token is None
         ):
             # Public
-            reader_headers = {}
-            writer_headers = {}
+            self.reader_headers = {}
+            self.writer_headers = {}
         else:
-            reader_headers = {
+            self.reader_headers = {
                 "X-NUCLIADB-ROLES": f"READER",
             }
-            writer_headers = {
+            self.writer_headers = {
                 "X-NUCLIADB-ROLES": f"WRITER",
                 "X-SYNCHRONOUS": "True",
             }
 
+
+class NucliaDBClient(BaseNucliaDBClient):
+    reader_session: Optional[httpx.Client] = None
+    stream_session: Optional[requests.Session] = None
+    writer_session: Optional[httpx.Client] = None
+    ndb: NucliaDB
+
+    def __init__(
+        self,
+        *,
+        environment: Environment = Environment.CLOUD,
+        url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        user_token: Optional[str] = None,
+        region: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        super().__init__(
+            environment=environment,
+            url=url,
+            api_key=api_key,
+            user_token=user_token,
+            region=region,
+            base_url=base_url,
+        )
+        self.ndb = NucliaDB(
+            region=self.region, url=self.base_url, api_key=api_key, headers=self.headers
+        )
+
         if url is not None:
             self.reader_session = httpx.Client(
-                headers=reader_headers, base_url=url  # type: ignore
+                headers=self.reader_headers, base_url=url  # type: ignore
             )
             self.stream_session = requests.Session()
-            self.stream_session.headers.update(reader_headers)
+            self.stream_session.headers.update(self.reader_headers)
             self.writer_session = httpx.Client(
-                headers=writer_headers, base_url=url  # type: ignore
+                headers=self.writer_headers, base_url=url  # type: ignore
             )
 
     def chat(self, request: ChatRequest):
@@ -190,6 +218,118 @@ class NucliaDBClient:
         # upload url has all path, we should remove /kb/kbid/
         upload_url = "/" + "/".join(upload_url.split("/")[3:])
         response: httpx.Response = self.writer_session.patch(
+            upload_url, headers=headers, content=data
+        )
+        handle_http_errors(response)
+        return int(response.headers.get("Upload-Offset"))
+
+
+class AsyncNucliaDBClient(BaseNucliaDBClient):
+    reader_session: Optional[httpx.AsyncClient] = None
+    writer_session: Optional[httpx.AsyncClient] = None
+    ndb: NucliaDBAsync
+
+    def __init__(
+        self,
+        *,
+        environment: Environment = Environment.CLOUD,
+        url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        user_token: Optional[str] = None,
+        region: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        super().__init__(
+            environment=environment,
+            url=url,
+            api_key=api_key,
+            user_token=user_token,
+            region=region,
+            base_url=base_url,
+        )
+
+        self.ndb = NucliaDBAsync(
+            region=self.region, url=self.base_url, api_key=api_key, headers=self.headers
+        )
+
+        if url is not None:
+            self.reader_session = httpx.AsyncClient(
+                headers=self.reader_headers, base_url=url  # type: ignore
+            )
+            self.writer_session = httpx.AsyncClient(
+                headers=self.writer_headers, base_url=url  # type: ignore
+            )
+
+    async def chat(self, request: ChatRequest):
+        if self.url is None or self.reader_session is None:
+            raise Exception("KB not configured")
+        url = f"{self.url}{CHAT_URL}"
+        req = self.reader_session.build_request("POST", url, json=request.dict())
+        response = await self.reader_session.send(req, stream=True)
+        handle_http_errors(response)
+        return response
+
+    async def download(self, uri: str) -> bytes:
+        # uri has format
+        # /kb/2a00d5b4-cfcc-48eb-85ac-d70bfd38b26d/resource/41d02aac4ade48098b23e38141807738/file/file/download/field
+        # we need to remove the kb url
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        uri_parts = uri.split("/")
+        if len(uri_parts) < 9:
+            raise AttributeError("Not a valid download uri")
+
+        new_uri = "/".join(uri_parts[3:])
+        url = DOWNLOAD_URL.format(uri=new_uri)
+        response = await self.reader_session.get(url)
+        handle_http_errors(response)
+        return response.content
+
+    async def start_tus_upload(
+        self,
+        size: int,
+        filename: str,
+        field: Optional[str] = None,
+        rid: Optional[str] = None,
+        md5: Optional[str] = None,
+        content_type: str = "application/octet-stream",
+    ):
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        if rid is not None:
+            if field is None:
+                field = filename
+            url = TUS_UPLOAD_RESOURCE_URL.format(rid=rid, field=field)
+        else:
+            url = TUS_UPLOAD_URL
+        encoded_filename = base64.b64encode(filename.encode()).decode()
+        headers = {
+            "upload-length": str(size),
+            "tus-resumable": "1.0.0",
+            "upload-metadata": f"filename {encoded_filename}",
+            "content-type": content_type,
+        }
+        if md5 is not None:
+            headers[
+                "upload-metadata"
+            ] += f",md5 {base64.b64encode(md5.encode()).decode()}"
+
+        response = await self.writer_session.post(url, headers=headers)
+        handle_http_errors(response)
+        return response.headers.get("Location")
+
+    async def patch_tus_upload(self, upload_url: str, data: bytes, offset: int) -> int:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        headers = {
+            "upload-offset": str(offset),
+        }
+        # upload url has all path, we should remove /kb/kbid/
+        upload_url = "/" + "/".join(upload_url.split("/")[3:])
+        response = await self.writer_session.patch(
             upload_url, headers=headers, content=data
         )
         handle_http_errors(response)
