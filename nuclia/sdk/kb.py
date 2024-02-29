@@ -13,6 +13,7 @@ from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import NucliaResource
 from nuclia.sdk.search import NucliaSearch
 from nuclia.sdk.upload import NucliaUpload
+from nuclia.sdk.logs import NucliaLogs
 
 
 class NucliaKB:
@@ -27,6 +28,7 @@ class NucliaKB:
         self.resource = NucliaResource()
         self.exports = NucliaExports()
         self.imports = NucliaImports()
+        self.logs = NucliaLogs()
 
     @kb
     def list(self, *, interactive: bool = True, **kwargs) -> Optional[ResourceList]:
