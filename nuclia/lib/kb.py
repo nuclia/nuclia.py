@@ -1,4 +1,5 @@
 import base64
+import csv
 from enum import Enum
 from typing import Dict, Optional
 
@@ -24,11 +25,22 @@ ENTITIES_URL = "/entitiesgroups"
 DOWNLOAD_URL = "/{uri}"
 TUS_UPLOAD_RESOURCE_URL = "/resource/{rid}/file/{field}/tusupload"
 TUS_UPLOAD_URL = "/tusupload"
+ACTIVITY_LOG_URL = "/activity/download?type={type}&month={month}"
+FEEDBACK_LOG_URL = "/feedback/{month}"
 
 
 class Environment(str, Enum):
     CLOUD = "CLOUD"
     OSS = "OSS"
+
+
+class LogType(str, Enum):
+    NEW = "NEW"
+    PROCESSED = "PROCESSED"
+    MODIFIED = "MODIFIED"
+    CHAT = "CHAT"
+    SEARCH = "SEARCH"
+    FEEDBACK = "FEEDBACK"
 
 
 class BaseNucliaDBClient:
@@ -222,6 +234,37 @@ class NucliaDBClient(BaseNucliaDBClient):
         )
         handle_http_errors(response)
         return int(response.headers.get("Upload-Offset"))
+
+    def logs(self, type: LogType, month: str) -> list[list[str]]:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        if type != "FEEDBACK":
+            url = ACTIVITY_LOG_URL.format(type=type, month=month)
+            response: httpx.Response = self.reader_session.get(url)
+            handle_http_errors(response)
+            return [row for row in csv.reader(response.iter_lines())]
+        else:
+            feedback_url = f"{self.url}{FEEDBACK_LOG_URL.format(month=month)}"
+            feedback_response: httpx.Response = self.reader_session.get(feedback_url)
+            handle_http_errors(feedback_response)
+            feedbacks = [row for row in csv.reader(feedback_response.iter_lines())]
+            answers = self.logs(type=LogType.CHAT, month=month)
+            # first row with the columns headers
+            results = [[*feedbacks[0], *answers[0][:-1]]]
+            for feedback in feedbacks[1:]:
+                learning_id = feedback[1]
+                # search for the corresponding question/answer
+                # (the learning id is the same for both question/answer and feedback,
+                # and is the second column in the Q/A csv)
+                matching_answers = [
+                    answer for answer in answers if answer[1] == learning_id
+                ]
+                if len(matching_answers) > 0:
+                    results.append([*feedback, *matching_answers[0][:-1]])
+                else:
+                    results.append(feedback)
+            return results
 
 
 class AsyncNucliaDBClient(BaseNucliaDBClient):
