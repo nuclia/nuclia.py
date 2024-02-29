@@ -60,7 +60,7 @@ class NucliaSearch:
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = SearchRequest(query=query, filters=(filters or []))
+            req = SearchRequest(query=query, filters=(filters or []))  # type: ignore
         else:
             req = query
 
@@ -87,7 +87,7 @@ class NucliaSearch:
             req = FindRequest(
                 query=query,
                 highlight=highlight,
-                filters=filters or [],
+                filters=filters or [],  # type: ignore
             )
         elif isinstance(query, FindRequest):
             req = query
@@ -114,7 +114,10 @@ class NucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = ChatRequest(query=query, filters=filters or [])
+            req = ChatRequest(
+                query=query,
+                filters=filters or [],  # type: ignore
+            )
         else:
             req = query
         response = ndb.chat(req)
