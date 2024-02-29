@@ -250,9 +250,13 @@ class NucliaDBClient(BaseNucliaDBClient):
             handle_http_errors(feedback_response)
             feedbacks = [row for row in csv.reader(feedback_response.iter_lines())]
             answers = self.logs(type=LogType.CHAT, month=month)
+            # first row with the columns headers
             results = [[*feedbacks[0], *answers[0][:-1]]]
             for feedback in feedbacks[1:]:
                 learning_id = feedback[1]
+                # search for the corresponding question/answer
+                # (the learning id is the same for both question/answer and feedback,
+                # and is the second column in the Q/A csv)
                 matching_answers = [
                     answer for answer in answers if answer[1] == learning_id
                 ]
