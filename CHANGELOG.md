@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.4 (unreleased)
+## 2.0.4 (2024-02-29)
 
 
 - Allow to download Knowledge Box logs
