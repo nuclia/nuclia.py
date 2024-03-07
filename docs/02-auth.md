@@ -34,7 +34,7 @@ It is the recommended way to authenticate for long running scripts.
 
   ```python
   from nuclia import sdk
-  sdk.NucliaAuth().kb(url=KB_URL, token=API_KEY, interactive=False)
+  sdk.NucliaAuth().kb(url=KB_URL, token=API_KEY)
   ```
 
 - Provides access to NucliaDB API. For the managed service you will need a service token.
