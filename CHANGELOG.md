@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.5 (unreleased)
+## 2.0.5 (2024-03-08)
 
 
 - Fix dependencies.
