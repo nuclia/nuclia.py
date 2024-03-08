@@ -153,7 +153,7 @@ class NucliaAuth(BaseNucliaAuth):
             )
             return client_id
         else:
-            print("Invalid service token")
+            print("Invalid NUA token")
             return None
 
     def validate_nua(
@@ -426,7 +426,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             )
             return client_id
         else:
-            print("Invalid service token")
+            print("Invalid NUA token")
             return None
 
     async def validate_nua(
