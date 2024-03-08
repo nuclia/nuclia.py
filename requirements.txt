@@ -5,7 +5,7 @@ requests
 httpx
 httpcore>=1.0.0
 prompt_toolkit
-nucliadb_sdk>=2.43.1.post225
-nucliadb_models>=2.43.1.post225
+nucliadb_sdk>=2.44.1.post287
+nucliadb_models>=2.44.1.post287
 tqdm
 aiofiles
