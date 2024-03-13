@@ -3,6 +3,7 @@ from .agent import NucliaAgent  # noqa
 from .auth import AsyncNucliaAuth  # noqa
 from .auth import NucliaAuth  # noqa
 from .export_import import NucliaExports, NucliaImports  # noqa
+from .export_import import AsyncNucliaExports  # noqa
 from .kb import NucliaKB  # noqa
 from .kbs import NucliaKBS  # noqa
 from .nua import NucliaNUA  # noqa
