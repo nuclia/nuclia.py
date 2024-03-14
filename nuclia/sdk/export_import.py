@@ -3,8 +3,8 @@ import os
 import time
 from functools import partial
 from typing import Optional
-import aiofiles
 
+import aiofiles
 from nucliadb_models.export_import import (
     CreateExportResponse,
     CreateImportResponse,

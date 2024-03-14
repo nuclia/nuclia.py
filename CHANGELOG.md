@@ -3,7 +3,7 @@
 ## 2.0.6 (unreleased)
 
 
-- Nothing changed yet.
+- Add async export/import.
 
 
 ## 2.0.5 (2024-03-08)

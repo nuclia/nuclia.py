@@ -1,11 +1,11 @@
 import asyncio
 import base64
 import csv
-from enum import Enum
 import os
+from enum import Enum
 from typing import Dict, Optional
-import aiofiles
 
+import aiofiles
 import httpx
 import requests
 from nucliadb_models.search import ChatRequest
