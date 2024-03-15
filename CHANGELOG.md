@@ -4,6 +4,7 @@
 
 
 - Add async export/import.
+- Add Query endpoint.
 
 
 ## 2.0.5 (2024-03-08)

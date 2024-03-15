@@ -453,3 +453,30 @@ class StoredLearningConfiguration(BaseModel):
     summary: str
     summary_model: str
     summary_prompt: Optional[SummaryPrompt] = None
+
+
+class SentenceSearch(BaseModel):
+    data: List[float] = []
+    time: float
+
+
+class Ner(BaseModel):
+    text: str
+    ner: str
+    start: int
+    end: int
+
+
+class TokenSearch(BaseModel):
+    tokens: List[Ner] = []
+    time: float
+
+
+class QueryInfo(BaseModel):
+    language: str
+    stop_words: List[str]
+    semantic_threshold: float
+    visual_llm: bool
+    max_context: int
+    entities: Optional[TokenSearch]
+    sentence: Optional[SentenceSearch]
