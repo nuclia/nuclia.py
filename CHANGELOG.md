@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.6 (unreleased)
+## 2.0.6 (2024-03-15)
 
 
 - Add async export/import.
