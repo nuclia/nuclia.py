@@ -336,13 +336,14 @@ class AsyncNucliaUpload:
         path: str,
         rid: Optional[str] = None,
         field: Optional[str] = None,
+        mimetype: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         filename = path.split("/")[-1]
         size = os.path.getsize(path)
-        mimetype = mimetypes.guess_type(path)[0]
+        mimetype = mimetype or mimetypes.guess_type(path)[0]
         if not mimetype:
             mimetype = "application/octet-stream"
         rid, is_new_resource = await self._get_or_create_resource(

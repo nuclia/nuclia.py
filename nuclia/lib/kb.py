@@ -1,12 +1,15 @@
 import base64
 import csv
+import os
 from enum import Enum
 from typing import Dict, Optional
 
+import aiofiles
 import httpx
 import requests
 from nucliadb_models.search import ChatRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
+from tqdm import tqdm
 
 from nuclia.lib.utils import handle_http_errors
 
@@ -22,6 +25,7 @@ FIND_URL = "/find"
 CHAT_URL = "/chat"
 LABELS_URL = "/labelsets"
 ENTITIES_URL = "/entitiesgroups"
+DOWNLOAD_EXPORT_URL = "/export/{export_id}"
 DOWNLOAD_URL = "/{uri}"
 TUS_UPLOAD_RESOURCE_URL = "/resource/{rid}/file/{field}/tusupload"
 TUS_UPLOAD_URL = "/tusupload"
@@ -311,6 +315,30 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response = await self.reader_session.send(req, stream=True)
         handle_http_errors(response)
         return response
+
+    async def download_export(self, export_id: str, path: str, chunk_size: int):
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        parent = "/".join(path.split("/")[:-1])
+        if os.path.exists(parent) is False:
+            os.makedirs(path)
+
+        status = await self.ndb.export_status(kbid=self.kbid, export_id=export_id)
+        export_size = status.total
+
+        url = DOWNLOAD_EXPORT_URL.format(export_id=export_id)
+        async with self.reader_session.stream("GET", url) as content:
+            async with aiofiles.open(path, "wb") as file:
+                with tqdm(
+                    desc=f"Downloading data",
+                    total=export_size,
+                    unit="iB",
+                    unit_scale=True,
+                ) as pbar:
+                    async for chunk in content.aiter_bytes(chunk_size):
+                        pbar.update(len(chunk))
+                        await file.write(chunk)
 
     async def download(self, uri: str) -> bytes:
         # uri has format

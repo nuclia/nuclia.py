@@ -3,7 +3,8 @@
 ## 2.0.6 (unreleased)
 
 
-- Nothing changed yet.
+- Add async export/import.
+- Add Query endpoint.
 
 
 ## 2.0.5 (2024-03-08)

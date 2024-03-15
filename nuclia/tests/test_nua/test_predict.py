@@ -8,6 +8,21 @@ def test_predict(testing_config):
     assert len(embed.data) == 768
 
 
+def test_predict_query(testing_config):
+    np = NucliaPredict()
+    query = np.query(
+        text="Ramon, this is my text",
+        semantic_model="multilingual-2023-02-21",
+        token_model="multilingual",
+        generative_model="chatgpt-azure-3",
+    )
+    assert query.language == "en"
+    assert query.visual_llm is False
+    assert query.max_context == 4000
+    assert query.entities and query.entities.tokens[0].text == "Ramon"
+    assert query.sentence and len(query.sentence.data) == 768
+
+
 def test_rag(testing_config):
     np = NucliaPredict()
     generated = np.rag(

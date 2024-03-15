@@ -21,7 +21,11 @@ async def test_crud(nucliadb: NucliaFixture, event_loop: BaseEventLoop):
     listing_kbs: KnowledgeBoxList = await event_loop.run_in_executor(None, ndb.list)
     assert len(listing_kbs.kbs) == 0
     creation = partial(
-        ndb.create, slug="kb", title="title", similarity="dot", default=True
+        ndb.create,
+        slug="kb",
+        title="title",
+        learning_configuration={"semantic_model": "english"},
+        default=True,
     )
 
     kb_obj: KnowledgeBoxObj = await event_loop.run_in_executor(None, creation)
