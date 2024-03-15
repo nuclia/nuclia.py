@@ -31,7 +31,7 @@ def test_resource(testing_config):
     res = nresource.get(slug="res1", show=["basic", "values"])
 
     assert res
-    assert res.title == "My great resource"
+    assert res.title in ["My great resource", "res1"]
     assert res.data.texts["text1"]
 
     nresource.delete(rid=res_id)

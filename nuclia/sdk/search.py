@@ -192,7 +192,7 @@ class AsyncNucliaSearch:
         relations: Optional[bool] = False,
         filters: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> KnowledgeboxFindResults:
         """
         Perform a find query.
 

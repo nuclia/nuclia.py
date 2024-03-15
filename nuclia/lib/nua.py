@@ -21,6 +21,7 @@ from nuclia.lib.nua_responses import (
     ProcessRequestStatusResults,
     PushPayload,
     PushResponseV2,
+    QueryInfo,
     RestrictedIDString,
     Sentence,
     Source,
@@ -36,6 +37,7 @@ SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
 SUMMARIZE_PREDICT = "/api/v1/predict/summarize"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
+QUERY_PREDICT = "/api/v1/predict/query"
 UPLOAD_PROCESS = "/api/v1/processing/upload"
 STATUS_PROCESS = "/api/v2/processing/status"
 PUSH_PROCESS = "/api/v2/processing/push"
@@ -115,6 +117,22 @@ class NuaClient:
         if model:
             endpoint += f"&model={model}"
         return self._request("GET", endpoint, output=Tokens)
+
+    def query_predict(
+        self,
+        text: str,
+        semantic_model: Optional[str] = None,
+        token_model: Optional[str] = None,
+        generative_model: Optional[str] = None,
+    ) -> QueryInfo:
+        endpoint = f"{self.url}{QUERY_PREDICT}?text={text}"
+        if semantic_model:
+            endpoint += f"&semantic_model={semantic_model}"
+        if token_model:
+            endpoint += f"&token_model={token_model}"
+        if generative_model:
+            endpoint += f"&generative_model={generative_model}"
+        return self._request("GET", endpoint, output=QueryInfo)
 
     def generate_predict(
         self, text: str, model: Optional[str] = None, timeout: int = 300
@@ -311,6 +329,22 @@ class AsyncNuaClient:
         if model:
             endpoint += f"&model={model}"
         return await self._request("GET", endpoint, output=Tokens)
+
+    async def query_predict(
+        self,
+        text: str,
+        semantic_model: Optional[str] = None,
+        token_model: Optional[str] = None,
+        generative_model: Optional[str] = None,
+    ) -> QueryInfo:
+        endpoint = f"{self.url}{QUERY_PREDICT}?text={text}"
+        if semantic_model:
+            endpoint += f"&semantic_model={semantic_model}"
+        if token_model:
+            endpoint += f"&token_model={token_model}"
+        if generative_model:
+            endpoint += f"&generative_model={generative_model}"
+        return await self._request("GET", endpoint, output=QueryInfo)
 
     async def generate_predict(
         self, text: str, model: Optional[str] = None, timeout: int = 300

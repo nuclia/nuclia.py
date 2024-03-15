@@ -10,10 +10,10 @@ from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.export_import import NucliaExports, NucliaImports
 from nuclia.sdk.logger import logger
+from nuclia.sdk.logs import NucliaLogs
 from nuclia.sdk.resource import NucliaResource
 from nuclia.sdk.search import NucliaSearch
 from nuclia.sdk.upload import NucliaUpload
-from nuclia.sdk.logs import NucliaLogs
 
 
 class NucliaKB:

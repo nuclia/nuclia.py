@@ -7,6 +7,7 @@ from nuclia.lib.nua_responses import (
     ChatResponse,
     ConfigSchema,
     LearningConfigurationCreation,
+    QueryInfo,
     Sentence,
     StoredLearningConfiguration,
     SummarizedModel,
@@ -45,6 +46,23 @@ class NucliaPredict:
     def sentence(self, text: str, model: Optional[str] = None, **kwargs) -> Sentence:
         nc: NuaClient = kwargs["nc"]
         return nc.sentence_predict(text, model)
+
+    @nua
+    def query(
+        self,
+        text: str,
+        semantic_model: Optional[str] = None,
+        token_model: Optional[str] = None,
+        generative_model: Optional[str] = None,
+        **kwargs
+    ) -> QueryInfo:
+        nc: NuaClient = kwargs["nc"]
+        return nc.query_predict(
+            text,
+            semantic_model=semantic_model,
+            token_model=token_model,
+            generative_model=generative_model,
+        )
 
     @nua
     def generate(
@@ -116,6 +134,23 @@ class AsyncNucliaPredict:
     async def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.tokens_predict(text, model)
+
+    @nua
+    async def query(
+        self,
+        text: str,
+        semantic_model: Optional[str] = None,
+        token_model: Optional[str] = None,
+        generative_model: Optional[str] = None,
+        **kwargs
+    ) -> QueryInfo:
+        nc: AsyncNuaClient = kwargs["nc"]
+        return await nc.query_predict(
+            text,
+            semantic_model=semantic_model,
+            token_model=token_model,
+            generative_model=generative_model,
+        )
 
     @nua
     async def summarize(
