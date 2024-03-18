@@ -3,7 +3,7 @@
 ## 2.0.7 (unreleased)
 
 
-- Nothing changed yet.
+- Fix bug on export creating folders.
 
 
 ## 2.0.6 (2024-03-15)
