@@ -3,7 +3,7 @@
 ## 2.0.8 (unreleased)
 
 
-- Nothing changed yet.
+- Support CSS selector when uploading links
 
 
 ## 2.0.7 (2024-03-18)
