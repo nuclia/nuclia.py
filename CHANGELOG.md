@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.8 (unreleased)
+## 2.0.8 (2024-03-18)
 
 
 - Support CSS selector when uploading links
