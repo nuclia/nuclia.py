@@ -98,6 +98,12 @@ upload = sdk.NucliaUpload()
 upload.link(uri=THE_URI)
 ```
 
+You can narrow down the indexed content by providing a CSS selector:
+
+```bash
+nuclia kb upload link --uri=THE_URI --selector="CSS_SELECTOR"
+```
+
 ## Upload a conversation
 
 First, you need to provide a JSON file containing the conversation messages following this format:
