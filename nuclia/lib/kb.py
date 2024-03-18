@@ -322,7 +322,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
 
         parent = "/".join(path.split("/")[:-1])
         if os.path.exists(parent) is False:
-            os.makedirs(path)
+            os.makedirs(parent)
 
         status = await self.ndb.export_status(kbid=self.kbid, export_id=export_id)
         export_size = status.total
