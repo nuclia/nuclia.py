@@ -201,6 +201,7 @@ class NucliaUpload:
         self,
         *,
         uri: str,
+        css_selector: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Upload an URL to a Nuclia KnowledgeBox."""
@@ -208,6 +209,7 @@ class NucliaUpload:
         links = {
             field: {
                 "uri": uri,
+                "css_selector": css_selector,
             }
         }
         kwargs["icon"] = "application/stf-link"
