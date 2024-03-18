@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.7 (unreleased)
+## 2.0.7 (2024-03-18)
 
 
 - Fix bug on export creating folders.
