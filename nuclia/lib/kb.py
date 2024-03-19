@@ -307,11 +307,13 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
                 headers=self.writer_headers, base_url=url  # type: ignore
             )
 
-    async def chat(self, request: ChatRequest):
+    async def chat(self, request: ChatRequest, timeout: int = 1000):
         if self.url is None or self.reader_session is None:
             raise Exception("KB not configured")
         url = f"{self.url}{CHAT_URL}"
-        req = self.reader_session.build_request("POST", url, json=request.dict())
+        req = self.reader_session.build_request(
+            "POST", url, json=request.dict(), timeout=1000
+        )
         response = await self.reader_session.send(req, stream=True)
         handle_http_errors(response)
         return response
