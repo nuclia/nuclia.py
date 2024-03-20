@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.9 (unreleased)
+## 2.0.9 (2024-03-20)
 
 
 - Chat needs a timeout.
