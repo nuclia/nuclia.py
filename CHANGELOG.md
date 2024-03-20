@@ -3,7 +3,7 @@
 ## 2.0.9 (unreleased)
 
 
-- Nothing changed yet.
+- Chat needs a timeout.
 
 
 ## 2.0.8 (2024-03-18)

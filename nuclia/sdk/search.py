@@ -218,6 +218,7 @@ class AsyncNucliaSearch:
         *,
         query: Union[str, ChatRequest],
         filters: Optional[List[str]] = None,
+        timeout: int = 100,
         **kwargs,
     ):
         """
@@ -232,7 +233,7 @@ class AsyncNucliaSearch:
             req = query
 
         content = b""
-        response = await ndb.chat(req)
+        response = await ndb.chat(req, timeout=timeout)
 
         content = await response.aread()
         stream = BytesIO(content)
