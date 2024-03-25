@@ -2,13 +2,12 @@ import base64
 import csv
 import os
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import aiofiles
 import httpx
 import requests
-from nucliadb_models.search import ChatRequest
-from nucliadb_models.search import SummarizeRequest
+from nucliadb_models.search import ChatRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
 
