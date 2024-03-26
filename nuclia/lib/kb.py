@@ -7,7 +7,7 @@ from typing import Dict, Optional
 import aiofiles
 import httpx
 import requests
-from nucliadb_models.search import ChatRequest
+from nucliadb_models.search import ChatRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
 
@@ -23,6 +23,7 @@ COUNTER = "/counters"
 SEARCH_URL = "/search"
 FIND_URL = "/find"
 CHAT_URL = "/chat"
+SUMMARIZE_URL = "/summarize"
 LABELS_URL = "/labelsets"
 ENTITIES_URL = "/entitiesgroups"
 DOWNLOAD_EXPORT_URL = "/export/{export_id}"
@@ -407,3 +408,14 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         )
         handle_http_errors(response)
         return int(response.headers.get("Upload-Offset"))
+
+    async def summarize(self, request: SummarizeRequest, timeout: int = 1000):
+        if self.url is None or self.writer_session is None:
+            raise Exception("KB not configured")
+        url = f"{self.url}{SUMMARIZE_URL}"
+        assert self.reader_session
+        response = await self.reader_session.post(
+            url, json=request.dict(), timeout=timeout
+        )
+        handle_http_errors(response)
+        return response

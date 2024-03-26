@@ -3,7 +3,7 @@
 ## 2.0.10 (unreleased)
 
 
-- Nothing changed yet.
+- Support summarize resources on a KB and Async KB management
 
 
 ## 2.0.9 (2024-03-20)
