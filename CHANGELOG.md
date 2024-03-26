@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.10 (unreleased)
+## 2.0.10 (2024-03-26)
 
 
 - Support summarize resources on a KB and Async KB management
