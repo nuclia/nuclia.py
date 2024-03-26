@@ -28,3 +28,7 @@ class AlreadyConsumed(Exception):
 
 class GettingRemoteFileError(Exception):
     pass
+
+
+class RateLimitError(Exception):
+    pass

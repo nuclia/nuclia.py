@@ -5,12 +5,14 @@ from enum import Enum
 from typing import Dict, Optional
 
 import aiofiles
+import backoff
 import httpx
 import requests
 from nucliadb_models.search import ChatRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
 
+from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 
 RESOURCE_PATH = "/resource/{rid}"
@@ -191,6 +193,9 @@ class NucliaDBClient(BaseNucliaDBClient):
         handle_http_errors(response)
         return response.content
 
+    @backoff.on_exception(
+        backoff.expo, RateLimitError, jitter=backoff.random_jitter, max_tries=5
+    )
     def start_tus_upload(
         self,
         size: int,
@@ -360,6 +365,9 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         handle_http_errors(response)
         return response.content
 
+    @backoff.on_exception(
+        backoff.expo, RateLimitError, jitter=backoff.random_jitter, max_tries=5
+    )
     async def start_tus_upload(
         self,
         size: int,
