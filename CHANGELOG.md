@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.11 (unreleased)
+## 2.0.11 (2024-03-27)
 
 
 - Handle nucliadb back pressure with backoff
