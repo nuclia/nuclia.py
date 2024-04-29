@@ -60,7 +60,3 @@ async def test_async_stream_generative(testing_config):
         text="How much is 2 + 2?", model="chatgpt-azure-3"
     )
     assert "4" in generated.text
-    import pdb
-
-    pdb.set_trace()
-    pass
