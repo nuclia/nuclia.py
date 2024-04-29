@@ -1,4 +1,4 @@
-from nuclia.sdk.predict import NucliaPredict
+from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 
 def test_predict(testing_config):
@@ -34,3 +34,33 @@ def test_rag(testing_config):
         model="chatgpt-azure-3",
     )
     assert "Eudald" in generated.answer
+
+
+def test_generative(testing_config):
+    np = NucliaPredict()
+    generated = np.generate(text="How much is 2 + 2?", model="chatgpt-azure-3")
+    assert "4" in generated.answer
+
+
+async def test_async_generative(testing_config):
+    np = AsyncNucliaPredict()
+    generated = await np.generate(text="How much is 2 + 2?", model="chatgpt-azure-3")
+    assert "4" in generated.answer
+
+
+def test_stream_generative(testing_config):
+    np = NucliaPredict()
+    generated = np.generate_stream(text="How much is 2 + 2?", model="chatgpt-azure-3")
+    assert "4" in generated.text
+
+
+async def test_async_stream_generative(testing_config):
+    np = AsyncNucliaPredict()
+    generated = await np.generate_stream(
+        text="How much is 2 + 2?", model="chatgpt-azure-3"
+    )
+    assert "4" in generated.text
+    import pdb
+
+    pdb.set_trace()
+    pass
