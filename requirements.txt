@@ -10,3 +10,4 @@ nucliadb_models>=2.44.1
 tqdm
 aiofiles
 backoff
+deprecated
