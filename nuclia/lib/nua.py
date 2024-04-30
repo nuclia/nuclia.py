@@ -108,9 +108,6 @@ class NuaClient:
             timeout=timeout,
         ) as response:
             for json_body in response.iter_lines():
-                import pdb
-
-                pdb.set_trace()
                 yield GenerativeChunk.parse_obj(json_body)  # type: ignore
 
     def add_config_predict(self, kbid: str, config: LearningConfigurationCreation):
