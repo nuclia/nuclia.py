@@ -1,5 +1,8 @@
+import logging
 import os
 from typing import List, Optional
+
+logger = logging.getLogger("nuclia")
 
 BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "nuclia.cloud")
 BASE = f"https://{BASE_DOMAIN}"

@@ -1,17 +1,24 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
 from nuclia.lib.nua_responses import (
+    ChatModel,
     ChatResponse,
+    CitationsGenerativeResponse,
     ConfigSchema,
+    GenerativeFullResponse,
     LearningConfigurationCreation,
+    MetaGenerativeResponse,
     QueryInfo,
     Sentence,
+    StatusGenerativeResponse,
     StoredLearningConfiguration,
     SummarizedModel,
+    TextGenerativeResponse,
     Tokens,
+    UserPrompt,
 )
 from nuclia.sdk.auth import NucliaAuth
 
@@ -66,10 +73,50 @@ class NucliaPredict:
 
     @nua
     def generate(
-        self, text: str, model: Optional[str] = None, **kwargs
+        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
     ) -> ChatResponse:
         nc: NuaClient = kwargs["nc"]
-        return nc.generate_predict(text, model)
+        if isinstance(text, str):
+            body = ChatModel(
+                question="",
+                retrieval=False,
+                user_id="Nuclia PY CLI",
+                user_prompt=UserPrompt(prompt=text),
+            )
+        else:
+            body = text
+        return nc.generate(body, model)
+
+    @nua
+    def generate_stream(
+        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+    ) -> GenerativeFullResponse:
+        nc: NuaClient = kwargs["nc"]
+        if isinstance(text, str):
+            body = ChatModel(
+                question="",
+                retrieval=False,
+                user_id="Nuclia PY CLI",
+                user_prompt=UserPrompt(prompt=text),
+            )
+        else:
+            body = text
+
+        gfr = GenerativeFullResponse(text="")
+        for chunk in nc.generate_stream(body, model):
+            if isinstance(chunk, TextGenerativeResponse):
+                print(chunk.text)
+                gfr.text += chunk.text
+            if isinstance(chunk, StatusGenerativeResponse):
+                gfr.code = chunk.code
+                gfr.details = chunk.details
+            if isinstance(chunk, CitationsGenerativeResponse):
+                gfr.citations = chunk.citations
+            if isinstance(chunk, MetaGenerativeResponse):
+                gfr.input_tokens = chunk.input_tokens
+                gfr.output_tokens = chunk.output_tokens
+                gfr.timings = chunk.timings
+        return gfr
 
     @nua
     def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
@@ -88,7 +135,14 @@ class NucliaPredict:
         self, question: str, context: List[str], model: Optional[str] = None, **kwargs
     ) -> ChatResponse:
         nc: NuaClient = kwargs["nc"]
-        return nc.generate_retrieval(question, context, model)
+        body = ChatModel(
+            question=question,
+            retrieval=True,
+            user_id="Nuclia PY CLI",
+            query_context=context,
+        )
+
+        return nc.generate(body, model)
 
 
 class AsyncNucliaPredict:
@@ -128,7 +182,47 @@ class AsyncNucliaPredict:
         self, text: str, model: Optional[str] = None, **kwargs
     ) -> ChatResponse:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.generate_predict(text, model)
+        if isinstance(text, str):
+            body = ChatModel(
+                question="",
+                retrieval=False,
+                user_id="Nuclia PY CLI",
+                user_prompt=UserPrompt(prompt=text),
+            )
+        else:
+            body = text
+        return await nc.generate(body, model)
+
+    @nua
+    async def generate_stream(
+        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+    ) -> GenerativeFullResponse:
+        nc: AsyncNuaClient = kwargs["nc"]
+        if isinstance(text, str):
+            body = ChatModel(
+                question="",
+                retrieval=False,
+                user_id="Nuclia PY CLI",
+                user_prompt=UserPrompt(prompt=text),
+            )
+        else:
+            body = text
+
+        gfr = GenerativeFullResponse(text="")
+        async for chunk in nc.generate_stream(body, model):
+            if isinstance(chunk, TextGenerativeResponse):
+                print(chunk.text)
+                gfr.text += chunk.text
+            if isinstance(chunk, StatusGenerativeResponse):
+                gfr.code = chunk.code
+                gfr.details = chunk.details
+            if isinstance(chunk, CitationsGenerativeResponse):
+                gfr.citations = chunk.citations
+            if isinstance(chunk, MetaGenerativeResponse):
+                gfr.input_tokens = chunk.input_tokens
+                gfr.output_tokens = chunk.output_tokens
+                gfr.timings = chunk.timings
+        return gfr
 
     @nua
     async def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
