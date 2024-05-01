@@ -3,7 +3,7 @@
 ## 2.0.12 (unreleased)
 
 
-- Nothing changed yet.
+- Add generative stream on NUA API
 
 
 ## 2.0.11 (2024-03-27)

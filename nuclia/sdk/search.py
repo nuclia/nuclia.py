@@ -8,6 +8,7 @@ from nucliadb_models.search import (
     Filter,
     FindRequest,
     KnowledgeboxFindResults,
+    KnowledgeboxSearchResults,
     Relations,
     SearchOptions,
     SearchRequest,
@@ -52,7 +53,7 @@ class NucliaSearch:
         query: Union[str, SearchRequest] = "",
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
-    ):
+    ) -> KnowledgeboxSearchResults:
         """
         Perform a search query.
 
