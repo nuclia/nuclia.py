@@ -24,6 +24,17 @@ def test_find_object(testing_config):
     assert "Lamarr Lesson plan.pdf" in titles
 
 
+def test_chat(testing_config):
+    if IS_PROD:
+        assert True
+        return
+    search = NucliaSearch()
+    results = search.chat(query="Who is hedy Lamarr?")
+    answer = results.answer.decode()
+    print("Chat answer: ", answer)
+    assert "Lamarr" in answer
+
+
 def test_search(testing_config):
     if IS_PROD:
         assert True

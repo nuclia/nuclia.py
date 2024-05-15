@@ -8,7 +8,7 @@ import aiofiles
 import backoff
 import httpx
 import requests
-from nucliadb_models.search import ChatRequest, SummarizeRequest
+from nucliadb_models.search import AskRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
 
@@ -24,7 +24,7 @@ VECTORSETS = "/vectorsets"
 COUNTER = "/counters"
 SEARCH_URL = "/search"
 FIND_URL = "/find"
-CHAT_URL = "/chat"
+ASK_URL = "/ask"
 SUMMARIZE_URL = "/summarize"
 LABELS_URL = "/labelsets"
 ENTITIES_URL = "/entitiesgroups"
@@ -166,10 +166,10 @@ class NucliaDBClient(BaseNucliaDBClient):
                 headers=self.writer_headers, base_url=url  # type: ignore
             )
 
-    def chat(self, request: ChatRequest):
+    def ask(self, request: AskRequest):
         if self.url is None or self.stream_session is None:
             raise Exception("KB not configured")
-        url = f"{self.url}{CHAT_URL}"
+        url = f"{self.url}{ASK_URL}"
         response: requests.Response = self.stream_session.post(
             url, data=request.json(), stream=True
         )
@@ -313,12 +313,12 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
                 headers=self.writer_headers, base_url=url  # type: ignore
             )
 
-    async def chat(self, request: ChatRequest, timeout: int = 1000):
+    async def ask(self, request: AskRequest, timeout: int = 1000):
         if self.url is None or self.reader_session is None:
             raise Exception("KB not configured")
-        url = f"{self.url}{CHAT_URL}"
+        url = f"{self.url}{ASK_URL}"
         req = self.reader_session.build_request(
-            "POST", url, json=request.dict(), timeout=1000
+            "POST", url, json=request.dict(), timeout=timeout
         )
         response = await self.reader_session.send(req, stream=True)
         handle_http_errors(response)
