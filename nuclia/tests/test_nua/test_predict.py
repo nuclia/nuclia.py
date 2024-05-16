@@ -5,7 +5,7 @@ def test_predict(testing_config):
     np = NucliaPredict()
     embed = np.sentence(text="This is my text", model="multilingual-2024-05-06")
     assert embed.time > 0
-    assert len(embed.data) == 768
+    assert len(embed.data) == 1024
 
 
 def test_predict_query(testing_config):
@@ -20,7 +20,7 @@ def test_predict_query(testing_config):
     assert query.visual_llm is False
     assert query.max_context == 16385
     assert query.entities and query.entities.tokens[0].text == "Ramon"
-    assert query.sentence and len(query.sentence.data) == 768
+    assert query.sentence and len(query.sentence.data) == 1024
 
 
 def test_rag(testing_config):
