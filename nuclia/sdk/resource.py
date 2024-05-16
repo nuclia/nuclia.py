@@ -21,6 +21,7 @@ RESOURCE_ATTRIBUTES = [
     "title",
     "summary",
     "metadata",
+    "security",
 ]
 
 

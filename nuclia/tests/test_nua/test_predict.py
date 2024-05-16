@@ -3,24 +3,24 @@ from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 def test_predict(testing_config):
     np = NucliaPredict()
-    embed = np.sentence(text="This is my text", model="multilingual-2023-02-21")
+    embed = np.sentence(text="This is my text", model="multilingual-2024-05-06")
     assert embed.time > 0
-    assert len(embed.data) == 768
+    assert len(embed.data) == 1024
 
 
 def test_predict_query(testing_config):
     np = NucliaPredict()
     query = np.query(
         text="Ramon, this is my text",
-        semantic_model="multilingual-2023-02-21",
+        semantic_model="multilingual-2024-05-06",
         token_model="multilingual",
         generative_model="chatgpt-azure-3",
     )
     assert query.language == "en"
     assert query.visual_llm is False
-    assert query.max_context == 4000
+    assert query.max_context == 16385
     assert query.entities and query.entities.tokens[0].text == "Ramon"
-    assert query.sentence and len(query.sentence.data) == 768
+    assert query.sentence and len(query.sentence.data) == 1024
 
 
 def test_rag(testing_config):
