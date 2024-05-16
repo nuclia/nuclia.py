@@ -1,4 +1,5 @@
 import base64
+import sys
 from dataclasses import dataclass
 from io import BytesIO
 from typing import List, Optional, Union
@@ -13,6 +14,7 @@ from nucliadb_models.search import (
     SearchOptions,
     SearchRequest,
 )
+from pydantic import ValidationError
 
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import kb, pretty
@@ -62,8 +64,16 @@ class NucliaSearch:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = SearchRequest(query=query, filters=(filters or []))  # type: ignore
-        else:
+        elif isinstance(query, SearchRequest):
             req = query
+        elif isinstance(query, dict):
+            try:
+                req = SearchRequest.parse_obj(query)
+            except ValidationError as exc:
+                print(exc)
+                sys.exit(1)
+        else:
+            raise Exception("Invalid Query either str or SearchRequest")
 
         return ndb.ndb.search(req, kbid=ndb.kbid)
 
@@ -92,6 +102,12 @@ class NucliaSearch:
             )
         elif isinstance(query, FindRequest):
             req = query
+        elif isinstance(query, dict):
+            try:
+                req = FindRequest.parse_obj(query)
+            except ValidationError as exc:
+                print(exc)
+                sys.exit(1)
         else:
             raise Exception("Invalid Query either str or FindRequest")
 
@@ -119,8 +135,17 @@ class NucliaSearch:
                 query=query,
                 filters=filters or [],  # type: ignore
             )
-        else:
+        elif isinstance(query, ChatRequest):
             req = query
+        elif isinstance(query, dict):
+            try:
+                req = ChatRequest.parse_obj(query)
+            except ValidationError as exc:
+                print(exc)
+                sys.exit(1)
+        else:
+            raise Exception("Invalid Query either str or ChatRequest")
+
         response = ndb.chat(req)
         header = response.raw.read(4)
         payload_size = int.from_bytes(header, byteorder="big", signed=False)
@@ -178,8 +203,16 @@ class AsyncNucliaSearch:
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = SearchRequest(query=query, filters=(filters or []))
-        else:
+        elif isinstance(query, SearchRequest):
             req = query
+        elif isinstance(query, dict):
+            try:
+                req = SearchRequest.parse_obj(query)
+            except ValidationError as exc:
+                print(exc)
+                sys.exit(1)
+        else:
+            raise Exception("Invalid Query either str or SearchRequest")
 
         return await ndb.ndb.search(req, kbid=ndb.kbid)
 
@@ -205,6 +238,12 @@ class AsyncNucliaSearch:
             req = FindRequest(query=query, highlight=highlight, filters=(filters or []))
         elif isinstance(query, FindRequest):
             req = query
+        elif isinstance(query, dict):
+            try:
+                req = FindRequest.parse_obj(query)
+            except ValidationError as exc:
+                print(exc)
+                sys.exit(1)
         else:
             raise Exception("Invalid Query either str or FindRequest")
 
@@ -230,8 +269,16 @@ class AsyncNucliaSearch:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = ChatRequest(query=query, filters=(filters or []))
-        else:
+        elif isinstance(query, ChatRequest):
             req = query
+        elif isinstance(query, dict):
+            try:
+                req = ChatRequest.parse_obj(query)
+            except ValidationError as exc:
+                print(exc)
+                sys.exit(1)
+        else:
+            raise Exception("Invalid Query either str or ChatRequest")
 
         content = b""
         response = await ndb.chat(req, timeout=timeout)

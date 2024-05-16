@@ -13,12 +13,34 @@ def test_find(testing_config):
     assert "Lamarr Lesson plan.pdf" in titles
 
 
+def test_find_object(testing_config):
+    if IS_PROD:
+        assert True
+        return
+    search = NucliaSearch()
+    results = search.find({"query": "Who is hedy Lamarr?"})
+    assert len(results.resources.keys()) == 2
+    titles = [r.title for r in results.resources.values()]
+    assert "Lamarr Lesson plan.pdf" in titles
+
+
 def test_search(testing_config):
     if IS_PROD:
         assert True
         return
     search = NucliaSearch()
     results = search.search(query="Who is hedy Lamarr?")
+    assert len(results.resources.keys()) == 2
+    titles = [r.title for r in results.resources.values()]
+    assert "Lamarr Lesson plan.pdf" in titles
+
+
+def test_search_object(testing_config):
+    if IS_PROD:
+        assert True
+        return
+    search = NucliaSearch()
+    results = search.search({"query": "Who is hedy Lamarr?"})
     assert len(results.resources.keys()) == 2
     titles = [r.title for r in results.resources.values()]
     assert "Lamarr Lesson plan.pdf" in titles

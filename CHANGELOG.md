@@ -4,7 +4,7 @@
 
 
 - Add generative stream on NUA API
-
+- Support security groups on search endpoints raw queries
 
 ## 2.0.11 (2024-03-27)
 
