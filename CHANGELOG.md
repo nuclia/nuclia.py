@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.12 (unreleased)
+## 2.0.12 (2024-05-16)
 
 
 - Add generative stream on NUA API
