@@ -3,7 +3,7 @@ from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 def test_predict(testing_config):
     np = NucliaPredict()
-    embed = np.sentence(text="This is my text", model="multilingual-2023-02-21")
+    embed = np.sentence(text="This is my text", model="multilingual-2024-05-06")
     assert embed.time > 0
     assert len(embed.data) == 768
 
@@ -12,7 +12,7 @@ def test_predict_query(testing_config):
     np = NucliaPredict()
     query = np.query(
         text="Ramon, this is my text",
-        semantic_model="multilingual-2023-02-21",
+        semantic_model="multilingual-2024-05-06",
         token_model="multilingual",
         generative_model="chatgpt-azure-3",
     )
