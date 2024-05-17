@@ -1,13 +1,10 @@
 # Changelog
 
-## 2.0.13 (unreleased)
+## 3.0.0 (unreleased)
 
-
-- Nothing changed yet.
-
+- Integrate new /ask endpoint
 
 ## 2.0.12 (2024-05-16)
-
 
 - Add generative stream on NUA API
 - Support security groups on search endpoints raw queries
