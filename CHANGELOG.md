@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.0 (unreleased)
+## 3.0.0 (2024-05-17)
 
 - Integrate new /ask endpoint
 
