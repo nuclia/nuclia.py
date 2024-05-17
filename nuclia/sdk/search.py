@@ -1,10 +1,11 @@
-import base64
 import sys
+import warnings
 from dataclasses import dataclass
-from io import BytesIO
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from nucliadb_models.search import (
+    AskRequest,
+    AskResponseItem,
     ChatRequest,
     Filter,
     FindRequest,
@@ -13,6 +14,7 @@ from nucliadb_models.search import (
     Relations,
     SearchOptions,
     SearchRequest,
+    SyncAskResponse,
 )
 from pydantic import ValidationError
 
@@ -28,6 +30,9 @@ class ChatAnswer:
     learning_id: str
     relations_result: Optional[Relations]
     find_result: Optional[KnowledgeboxFindResults]
+    citations: Optional[Dict[str, Any]]
+    timings: Optional[Dict[str, float]]
+    tokens: Optional[Dict[str, int]]
 
     def __str__(self):
         return self.answer.decode()
@@ -120,7 +125,7 @@ class NucliaSearch:
     def chat(
         self,
         *,
-        query: Union[str, ChatRequest],
+        query: Union[str, dict, ChatRequest],
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ):
@@ -131,45 +136,39 @@ class NucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = ChatRequest(
+            req = AskRequest(
                 query=query,
                 filters=filters or [],  # type: ignore
             )
-        elif isinstance(query, ChatRequest):
-            req = query
         elif isinstance(query, dict):
             try:
-                req = ChatRequest.parse_obj(query)
+                req = AskRequest.parse_obj(query)
             except ValidationError as exc:
                 print(exc)
                 sys.exit(1)
+        elif isinstance(query, ChatRequest):
+            # Convert ChatRequest to AskRequest
+            req = AskRequest.parse_obj(query.dict())
         else:
-            raise Exception("Invalid Query either str or ChatRequest")
+            raise ValueError("Invalid query type. Must be str, dict or ChatRequest.")
 
-        response = ndb.chat(req)
-        header = response.raw.read(4)
-        payload_size = int.from_bytes(header, byteorder="big", signed=False)
-        data = response.raw.read(payload_size)
-
-        find_result = KnowledgeboxFindResults.parse_raw(base64.b64decode(data))
-
-        data = response.raw.read()
-        answer, relations_payload = data.split(b"_END_")
-
-        relations_payload = response.raw.read()
-
-        learning_id = response.headers.get("NUCLIA-LEARNING-ID")
-
-        relations_result = None
-        if len(relations_payload) > 0:
-            relations_result = Relations.parse_raw(base64.b64decode(relations_payload))
-
-        return ChatAnswer(
-            answer=answer,
-            learning_id=learning_id,
-            relations_result=relations_result,
-            find_result=find_result,
+        ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
+        # Convert to ChatAnswer
+        result = ChatAnswer(
+            answer=ask_response.answer.encode(),
+            learning_id=ask_response.learning_id,
+            relations_result=ask_response.relations,
+            find_result=ask_response.retrieval_results,
+            citations=ask_response.citations,
+            timings=None,
+            tokens=None,
         )
+        if ask_response.metadata is not None:
+            if ask_response.metadata.timings is not None:
+                result.timings = ask_response.metadata.timings.dict()
+            if ask_response.metadata.tokens is not None:
+                result.tokens = ask_response.metadata.tokens.dict()
+        return result
 
 
 class AsyncNucliaSearch:
@@ -256,7 +255,7 @@ class AsyncNucliaSearch:
     async def chat(
         self,
         *,
-        query: Union[str, ChatRequest],
+        query: Union[str, dict, ChatRequest],
         filters: Optional[List[str]] = None,
         timeout: int = 100,
         **kwargs,
@@ -266,43 +265,58 @@ class AsyncNucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Chat_Knowledge_Box_kb__kbid__chat_post
         """
-        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = ChatRequest(query=query, filters=(filters or []))
-        elif isinstance(query, ChatRequest):
-            req = query
+            req = AskRequest(
+                query=query,
+                filters=filters or [],  # type: ignore
+            )
         elif isinstance(query, dict):
             try:
-                req = ChatRequest.parse_obj(query)
+                req = AskRequest.parse_obj(query)
             except ValidationError as exc:
                 print(exc)
                 sys.exit(1)
+        elif isinstance(query, ChatRequest):
+            # Convert ChatRequest to AskRequest
+            req = AskRequest.parse_obj(query.dict())
         else:
-            raise Exception("Invalid Query either str or ChatRequest")
-
-        content = b""
-        response = await ndb.chat(req, timeout=timeout)
-
-        content = await response.aread()
-        stream = BytesIO(content)
-        header = stream.read(4)
-        payload_size = int.from_bytes(header, byteorder="big", signed=False)
-        data = stream.read(payload_size)
-
-        find_result = KnowledgeboxFindResults.parse_raw(base64.b64decode(data))
-
-        data = stream.read()
-        answer, relations_payload = data.split(b"_END_")
-
-        learning_id = response.headers.get("NUCLIA-LEARNING-ID")
-
-        relations_result = None
-        if len(relations_payload) > 0:
-            relations_result = Relations.parse_raw(base64.b64decode(relations_payload))
-
-        return ChatAnswer(
-            answer=answer,
-            learning_id=learning_id,
-            relations_result=relations_result,
-            find_result=find_result,
+            raise ValueError("Invalid query type. Must be str, dict or ChatRequest.")
+        ask_stream_response = await ndb.ask(req, timeout=timeout)
+        # Parse the stream response and convert to ChatAnswer
+        result = ChatAnswer(
+            answer=b"",
+            learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
+            relations_result=None,
+            find_result=None,
+            citations=None,
+            timings=None,
+            tokens=None,
         )
+        async for line in ask_stream_response.aiter_lines():
+            try:
+                ask_response_item = AskResponseItem.parse_raw(line).item
+            except Exception as e:
+                warnings.warn(f"Failed to parse AskResponseItem: {e}. item: {line}")
+                continue
+            if ask_response_item.type == "answer":
+                result.answer += ask_response_item.text.encode()
+            elif ask_response_item.type == "retrieval":
+                result.find_result = ask_response_item.results
+            elif ask_response_item.type == "relations":
+                result.relations_result = ask_response_item.relations
+            elif ask_response_item.type == "citations":
+                result.citations = ask_response_item.citations
+            elif ask_response_item.type == "metadata":
+                if ask_response_item.timings:
+                    result.timings = ask_response_item.timings.dict()
+                if ask_response_item.tokens:
+                    result.tokens = ask_response_item.tokens.dict()
+            elif ask_response_item.type == "status":
+                # Status is ignored
+                pass
+            else:  # pragma: no cover
+                warnings.warn(
+                    f"Unknown chat stream item type: {ask_response_item.type}"
+                )
+        return result
