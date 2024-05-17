@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.0 (2024-05-17)
+## 3.0.0 (unreleased)
 
 - Integrate new /ask endpoint
 
@@ -11,110 +11,77 @@
 
 ## 2.0.11 (2024-03-27)
 
-
 - Handle nucliadb back pressure with backoff
-
 
 ## 2.0.10 (2024-03-26)
 
-
 - Support summarize resources on a KB and Async KB management
-
 
 ## 2.0.9 (2024-03-20)
 
-
 - Chat needs a timeout.
-
 
 ## 2.0.8 (2024-03-18)
 
-
 - Support CSS selector when uploading links
-
 
 ## 2.0.7 (2024-03-18)
 
-
 - Fix bug on export creating folders.
 
-
 ## 2.0.6 (2024-03-15)
-
 
 - Add async export/import.
 - Add Query endpoint.
 
-
 ## 2.0.5 (2024-03-08)
-
 
 - Fix dependencies.
 
-
 ## 2.0.4 (2024-02-29)
-
 
 - Allow to download Knowledge Box logs
 
-
 ## 2.0.3 (2024-02-26)
-
 
 - Fix upload chunk size
 - Support async
 
-
 ## 2.0.2 (2024-02-23)
-
 
 - Check errors when getting remote files
 - Increase uploads chunk size to work with both s3 and gcs
 
-
 ## 2.0.1 (2024-02-21)
 
-
 - Delete and update resources by slug natively with nucliadb-sdk
-- Support `all`, `any`, `none` and `not_all` operators in `filters` parameter 
-
+- Support `all`, `any`, `none` and `not_all` operators in `filters` parameter
 
 ## 2.0.0 (2024-02-18)
 
-
 - Support AsyncIO Auth and Predict
-
 
 ## 1.2.4 (2024-01-18)
 
-
 - Allow to set remote files field at creation
-
 
 ## 1.2.3 (2024-01-16)
 
-
 - Support resources summarization
-
 
 ## 1.2.2 (2024-01-11)
 
-
 - Update Nuclia dependencies to get the new AWS region.
-
 
 ## 1.2.1 (2024-01-08)
 
-
 - Improve prompt generation
-
 
 ## 1.2.0 (2023-12-21)
 
 ** BREAKING CHANGE **
 
 - Use the new regional endpoints
-
 
 ## 1.1.22 (2023-12-15)
 
