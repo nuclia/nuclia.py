@@ -6,3 +6,4 @@ dist
 tmp
 data
 .DS_Store
+.python-version
