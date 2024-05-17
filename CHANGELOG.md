@@ -2,12 +2,6 @@
 
 ## 2.0.13 (unreleased)
 
-
-- Nothing changed yet.
-
-
-## 2.0.12 (2024-05-17)
-
 - Integrate new /ask endpoint
 
 ## 2.0.12 (2024-05-16)
