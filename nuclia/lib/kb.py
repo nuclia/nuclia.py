@@ -166,12 +166,12 @@ class NucliaDBClient(BaseNucliaDBClient):
                 headers=self.writer_headers, base_url=url  # type: ignore
             )
 
-    def ask(self, request: AskRequest):
+    def ask(self, request: AskRequest, timeout: int = 1000):
         if self.url is None or self.stream_session is None:
             raise Exception("KB not configured")
         url = f"{self.url}{ASK_URL}"
         response: requests.Response = self.stream_session.post(
-            url, data=request.json(), stream=True
+            url, data=request.json(), stream=True, timeout=timeout
         )
         handle_http_errors(response)
         return response
