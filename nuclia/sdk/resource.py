@@ -54,10 +54,12 @@ class NucliaResource:
         *,
         rid: Optional[str] = None,
         slug: Optional[str] = None,
-        show: Optional[List[str]] = ["basic"],
-        extracted: Optional[List[str]] = [],
+        show: Optional[List[str]] = None,
+        extracted: Optional[List[str]] = None,
         **kwargs
     ) -> Resource:
+        show = show or ["basic"]
+        extracted = extracted or []
         ndb = kwargs["ndb"]
         show = get_list_parameter(show)
         extracted = get_list_parameter(extracted)
@@ -161,10 +163,12 @@ class AsyncNucliaResource:
         *,
         rid: Optional[str] = None,
         slug: Optional[str] = None,
-        show: Optional[List[str]] = ["basic"],
-        extracted: Optional[List[str]] = [],
+        show: Optional[List[str]] = None,
+        extracted: Optional[List[str]] = None,
         **kwargs
     ) -> Resource:
+        show = show or ["basic"]
+        extracted = extracted or []
         ndb = kwargs["ndb"]
         show = get_list_parameter(show)
         extracted = get_list_parameter(extracted)
