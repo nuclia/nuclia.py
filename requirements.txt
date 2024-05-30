@@ -1,5 +1,5 @@
 fire
-pydantic<2.0.0
+pydantic>=2.0.0
 pyyaml>=5.4
 requests
 httpx
