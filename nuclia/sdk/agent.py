@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from nucliadb_models.search import ChatRequest
+from nucliadb_models.search import AskRequest
 
 
 class Agent:
@@ -15,8 +15,8 @@ class Agent:
         self.search = NucliaSearch()
 
     def ask(self, text: str) -> str:
-        chat_req = ChatRequest(query=text, prompt=self.prompt, filters=self.filters)
-        answer = self.search.chat(query=chat_req)
+        ask_req = AskRequest(query=text, prompt=self.prompt, filters=self.filters)
+        answer = self.search.ask(query=ask_req)
         return answer.answer.decode()
 
 

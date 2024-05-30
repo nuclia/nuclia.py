@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Union
 from nucliadb_models.search import (
     AskRequest,
     AskResponseItem,
-    ChatRequest,
     Filter,
     FindRequest,
     KnowledgeboxFindResults,
@@ -25,7 +24,7 @@ from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 
 @dataclass
-class ChatAnswer:
+class AskAnswer:
     answer: bytes
     learning_id: str
     relations_result: Optional[Relations]
@@ -122,17 +121,17 @@ class NucliaSearch:
         return ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
-    def chat(
+    def ask(
         self,
         *,
-        query: Union[str, dict, ChatRequest],
+        query: Union[str, dict, AskRequest],
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ):
         """
         Answer a question.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Chat_Knowledge_Box_kb__kbid__chat_post
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -146,15 +145,14 @@ class NucliaSearch:
             except ValidationError as exc:
                 print(exc)
                 sys.exit(1)
-        elif isinstance(query, ChatRequest):
-            # Convert ChatRequest to AskRequest
-            req = AskRequest.parse_obj(query.dict())
+        elif isinstance(query, AskRequest):
+            req = query
         else:
-            raise ValueError("Invalid query type. Must be str, dict or ChatRequest.")
+            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
 
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
-        # Convert to ChatAnswer
-        result = ChatAnswer(
+  
+        result = AskAnswer(
             answer=ask_response.answer.encode(),
             learning_id=ask_response.learning_id,
             relations_result=ask_response.relations,
@@ -252,10 +250,10 @@ class AsyncNucliaSearch:
         return await ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
-    async def chat(
+    async def ask(
         self,
         *,
-        query: Union[str, dict, ChatRequest],
+        query: Union[str, dict, AskRequest],
         filters: Optional[List[str]] = None,
         timeout: int = 100,
         **kwargs,
@@ -263,7 +261,7 @@ class AsyncNucliaSearch:
         """
         Answer a question.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Chat_Knowledge_Box_kb__kbid__chat_post
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -277,14 +275,12 @@ class AsyncNucliaSearch:
             except ValidationError as exc:
                 print(exc)
                 sys.exit(1)
-        elif isinstance(query, ChatRequest):
-            # Convert ChatRequest to AskRequest
-            req = AskRequest.parse_obj(query.dict())
+        elif isinstance(query, AskRequest):
+            req = query
         else:
-            raise ValueError("Invalid query type. Must be str, dict or ChatRequest.")
+            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
         ask_stream_response = await ndb.ask(req, timeout=timeout)
-        # Parse the stream response and convert to ChatAnswer
-        result = ChatAnswer(
+        result = AskAnswer(
             answer=b"",
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
             relations_result=None,
@@ -317,6 +313,6 @@ class AsyncNucliaSearch:
                 pass
             else:  # pragma: no cover
                 warnings.warn(
-                    f"Unknown chat stream item type: {ask_response_item.type}"
+                    f"Unknown ask stream item type: {ask_response_item.type}"
                 )
         return result
