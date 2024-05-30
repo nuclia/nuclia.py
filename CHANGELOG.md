@@ -1,10 +1,10 @@
 # Changelog
 
-## 2.1.1 (unreleased)
+## 3.0.0 (unreleased)
 
+### Breaking change
 
-- Nothing changed yet.
-
+- Rename `chat()` to `ask()`
 
 ## 2.1.0 (2024-05-17)
 

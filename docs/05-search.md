@@ -44,7 +44,7 @@ Based on a `find` request, Nuclia uses a generative AI to answer the question ba
 - CLI:
 
   ```bash
-  nuclia kb search chat --query="My question"
+  nuclia kb search ask --query="My question"
   ```
 
 - SDK:
@@ -52,12 +52,12 @@ Based on a `find` request, Nuclia uses a generative AI to answer the question ba
   ```python
   from nuclia import sdk
   search = sdk.NucliaSearch()
-  search.chat(query="My question")
+  search.ask(query="My question")
   ```
 
 ## Filtering
 
-Any endpoint that involves search (`search`, `find` and `chat`) also support more advanced filtering expressions. Expressions can have one of the following operators:
+Any endpoint that involves search (`search`, `find` and `ask`) also support more advanced filtering expressions. Expressions can have one of the following operators:
 
 - `all`: this is the default. Will make search return results containing all specified filter labels.
 - `any`: returns results containing at least one of the labels.
@@ -81,7 +81,7 @@ Here are some examples:
   from nucliadb_models.search import Filter
 
   search = sdk.NucliaSearch()
-  search.chat(
+  search.ask(
     query="My question",
     filters=[Filter(any=['/classification.labels/region/Europe','/classification.labels/region/Asia'])],
   )
