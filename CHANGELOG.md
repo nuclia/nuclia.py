@@ -1,6 +1,12 @@
 # Changelog
 
-## 3.0.1 (unreleased)
+## 3.1.0 (unreleased)
+
+### Features
+
+- Support table interpretation when uploading a file
+
+### Fixes
 
 - Upgrade to pydantic 2
 

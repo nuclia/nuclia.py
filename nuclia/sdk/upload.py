@@ -60,6 +60,7 @@ class NucliaUpload:
         path: str,
         rid: Optional[str] = None,
         field: Optional[str] = None,
+        interpretTables: Optional[bool] = False,
         **kwargs,
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
@@ -69,6 +70,8 @@ class NucliaUpload:
         mimetype = mimetypes.guess_type(path)[0]
         if not mimetype:
             mimetype = "application/octet-stream"
+        if interpretTables:
+            mimetype += '+aitable'
         rid, is_new_resource = self._get_or_create_resource(
             rid=rid, icon=mimetype, **kwargs
         )
@@ -234,6 +237,7 @@ class NucliaUpload:
         origin: str,
         rid: Optional[str] = None,
         field: Optional[str] = "file",
+        interpretTables: Optional[bool] = False,
         **kwargs,
     ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
@@ -251,6 +255,8 @@ class NucliaUpload:
                 size_str = "-1"
             size = int(size_str)
             mimetype = r.headers.get("Content-Type", "application/octet-stream")
+            if interpretTables:
+                mimetype += '+aitable'
             rid, is_new_resource = self._get_or_create_resource(
                 rid=rid, icon=mimetype, **kwargs
             )
@@ -341,6 +347,7 @@ class AsyncNucliaUpload:
         rid: Optional[str] = None,
         field: Optional[str] = None,
         mimetype: Optional[str] = None,
+                interpretTables: Optional[bool] = False,
         **kwargs,
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
@@ -350,6 +357,8 @@ class AsyncNucliaUpload:
         mimetype = mimetype or mimetypes.guess_type(path)[0]
         if not mimetype:
             mimetype = "application/octet-stream"
+        if interpretTables:
+            mimetype += '+aitable'
         rid, is_new_resource = await self._get_or_create_resource(
             rid=rid, icon=mimetype, **kwargs
         )
@@ -512,6 +521,7 @@ class AsyncNucliaUpload:
         origin: str,
         rid: Optional[str] = None,
         field: Optional[str] = "file",
+        interpretTables: Optional[bool] = False,
         **kwargs,
     ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
@@ -524,6 +534,8 @@ class AsyncNucliaUpload:
                 size_str = "-1"
             size = int(size_str)
             mimetype = r.headers.get("Content-Type", "application/octet-stream")
+            if interpretTables:
+                mimetype += '+aitable'
             rid, is_new_resource = await self._get_or_create_resource(
                 rid=rid, icon=mimetype, **kwargs
             )
