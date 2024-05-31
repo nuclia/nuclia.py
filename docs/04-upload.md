@@ -36,6 +36,20 @@ Streaming a file to a Knowledge Box from an external URL its easy as:
 nuclia kb upload remote --origin=REMOTE_FILE_URL
 ```
 
+## Interpret tables in a file
+
+When uploading a file, you can ask Nuclia to interpret tables in the file:
+
+```bash
+nuclia kb upload file --path=FILE_PATH --interpretTables
+```
+
+```python
+from nuclia import sdk
+upload = sdk.NucliaUpload()
+upload.file(path=FILE_PATH, interpretTables=True)
+```
+
 ## Upload a remote file in an existing resource
 
 In case you want to stream a file inside a resource you can use:
