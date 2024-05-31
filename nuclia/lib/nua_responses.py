@@ -1,9 +1,10 @@
-import re
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from pydantic import BaseModel, ConstrainedStr, Field
+import pydantic
+from pydantic import BaseModel, Field
+from typing_extensions import Annotated
 
 
 class GenerativeOption(BaseModel):
@@ -218,9 +219,26 @@ class Source(int, Enum):
     INGEST = 1
 
 
-class RestrictedIDString(ConstrainedStr):
-    regex = re.compile(r"^[a-z0-9_-]+$")
-    min_length = 1
+def validate_uuid(value, handler, info):
+    if not value:
+        raise ValueError(f"Invalid uuid: '{value}'. Uuid must be a non-empty string.")
+    try:
+        return handler(value)
+    except pydantic.ValidationError as e:
+        if any(x["type"] == "string_pattern_mismatch" for x in e.errors()):
+            raise ValueError(
+                f"Invalid slug: '{value}'. Slug must be a string with only "
+                "letters, numbers, underscores, colons and dashes."
+            )
+        else:
+            raise e
+
+
+RestrictedIDString = Annotated[
+    str,
+    pydantic.StringConstraints(pattern=r"^[a-z0-9_-]+$"),
+    pydantic.WrapValidator(validate_uuid),
+]
 
 
 class PushProcessingOptions(BaseModel):
