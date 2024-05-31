@@ -386,7 +386,9 @@ class AsyncNucliaUpload:
     @kb
     async def conversation(self, *, path: str, **kwargs) -> str:
         """Upload a conversation from a JSON located on the filesystem to a Nuclia KnowledgeBox"""
-        conversation = Conversation.parse_file(path).__root__
+        with open(path, "rb") as f:
+            json_data = f.read()
+        conversation = Conversation.model_validate_json(json_data).root
         if conversation is None or len(conversation) == 0:
             return ""
 
