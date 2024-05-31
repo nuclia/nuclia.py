@@ -2,9 +2,7 @@
 
 ## 3.0.1 (unreleased)
 
-
-- Nothing changed yet.
-
+- Upgrade to pydantic 2
 
 ## 3.0.0 (2024-05-30)
 

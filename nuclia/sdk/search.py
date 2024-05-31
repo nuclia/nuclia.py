@@ -151,7 +151,7 @@ class NucliaSearch:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
 
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
-  
+
         result = AskAnswer(
             answer=ask_response.answer.encode(),
             learning_id=ask_response.learning_id,
@@ -312,7 +312,5 @@ class AsyncNucliaSearch:
                 # Status is ignored
                 pass
             else:  # pragma: no cover
-                warnings.warn(
-                    f"Unknown ask stream item type: {ask_response_item.type}"
-                )
+                warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
