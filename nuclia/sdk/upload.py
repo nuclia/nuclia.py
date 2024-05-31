@@ -347,7 +347,7 @@ class AsyncNucliaUpload:
         rid: Optional[str] = None,
         field: Optional[str] = None,
         mimetype: Optional[str] = None,
-                interpretTables: Optional[bool] = False,
+        interpretTables: Optional[bool] = False,
         **kwargs,
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
