@@ -55,6 +55,17 @@ Based on a `find` request, Nuclia uses a generative AI to answer the question ba
   search.ask(query="My question")
   ```
 
+  You can also use the `AskRequest` item to configure the request with all the parameters supported:
+
+  ```python
+  from nuclia import sdk
+  from nucliadb_models.search import AskRequest
+
+  search = sdk.NucliaSearch()
+  query = AskRequest(query="My question", prefer_markdown=True, citations=True)
+  search.ask(query)
+  ```
+
 ## Filtering
 
 Any endpoint that involves search (`search`, `find` and `ask`) also support more advanced filtering expressions. Expressions can have one of the following operators:
