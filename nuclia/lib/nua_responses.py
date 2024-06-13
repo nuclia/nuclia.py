@@ -34,20 +34,18 @@ class ConfigSchemaElements(BaseModel):
 
 
 class ConfigSchema(BaseModel):
-    resource_labelers_models: ConfigSchemaOptions
-    paragraph_labelers_models: ConfigSchemaOptions
-    intent_models: ConfigSchemaOptions
     semantic_model: ConfigSchemaOptions
     anonymization_model: ConfigSchemaOptions
-    visual_labeling: ConfigSchemaOptions
-    generative_model: ConfigSchemaOptions
-    ner_model: ConfigSchemaOptions
-    relation_model: ConfigSchemaOptions
-    summary_model: ConfigSchemaOptions
-    summary: ConfigSchemaOptions
-    user_keys: ConfigSchemaElements
-    user_prompts: ConfigSchemaElements
-    summary_prompt: ConfigSchemaElements
+    visual_labeling: Optional[ConfigSchemaOptions] = None
+    generative_model: Optional[ConfigSchemaOptions] = None
+    ner_model: Optional[ConfigSchemaOptions] = None
+    relation_model: Optional[ConfigSchemaOptions] = None
+    summary_model: Optional[ConfigSchemaOptions] = None
+    summary: Optional[ConfigSchemaOptions] = None
+    user_keys: Optional[ConfigSchemaElements] = None
+    user_prompts: Optional[ConfigSchemaElements] = None
+    summary_prompt: Optional[ConfigSchemaElements] = None
+    prefer_markdown_generative_response: Optional[ConfigSchemaElements] = None
 
 
 class Sentence(BaseModel):
@@ -292,9 +290,9 @@ class PublicPushResponse(BaseModel):
 
 
 class ProcessingStatusInfo(BaseModel):
-    last_delivered_seqid: Optional[int] = (
-        None  # When none, means we already don't have information about this queue
-    )
+    last_delivered_seqid: Optional[
+        int
+    ] = None  # When none, means we already don't have information about this queue
 
 
 class ProcessingStatus(BaseModel):
