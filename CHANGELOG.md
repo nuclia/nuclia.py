@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.1 (unreleased)
+## 3.1.1 (2024-06-13)
 
 
 - Adapt NUA config
