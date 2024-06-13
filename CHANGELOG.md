@@ -3,7 +3,7 @@
 ## 3.1.1 (unreleased)
 
 
-- Nothing changed yet.
+- Adapt NUA config
 
 
 ## 3.1.0 (2024-05-31)
