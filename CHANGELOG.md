@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.2 (unreleased)
+## 3.2.0 (2024-06-17)
 
 
 - Add stream NUA generative call
