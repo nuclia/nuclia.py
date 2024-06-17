@@ -10,3 +10,4 @@ types-aiofiles
 types-PyYAML
 types-tqdm
 types-Deprecated
+ruff

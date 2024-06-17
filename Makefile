@@ -6,9 +6,12 @@ install:
 	pip install -e .
 
 lint:
-	black nuclia
-	isort --profile=black nuclia
-	flake8 nuclia
+	ruff check nuclia
+	ruff format --check nuclia
+	mypy nuclia
+
+fmt:
+	ruff format nuclia
 
 test:
 	mypy nuclia

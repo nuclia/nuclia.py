@@ -5,7 +5,7 @@ requests
 httpx
 httpcore>=1.0.0
 prompt_toolkit
-nucliadb_sdk>=4
+nucliadb_sdk>=4.0.3.post602
 nucliadb_models>=4
 tqdm
 aiofiles

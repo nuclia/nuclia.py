@@ -13,13 +13,15 @@ from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
+    CitationsGenerativeResponse,
     ConfigSchema,
     Empty,
     GenerativeChunk,
-    GenerativeResponse,
+    GenerativeFullResponse,
     LearningConfigurationCreation,
     LearningConfigurationUpdate,
     LinkUpload,
+    MetaGenerativeResponse,
     ProcessRequestStatus,
     ProcessRequestStatusResults,
     PushPayload,
@@ -28,10 +30,12 @@ from nuclia.lib.nua_responses import (
     RestrictedIDString,
     Sentence,
     Source,
+    StatusGenerativeResponse,
     StoredLearningConfiguration,
     SummarizedModel,
     SummarizeModel,
     SummarizeResource,
+    TextGenerativeResponse,
     Tokens,
 )
 
@@ -89,9 +93,9 @@ class NuaClient:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
         try:
-            data = output.parse_obj(resp.json())
+            data = output.model_validate(resp.json())
         except Exception:
-            data = output.parse_raw(resp.content)
+            data = output.model_validate(resp.content)
         return data
 
     def _stream(
@@ -108,7 +112,7 @@ class NuaClient:
             timeout=timeout,
         ) as response:
             for json_body in response.iter_lines():
-                yield GenerativeChunk.parse_raw(json_body)  # type: ignore
+                yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
 
     def add_config_predict(self, kbid: str, config: LearningConfigurationCreation):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
@@ -168,18 +172,34 @@ class NuaClient:
 
     def generate(
         self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
-    ) -> ChatResponse:
+    ) -> GenerativeFullResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
             endpoint += f"?model={model}"
 
-        return self._request(
-            "POST", endpoint, payload=body.dict(), output=ChatResponse, timeout=timeout
-        )
+        result = GenerativeFullResponse(answer="", text="")
+        for chunk in self._stream(
+            "POST",
+            endpoint,
+            payload=body.model_dump(),
+            timeout=timeout,
+        ):
+            if isinstance(chunk.chunk, TextGenerativeResponse):
+                result.answer += chunk.chunk.text
+                result.text += chunk.chunk.text
+            elif isinstance(chunk.chunk, MetaGenerativeResponse):
+                result.input_tokens = chunk.chunk.input_tokens
+                result.output_tokens = chunk.chunk.output_tokens
+                result.timings = chunk.chunk.timings
+            elif isinstance(chunk.chunk, CitationsGenerativeResponse):
+                result.citations = chunk.chunk.citations
+            elif isinstance(chunk.chunk, StatusGenerativeResponse):
+                result.code = chunk.chunk.code
+        return result
 
     def generate_stream(
         self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
-    ) -> Iterator[GenerativeResponse]:
+    ) -> Iterator[GenerativeChunk]:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
             endpoint += f"?model={model}"
@@ -187,10 +207,10 @@ class NuaClient:
         for gr in self._stream(
             "POST",
             endpoint,
-            payload=body.dict(),
+            payload=body.model_dump(),
             timeout=timeout,
         ):
-            yield gr.chunk
+            yield gr
 
     def summarize(
         self, documents: Dict[str, str], model: Optional[str] = None, timeout: int = 300
@@ -208,7 +228,7 @@ class NuaClient:
         return self._request(
             "POST",
             endpoint,
-            payload=body.dict(),
+            payload=body.model_dump(),
             output=SummarizedModel,
             timeout=timeout,
         )
@@ -231,7 +251,10 @@ class NuaClient:
         payload.filefield[filename] = resp.content.decode()
         process_endpoint = f"{self.url}{PUSH_PROCESS}"
         return self._request(
-            "POST", process_endpoint, payload=payload.dict(), output=PushResponseV2
+            "POST",
+            process_endpoint,
+            payload=payload.model_dump(),
+            output=PushResponseV2,
         )
 
     def process_link(
@@ -251,7 +274,10 @@ class NuaClient:
         )
         process_endpoint = f"{self.url}{PUSH_PROCESS}"
         return self._request(
-            "POST", process_endpoint, payload=payload.dict(), output=PushResponseV2
+            "POST",
+            process_endpoint,
+            payload=payload.model_dump(),
+            output=PushResponseV2,
         )
 
     def wait_for_processing(
@@ -319,9 +345,9 @@ class AsyncNuaClient:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
 
         try:
-            data = output.parse_raw(resp.json())
+            data = output.model_validate(resp.json())
         except Exception:
-            data = output.parse_raw(resp.content)
+            data = output.model_validate(resp.content)
         return data
 
     async def _stream(
@@ -338,7 +364,7 @@ class AsyncNuaClient:
             timeout=timeout,
         ) as response:
             async for json_body in response.aiter_lines():
-                yield GenerativeChunk.parse_raw(json_body)  # type: ignore
+                yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
 
     async def add_config_predict(
         self, kbid: str, config: LearningConfigurationCreation
@@ -413,23 +439,43 @@ class AsyncNuaClient:
             endpoint += f"?model={model}"
 
         return await self._request(
-            "POST", endpoint, payload=body.dict(), output=ChatResponse, timeout=timeout
+            "POST",
+            endpoint,
+            payload=body.model_dump(),
+            output=ChatResponse,
+            timeout=timeout,
         )
 
     async def generate(
         self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
-    ) -> ChatResponse:
+    ) -> GenerativeFullResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
             endpoint += f"?model={model}"
+        result = GenerativeFullResponse(answer="", text="")
 
-        return await self._request(
-            "POST", endpoint, payload=body.dict(), output=ChatResponse, timeout=timeout
-        )
+        async for chunk in self._stream(
+            "POST",
+            endpoint,
+            payload=body.model_dump(),
+            timeout=timeout,
+        ):
+            if isinstance(chunk.chunk, TextGenerativeResponse):
+                result.answer += chunk.chunk.text
+                result.text += chunk.chunk.text
+            elif isinstance(chunk.chunk, MetaGenerativeResponse):
+                result.input_tokens = chunk.chunk.input_tokens
+                result.output_tokens = chunk.chunk.output_tokens
+                result.timings = chunk.chunk.timings
+            elif isinstance(chunk.chunk, CitationsGenerativeResponse):
+                result.citations = chunk.chunk.citations
+            elif isinstance(chunk.chunk, StatusGenerativeResponse):
+                result.code = chunk.chunk.code
+        return result
 
     async def generate_stream(
         self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
-    ) -> AsyncIterator[GenerativeResponse]:
+    ) -> AsyncIterator[GenerativeChunk]:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
             endpoint += f"?model={model}"
@@ -437,10 +483,10 @@ class AsyncNuaClient:
         async for gr in self._stream(
             "POST",
             endpoint,
-            payload=body.dict(),
+            payload=body.model_dump(),
             timeout=timeout,
         ):
-            yield gr.chunk
+            yield gr
 
     async def summarize(
         self, documents: Dict[str, str], model: Optional[str] = None, timeout: int = 300
@@ -458,7 +504,7 @@ class AsyncNuaClient:
         return await self._request(
             "POST",
             endpoint,
-            payload=body.dict(),
+            payload=body.model_dump(),
             output=SummarizedModel,
             timeout=timeout,
         )
@@ -479,7 +525,7 @@ class AsyncNuaClient:
             query_context=context,
         )
         return await self._request(
-            "POST", endpoint, payload=body.dict(), output=ChatResponse
+            "POST", endpoint, payload=body.model_dump(), output=ChatResponse
         )
 
     async def process_link(
@@ -499,7 +545,10 @@ class AsyncNuaClient:
         )
         process_endpoint = f"{self.url}{PUSH_PROCESS}"
         return await self._request(
-            "POST", process_endpoint, payload=payload.dict(), output=PushResponseV2
+            "POST",
+            process_endpoint,
+            payload=payload.model_dump(),
+            output=PushResponseV2,
         )
 
     async def process_file(
@@ -522,7 +571,10 @@ class AsyncNuaClient:
         payload.filefield[filename] = resp.content.decode()
         process_endpoint = f"{self.url}{PUSH_PROCESS}"
         return await self._request(
-            "POST", process_endpoint, payload=payload.dict(), output=PushResponseV2
+            "POST",
+            process_endpoint,
+            payload=payload.model_dump(),
+            output=PushResponseV2,
         )
 
     async def wait_for_processing(
