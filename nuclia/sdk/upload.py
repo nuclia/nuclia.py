@@ -71,7 +71,7 @@ class NucliaUpload:
         if not mimetype:
             mimetype = "application/octet-stream"
         if interpretTables:
-            mimetype += '+aitable'
+            mimetype += "+aitable"
         rid, is_new_resource = self._get_or_create_resource(
             rid=rid, icon=mimetype, **kwargs
         )
@@ -256,7 +256,7 @@ class NucliaUpload:
             size = int(size_str)
             mimetype = r.headers.get("Content-Type", "application/octet-stream")
             if interpretTables:
-                mimetype += '+aitable'
+                mimetype += "+aitable"
             rid, is_new_resource = self._get_or_create_resource(
                 rid=rid, icon=mimetype, **kwargs
             )
@@ -358,7 +358,7 @@ class AsyncNucliaUpload:
         if not mimetype:
             mimetype = "application/octet-stream"
         if interpretTables:
-            mimetype += '+aitable'
+            mimetype += "+aitable"
         rid, is_new_resource = await self._get_or_create_resource(
             rid=rid, icon=mimetype, **kwargs
         )
@@ -535,7 +535,7 @@ class AsyncNucliaUpload:
             size = int(size_str)
             mimetype = r.headers.get("Content-Type", "application/octet-stream")
             if interpretTables:
-                mimetype += '+aitable'
+                mimetype += "+aitable"
             rid, is_new_resource = await self._get_or_create_resource(
                 rid=rid, icon=mimetype, **kwargs
             )

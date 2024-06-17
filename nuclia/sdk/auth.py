@@ -188,7 +188,7 @@ class NucliaAuth(BaseNucliaAuth):
             # Validate OSS version
             resp = self.client.get(
                 url,
-                headers={"X-NucliaDB-ROLES": f"READER"},
+                headers={"X-NucliaDB-ROLES": "READER"},
             )
         else:
             # Validate Cloud version
@@ -461,7 +461,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             # Validate OSS version
             resp = await self.client.get(
                 url,
-                headers={"X-NucliaDB-ROLES": f"READER"},
+                headers={"X-NucliaDB-ROLES": "READER"},
             )
         else:
             # Validate Cloud version

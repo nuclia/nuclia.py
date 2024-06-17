@@ -120,10 +120,10 @@ class BaseNucliaDBClient:
             self.writer_headers = {}
         else:
             self.reader_headers = {
-                "X-NUCLIADB-ROLES": f"READER",
+                "X-NUCLIADB-ROLES": "READER",
             }
             self.writer_headers = {
-                "X-NUCLIADB-ROLES": f"WRITER",
+                "X-NUCLIADB-ROLES": "WRITER",
                 "X-SYNCHRONOUS": "True",
             }
 
@@ -158,12 +158,14 @@ class NucliaDBClient(BaseNucliaDBClient):
 
         if url is not None:
             self.reader_session = httpx.Client(
-                headers=self.reader_headers, base_url=url  # type: ignore
+                headers=self.reader_headers,
+                base_url=url,  # type: ignore
             )
             self.stream_session = requests.Session()
             self.stream_session.headers.update(self.reader_headers)
             self.writer_session = httpx.Client(
-                headers=self.writer_headers, base_url=url  # type: ignore
+                headers=self.writer_headers,
+                base_url=url,  # type: ignore
             )
 
     def ask(self, request: AskRequest, timeout: int = 1000):
@@ -171,7 +173,10 @@ class NucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
         url = f"{self.url}{ASK_URL}"
         response: requests.Response = self.stream_session.post(
-            url, data=request.json(), stream=True, timeout=timeout
+            url,
+            data=request.model_dump_json(),
+            stream=True,
+            timeout=timeout,
         )
         handle_http_errors(response)
         return response
@@ -222,9 +227,9 @@ class NucliaDBClient(BaseNucliaDBClient):
             "content-type": content_type,
         }
         if md5 is not None:
-            headers[
-                "upload-metadata"
-            ] += f",md5 {base64.b64encode(md5.encode()).decode()}"
+            headers["upload-metadata"] += (
+                f",md5 {base64.b64encode(md5.encode()).decode()}"
+            )
 
         response: httpx.Response = self.writer_session.post(url, headers=headers)
         handle_http_errors(response)
@@ -307,10 +312,12 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
 
         if url is not None:
             self.reader_session = httpx.AsyncClient(
-                headers=self.reader_headers, base_url=url  # type: ignore
+                headers=self.reader_headers,
+                base_url=url,  # type: ignore
             )
             self.writer_session = httpx.AsyncClient(
-                headers=self.writer_headers, base_url=url  # type: ignore
+                headers=self.writer_headers,
+                base_url=url,  # type: ignore
             )
 
     async def ask(self, request: AskRequest, timeout: int = 1000):
@@ -318,7 +325,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
         url = f"{self.url}{ASK_URL}"
         req = self.reader_session.build_request(
-            "POST", url, json=request.dict(), timeout=timeout
+            "POST", url, json=request.model_dump(), timeout=timeout
         )
         response = await self.reader_session.send(req, stream=True)
         handle_http_errors(response)
@@ -339,7 +346,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         async with self.reader_session.stream("GET", url) as content:
             async with aiofiles.open(path, "wb") as file:
                 with tqdm(
-                    desc=f"Downloading data",
+                    desc="Downloading data",
                     total=export_size,
                     unit="iB",
                     unit_scale=True,
@@ -394,9 +401,9 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             "content-type": content_type,
         }
         if md5 is not None:
-            headers[
-                "upload-metadata"
-            ] += f",md5 {base64.b64encode(md5.encode()).decode()}"
+            headers["upload-metadata"] += (
+                f",md5 {base64.b64encode(md5.encode()).decode()}"
+            )
 
         response = await self.writer_session.post(url, headers=headers)
         handle_http_errors(response)

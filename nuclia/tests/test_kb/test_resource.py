@@ -1,4 +1,5 @@
 import warnings
+
 from nucliadb_sdk.v2.exceptions import NotFoundError
 
 from nuclia.sdk.resource import NucliaResource

@@ -1,5 +1,6 @@
 import asyncio
 from functools import wraps
+import inspect
 
 import yaml
 
@@ -184,6 +185,22 @@ def nua(func):
         return await func(*args, **kwargs)
 
     @wraps(func)
+    async def async_generative_wrapper_checkout_nua(*args, **kwargs):
+        auth = get_auth()
+        nua_id = auth._config.get_default_nua()
+        if nua_id is None:
+            raise NotDefinedDefault()
+
+        nua_obj = auth._config.get_nua(nua_id)
+        nc = AsyncNuaClient(
+            region=nua_obj.region, account=nua_obj.account, token=nua_obj.token
+        )
+
+        kwargs["nc"] = nc
+        async for value in func(*args, **kwargs):
+            yield value
+
+    @wraps(func)
     def wrapper_checkout_nua(*args, **kwargs):
         auth = get_auth()
         nua_id = auth._config.get_default_nua()
@@ -198,7 +215,9 @@ def nua(func):
         kwargs["nc"] = nc
         return func(*args, **kwargs)
 
-    if asyncio.iscoroutinefunction(func):
+    if inspect.isasyncgenfunction(func):
+        return async_generative_wrapper_checkout_nua
+    elif asyncio.iscoroutinefunction(func):
         return async_wrapper_checkout_nua
     else:
         return wrapper_checkout_nua

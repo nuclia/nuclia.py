@@ -56,7 +56,7 @@ class NucliaResource:
         slug: Optional[str] = None,
         show: Optional[List[str]] = None,
         extracted: Optional[List[str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Resource:
         show = show or ["basic"]
         extracted = extracted or []
@@ -165,7 +165,7 @@ class AsyncNucliaResource:
         slug: Optional[str] = None,
         show: Optional[List[str]] = None,
         extracted: Optional[List[str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Resource:
         show = show or ["basic"]
         extracted = extracted or []

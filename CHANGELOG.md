@@ -3,8 +3,10 @@
 ## 3.1.2 (unreleased)
 
 
-- Nothing changed yet.
-
+- Add stream NUA generative call
+- Deprecation: response of NUA generative direct call will return a `GenerativeFullResponse` object with an answer field. The text field is deprecated.
+- Support ask endpoint stream
+- Add JSON output with jsonschema
 
 ## 3.1.1 (2024-06-13)
 
