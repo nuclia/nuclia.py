@@ -62,7 +62,7 @@ class NucliaExports:
         iterator = ndb.ndb.download_export(kbid=ndb.kbid, export_id=export_id)
         with open(path, "wb") as f:
             with tqdm(
-                desc=f"Downloading data",
+                desc="Downloading data",
                 total=export_size,
                 unit="iB",
                 unit_scale=True,
@@ -133,7 +133,7 @@ class NucliaImports:
         def iterator(path: str):
             total_size = os.path.getsize(path)
             with tqdm(
-                desc=f"Uploading data",
+                desc="Uploading data",
                 total=total_size,
                 unit="iB",
                 unit_scale=True,
@@ -150,13 +150,13 @@ class NucliaImports:
         response = ndb.ndb.start_import(kbid=ndb.kbid, content=iterator(path))
 
         if not sync:
-            print(f"Import task started.")
+            print("Import task started.")
             return response
         else:
             import_id = response.import_id
             print(f"Import task started. import_id={import_id}")
             wait_for_task_to_finish(ndb, "import", import_id)
-            print(f"Import finished!")
+            print("Import finished!")
             return None
 
     @kb
@@ -191,7 +191,7 @@ class AsyncNucliaImports:
         async def iterator(path: str):
             total_size = os.path.getsize(path)
             with tqdm(
-                desc=f"Uploading data",
+                desc="Uploading data",
                 total=total_size,
                 unit="iB",
                 unit_scale=True,
@@ -208,13 +208,13 @@ class AsyncNucliaImports:
         response = await ndb.ndb.start_import(kbid=ndb.kbid, content=iterator(path))
 
         if not sync:
-            print(f"Import task started.")
+            print("Import task started.")
             return response
         else:
             import_id = response.import_id
             print(f"Import task started. import_id={import_id}")
             await async_wait_for_task_to_finish(ndb, "import", import_id)
-            print(f"Import finished!")
+            print("Import finished!")
             return None
 
     @kb

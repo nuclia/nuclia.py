@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pydantic
-from pydantic import BaseModel, Field
-from typing_extensions import Annotated
+from pydantic import BaseModel, Field, model_validator
+from typing_extensions import Annotated, Self
 
 
 class GenerativeOption(BaseModel):
@@ -67,6 +67,11 @@ class UserPrompt(BaseModel):
     prompt: str
 
 
+class Image(BaseModel):
+    content_type: str
+    b64encoded: str
+
+
 class ChatModel(BaseModel):
     question: str
     retrieval: bool = True
@@ -74,9 +79,26 @@ class ChatModel(BaseModel):
     system: Optional[str] = None
     chat_history: List[Message] = []
     context: List[Message] = []
-    query_context: List[str] = []
+    query_context: Union[List[str], Dict[str, str]] = {}
+    query_context_order: Dict[str, int] = {}
     truncate: Optional[bool] = False
     user_prompt: Optional[UserPrompt] = None
+    citations: Optional[bool] = False
+    generative_model: Optional[str] = None
+    max_tokens: Optional[int] = None
+    query_context_images: Union[
+        List[Image], Dict[str, Image]
+    ] = {}  # base64.b64encode(image_file.read()).decode('utf-8')
+    prefer_markdown: Optional[bool] = None
+    json_schema: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_model(self) -> Self:
+        if self.prefer_markdown is True and self.json_schema is not None:
+            raise ValueError("Can not setup markdown and JSON Schema at the same time")
+        if self.citations is True and self.json_schema is not None:
+            raise ValueError("Can not setup citations and JSON Schema at the same time")
+        return self
 
 
 class Token(BaseModel):
@@ -490,7 +512,8 @@ class GenerativeFullResponse(BaseModel):
     citations: Optional[dict[str, Any]] = None
     code: Optional[str] = None
     details: Optional[str] = None
-    text: str
+    answer: str
+    text: str = Field("", deprecated=True)
 
 
 class StoredLearningConfiguration(BaseModel):
