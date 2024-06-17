@@ -70,9 +70,35 @@ def test_filters(testing_config):
     assert len(results.resources.keys()) == 1
 
 
-SCHEMA = """
-{"name": "ClassificationReverse", "description": "Correctly extracted with all the required parameters with correct types", "parameters": {"$defs": {"Options": {"enum": ["SPORTS", "POLITICAL", "TECHNOLOGY"], "title": "Options", "type": "string"}}, "properties": {"title": {"default": "label", "title": "Title", "type": "string"}, "description": {"default": "Define labels to classify the subject of the document", "title": "Description", "type": "string"}, "document_type": {"description": "Type of document, SPORT example: elections, Illa, POLITICAL example: football, TECHNOLOGY example: computer", "items": {"$ref": "#/$defs/Options"}, "title": "Document Type", "type": "array"}}, "required": ["document_type"], "type": "object"}}
-"""
+SCHEMA = {
+    "name": "ClassificationReverse",
+    "description": "Correctly extracted with all the required parameters with correct types",
+    "parameters": {
+        "$defs": {
+            "Options": {
+                "enum": ["SPORTS", "POLITICAL", "TECHNOLOGY"],
+                "title": "Options",
+                "type": "string",
+            }
+        },
+        "properties": {
+            "title": {"default": "label", "title": "Title", "type": "string"},
+            "description": {
+                "default": "Define labels to classify the subject of the document",
+                "title": "Description",
+                "type": "string",
+            },
+            "document_type": {
+                "description": "Type of document, SPORT example: elections, Illa, POLITICAL example: football, TECHNOLOGY example: computer",
+                "items": {"$ref": "#/$defs/Options"},
+                "title": "Document Type",
+                "type": "array",
+            },
+        },
+        "required": ["document_type"],
+        "type": "object",
+    },
+}
 
 
 def test_parse(testing_config):

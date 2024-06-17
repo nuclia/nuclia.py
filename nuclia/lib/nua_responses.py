@@ -90,7 +90,7 @@ class ChatModel(BaseModel):
         List[Image], Dict[str, Image]
     ] = {}  # base64.b64encode(image_file.read()).decode('utf-8')
     prefer_markdown: Optional[bool] = None
-    json_schema: Optional[str] = None
+    json_schema: Optional[Dict[str, Any]] = None
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
