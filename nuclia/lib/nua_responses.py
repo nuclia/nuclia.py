@@ -312,9 +312,9 @@ class PublicPushResponse(BaseModel):
 
 
 class ProcessingStatusInfo(BaseModel):
-    last_delivered_seqid: Optional[
-        int
-    ] = None  # When none, means we already don't have information about this queue
+    last_delivered_seqid: Optional[int] = (
+        None  # When none, means we already don't have information about this queue
+    )
 
 
 class ProcessingStatus(BaseModel):
