@@ -101,7 +101,7 @@ SCHEMA = {
 }
 
 
-def test_parse(testing_config):
+def test_ask_json(testing_config):
     if IS_PROD:
         assert True
         return
@@ -113,12 +113,12 @@ def test_parse(testing_config):
     assert "TECHNOLOGY" in json.loads(results.answer)["document_type"]
 
 
-async def test_parse_async(testing_config):
+async def test_ask_json_async(testing_config):
     if IS_PROD:
         assert True
         return
     search = AsyncNucliaSearch()
-    results = await search.parse(
+    results = await search.ask_json(
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"], schema=SCHEMA
     )
 
