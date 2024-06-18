@@ -26,6 +26,7 @@ from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 @dataclass
 class AskAnswer:
     answer: bytes
+    object: Optional[Dict[str, Any]]
     learning_id: str
     relations_result: Optional[Relations]
     find_result: Optional[KnowledgeboxFindResults]
@@ -160,6 +161,7 @@ class NucliaSearch:
             citations=ask_response.citations,
             timings=None,
             tokens=None,
+            object=ask_response.object,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -169,11 +171,11 @@ class NucliaSearch:
         return result
 
     @kb
-    def parse(
+    def ask_json(
         self,
         *,
         query: Union[str, dict, AskRequest],
-        schema: str,
+        schema: Dict[str, Any],
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ):
@@ -210,6 +212,7 @@ class NucliaSearch:
             citations=ask_response.citations,
             timings=None,
             tokens=None,
+            object=ask_response.object,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -338,15 +341,18 @@ class AsyncNucliaSearch:
             citations=None,
             timings=None,
             tokens=None,
+            object=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
-                ask_response_item = AskResponseItem.parse_raw(line).item
+                ask_response_item = AskResponseItem.model_validate_json(line).item
             except Exception as e:
                 warnings.warn(f"Failed to parse AskResponseItem: {e}. item: {line}")
                 continue
             if ask_response_item.type == "answer":
                 result.answer += ask_response_item.text.encode()
+            elif ask_response_item.type == "object":
+                result.object = ask_response_item.object
             elif ask_response_item.type == "retrieval":
                 result.find_result = ask_response_item.results
             elif ask_response_item.type == "relations":
@@ -405,11 +411,11 @@ class AsyncNucliaSearch:
             yield ask_response_item
 
     @kb
-    async def parse(
+    async def ask_json(
         self,
         *,
         query: Union[str, dict, AskRequest],
-        schema: str,
+        schema: Dict[str, Any],
         filters: Optional[List[str]] = None,
         timeout: int = 100,
         **kwargs,
@@ -445,6 +451,7 @@ class AsyncNucliaSearch:
             citations=None,
             timings=None,
             tokens=None,
+            object=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -456,6 +463,8 @@ class AsyncNucliaSearch:
                 result.answer += ask_response_item.text.encode()
             elif ask_response_item.type == "retrieval":
                 result.find_result = ask_response_item.results
+            elif ask_response_item.type == "object":
+                result.object = ask_response_item.object
             elif ask_response_item.type == "relations":
                 result.relations_result = ask_response_item.relations
             elif ask_response_item.type == "citations":

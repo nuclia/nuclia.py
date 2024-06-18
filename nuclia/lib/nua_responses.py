@@ -475,6 +475,11 @@ class TextGenerativeResponse(BaseModel):
     text: str
 
 
+class JSONGenerativeResponse(BaseModel):
+    type: Literal["object"] = "object"
+    object: Dict[str, Any]
+
+
 class MetaGenerativeResponse(BaseModel):
     type: Literal["meta"] = "meta"
     input_tokens: int
@@ -495,6 +500,7 @@ class StatusGenerativeResponse(BaseModel):
 
 GenerativeResponse = Union[
     TextGenerativeResponse,
+    JSONGenerativeResponse,
     MetaGenerativeResponse,
     CitationsGenerativeResponse,
     StatusGenerativeResponse,
@@ -514,6 +520,7 @@ class GenerativeFullResponse(BaseModel):
     details: Optional[str] = None
     answer: str
     text: str = Field("", deprecated=True)
+    object: Optional[Dict[str, Any]] = None
 
 
 class StoredLearningConfiguration(BaseModel):

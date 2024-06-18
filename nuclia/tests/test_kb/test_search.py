@@ -106,7 +106,7 @@ def test_parse(testing_config):
         assert True
         return
     search = NucliaSearch()
-    results = search.parse(
+    results = search.ask_json(
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"], schema=SCHEMA
     )
 
