@@ -161,7 +161,7 @@ class NucliaSearch:
             citations=ask_response.citations,
             timings=None,
             tokens=None,
-            object=ask_response.object,
+            object=ask_response.answer_json,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -212,7 +212,7 @@ class NucliaSearch:
             citations=ask_response.citations,
             timings=None,
             tokens=None,
-            object=ask_response.object,
+            object=ask_response.answer_json,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -351,7 +351,7 @@ class AsyncNucliaSearch:
                 continue
             if ask_response_item.type == "answer":
                 result.answer += ask_response_item.text.encode()
-            elif ask_response_item.type == "object":
+            elif ask_response_item.type == "answer_json":
                 result.object = ask_response_item.object
             elif ask_response_item.type == "retrieval":
                 result.find_result = ask_response_item.results
@@ -463,7 +463,7 @@ class AsyncNucliaSearch:
                 result.answer += ask_response_item.text.encode()
             elif ask_response_item.type == "retrieval":
                 result.find_result = ask_response_item.results
-            elif ask_response_item.type == "object":
+            elif ask_response_item.type == "answer_json":
                 result.object = ask_response_item.object
             elif ask_response_item.type == "relations":
                 result.relations_result = ask_response_item.relations
