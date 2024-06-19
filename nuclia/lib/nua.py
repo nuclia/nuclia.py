@@ -463,9 +463,6 @@ class AsyncNuaClient:
             payload=body.model_dump(),
             timeout=timeout,
         ):
-            import pdb
-
-            pdb.set_trace()
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
                 result.text += chunk.chunk.text
