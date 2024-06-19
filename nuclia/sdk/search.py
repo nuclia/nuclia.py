@@ -40,7 +40,7 @@ class AskAnswer:
             return self.answer.decode()
         if self.object:
             return json.dumps(self.object)
-        return ''
+        return ""
 
 
 class NucliaSearch:
