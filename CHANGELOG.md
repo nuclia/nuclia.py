@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.2.1 (unreleased)
+## 3.2.1 (2024-06-19)
 
 
 - Use Python Dict as a JSON parsed
