@@ -1,3 +1,4 @@
+import json
 import sys
 import warnings
 from dataclasses import dataclass
@@ -35,7 +36,11 @@ class AskAnswer:
     tokens: Optional[Dict[str, int]]
 
     def __str__(self):
-        return self.answer.decode()
+        if self.answer:
+            return self.answer.decode()
+        if self.object:
+            return json.dumps(self.object)
+        return ''
 
 
 class NucliaSearch:
