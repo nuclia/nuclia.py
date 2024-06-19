@@ -1,5 +1,3 @@
-import json
-
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
 from nuclia.tests.fixtures import IS_PROD
 
@@ -110,7 +108,7 @@ def test_ask_json(testing_config):
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"], schema=SCHEMA
     )
 
-    assert "TECHNOLOGY" in json.loads(results.answer)["document_type"]
+    assert "TECHNOLOGY" in results.object["document_type"]
 
 
 async def test_ask_json_async(testing_config):
@@ -122,4 +120,4 @@ async def test_ask_json_async(testing_config):
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"], schema=SCHEMA
     )
 
-    assert "TECHNOLOGY" in json.loads(results.answer)["document_type"]
+    assert "TECHNOLOGY" in results.object["document_type"]
