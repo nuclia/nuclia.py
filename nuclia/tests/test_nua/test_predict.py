@@ -1,6 +1,5 @@
 from nuclia.lib.nua_responses import ChatModel, TextGenerativeResponse, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
-import json
 
 
 def test_predict(testing_config):
@@ -117,4 +116,4 @@ async def test_nua_parse(testing_config):
             json_schema=SCHEMA,
         )
     )
-    assert "SPORTS" in json.loads(results.answer)["document_type"]
+    assert "SPORTS" in results.object["document_type"]
