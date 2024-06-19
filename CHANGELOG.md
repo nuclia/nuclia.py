@@ -3,7 +3,7 @@
 ## 3.2.2 (unreleased)
 
 
-- Nothing changed yet.
+- Fix `ask_json` str return
 
 
 ## 3.2.1 (2024-06-19)
