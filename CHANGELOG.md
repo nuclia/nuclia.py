@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.2 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 3.2.1 (2024-06-19)
 
 
