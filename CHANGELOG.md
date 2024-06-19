@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.2.2 (unreleased)
+## 3.2.2 (2024-06-19)
 
 
 - Fix `ask_json` str return
