@@ -18,6 +18,7 @@ from nuclia.lib.nua_responses import (
     Empty,
     GenerativeChunk,
     GenerativeFullResponse,
+    JSONGenerativeResponse,
     LearningConfigurationCreation,
     LearningConfigurationUpdate,
     LinkUpload,
@@ -187,6 +188,8 @@ class NuaClient:
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
                 result.text += chunk.chunk.text
+            elif isinstance(chunk.chunk, JSONGenerativeResponse):
+                result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
                 result.input_tokens = chunk.chunk.input_tokens
                 result.output_tokens = chunk.chunk.output_tokens
@@ -463,6 +466,8 @@ class AsyncNuaClient:
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
                 result.text += chunk.chunk.text
+            elif isinstance(chunk.chunk, JSONGenerativeResponse):
+                result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
                 result.input_tokens = chunk.chunk.input_tokens
                 result.output_tokens = chunk.chunk.output_tokens

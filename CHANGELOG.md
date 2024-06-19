@@ -3,7 +3,7 @@
 ## 3.2.1 (unreleased)
 
 
-- Nothing changed yet.
+- Use Python Dict as a JSON parsed
 
 
 ## 3.2.0 (2024-06-17)
