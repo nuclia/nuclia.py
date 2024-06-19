@@ -1,6 +1,5 @@
 from nuclia.lib.nua_responses import ChatModel, TextGenerativeResponse, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
-import json
 
 
 def test_predict(testing_config):
@@ -73,9 +72,35 @@ async def test_async_stream_generative(testing_config):
     assert found
 
 
-SCHEMA = """
-{"name": "ClassificationReverse", "description": "Correctly extracted with all the required parameters with correct types", "parameters": {"$defs": {"Options": {"enum": ["SPORTS", "POLITICAL"], "title": "Options", "type": "string"}}, "properties": {"title": {"default": "label", "title": "Title", "type": "string"}, "description": {"default": "Define labels to classify the subject of the document", "title": "Description", "type": "string"}, "document_type": {"description": "Type of document, SPORT example: elections, Illa, POLITICAL example: football", "items": {"$ref": "#/$defs/Options"}, "title": "Document Type", "type": "array"}}, "required": ["document_type"], "type": "object"}}
-"""
+SCHEMA = {
+    "name": "ClassificationReverse",
+    "description": "Correctly extracted with all the required parameters with correct types",
+    "parameters": {
+        "$defs": {
+            "Options": {
+                "enum": ["SPORTS", "POLITICAL"],
+                "title": "Options",
+                "type": "string",
+            }
+        },
+        "properties": {
+            "title": {"default": "label", "title": "Title", "type": "string"},
+            "description": {
+                "default": "Define labels to classify the subject of the document",
+                "title": "Description",
+                "type": "string",
+            },
+            "document_type": {
+                "description": "Type of document, SPORT example: elections, Illa, POLITICAL example: football",
+                "items": {"$ref": "#/$defs/Options"},
+                "title": "Document Type",
+                "type": "array",
+            },
+        },
+        "required": ["document_type"],
+        "type": "object",
+    },
+}
 
 TEXT = """"Many football players have existed. Messi is by far the greatest. Messi was born in Rosario, 24th of June 1987"""
 
@@ -91,4 +116,4 @@ async def test_nua_parse(testing_config):
             json_schema=SCHEMA,
         )
     )
-    assert "SPORTS" in json.loads(results.answer)["document_type"]
+    assert "SPORTS" in results.object["document_type"]

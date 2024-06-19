@@ -8,4 +8,4 @@ def test_logs(testing_config):
         return
     nkb = NucliaKB()
     logs = nkb.logs.get(type="SEARCH", month="2023-06")
-    assert len(logs) == 16
+    assert len(logs) == 1

@@ -90,7 +90,7 @@ class ChatModel(BaseModel):
         List[Image], Dict[str, Image]
     ] = {}  # base64.b64encode(image_file.read()).decode('utf-8')
     prefer_markdown: Optional[bool] = None
-    json_schema: Optional[str] = None
+    json_schema: Optional[Dict[str, Any]] = None
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
@@ -475,6 +475,11 @@ class TextGenerativeResponse(BaseModel):
     text: str
 
 
+class JSONGenerativeResponse(BaseModel):
+    type: Literal["object"] = "object"
+    object: Dict[str, Any]
+
+
 class MetaGenerativeResponse(BaseModel):
     type: Literal["meta"] = "meta"
     input_tokens: int
@@ -495,6 +500,7 @@ class StatusGenerativeResponse(BaseModel):
 
 GenerativeResponse = Union[
     TextGenerativeResponse,
+    JSONGenerativeResponse,
     MetaGenerativeResponse,
     CitationsGenerativeResponse,
     StatusGenerativeResponse,
@@ -514,6 +520,7 @@ class GenerativeFullResponse(BaseModel):
     details: Optional[str] = None
     answer: str
     text: str = Field("", deprecated=True)
+    object: Optional[Dict[str, Any]] = None
 
 
 class StoredLearningConfiguration(BaseModel):
