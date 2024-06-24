@@ -292,7 +292,9 @@ class AsyncNucliaSearch:
 
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str) and highlight is not None:
-            req = FindRequest(query=query, highlight=highlight, filters=(filters or []), **kwargs)
+            req = FindRequest(
+                query=query, highlight=highlight, filters=(filters or []), **kwargs
+            )
         elif isinstance(query, FindRequest):
             req = query
         elif isinstance(query, dict):
