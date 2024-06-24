@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.3.0 (unreleased)
+## 3.3.0 (2024-06-24)
 
 
 - Accept all options on `ask()`, `search()` and `find()` methods.
