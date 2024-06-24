@@ -60,6 +60,6 @@ setup(
     project_urls={
         "Nuclia": "https://nuclia.com",
         "Github": "https://github.com/nuclia/nucliadb",
-        "Discord": "https://discord.gg/8EvQwmsbzf",
+        "Slack": "https://join.slack.com/t/nuclia-community/shared_invite/zt-2ldfznncw-LW6GJjOicdEA18kgI~95Xw",
     },
 )
