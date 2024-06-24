@@ -73,7 +73,7 @@ class NucliaSearch:
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = SearchRequest(query=query, filters=(filters or []))  # type: ignore
+            req = SearchRequest(query=query, filters=(filters or []), **kwargs)  # type: ignore
         elif isinstance(query, SearchRequest):
             req = query
         elif isinstance(query, dict):
@@ -109,6 +109,7 @@ class NucliaSearch:
                 query=query,
                 highlight=highlight,
                 filters=filters or [],  # type: ignore
+                **kwargs,
             )
         elif isinstance(query, FindRequest):
             req = query
@@ -144,6 +145,7 @@ class NucliaSearch:
             req = AskRequest(
                 query=query,
                 filters=filters or [],  # type: ignore
+                **kwargs,
             )
         elif isinstance(query, dict):
             try:
@@ -257,7 +259,7 @@ class AsyncNucliaSearch:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
-            req = SearchRequest(query=query, filters=(filters or []))
+            req = SearchRequest(query=query, filters=(filters or []), **kwargs)  # type: ignore
         elif isinstance(query, SearchRequest):
             req = query
         elif isinstance(query, dict):
@@ -290,7 +292,9 @@ class AsyncNucliaSearch:
 
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str) and highlight is not None:
-            req = FindRequest(query=query, highlight=highlight, filters=(filters or []))
+            req = FindRequest(
+                query=query, highlight=highlight, filters=(filters or []), **kwargs
+            )
         elif isinstance(query, FindRequest):
             req = query
         elif isinstance(query, dict):
@@ -326,6 +330,7 @@ class AsyncNucliaSearch:
             req = AskRequest(
                 query=query,
                 filters=filters or [],  # type: ignore
+                **kwargs,
             )
         elif isinstance(query, dict):
             try:
