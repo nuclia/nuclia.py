@@ -99,8 +99,8 @@ class NucliaUpload:
                     offset = ndb.patch_tus_upload(
                         upload_url=upload_url, data=chunk, offset=offset
                     )
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger.exception("Error on uploading")
                 if is_new_resource:
                     ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
                 raise
@@ -272,8 +272,8 @@ class NucliaUpload:
                 for _ in tqdm(range((size // CHUNK_SIZE) + 1)):
                     chunk = r.raw.read(CHUNK_SIZE)
                     offset = ndb.patch_tus_upload(upload_url, chunk, offset)
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger.exception("Error on uploading")
                 if is_new_resource:
                     ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
                 raise
@@ -385,8 +385,8 @@ class AsyncNucliaUpload:
                     offset = await ndb.patch_tus_upload(
                         upload_url=upload_url, data=chunk, offset=offset
                     )
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger.exception("Error on uploading")
                 if is_new_resource:
                     await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
                 raise
@@ -553,8 +553,8 @@ class AsyncNucliaUpload:
                         offset = await ndb.patch_tus_upload(upload_url, chunk, offset)
                         p_bar.update(1)
 
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger.exception("Error on uploading")
                 if is_new_resource:
                     await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
                 raise

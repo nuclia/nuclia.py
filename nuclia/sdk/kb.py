@@ -1,12 +1,11 @@
-from typing import List, Optional
-from warnings import warn
+from typing import Any, List, Optional
 
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
-from nucliadb_models.resource import Resource, ResourceList
+from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SummarizeRequest, SummaryKind
 
 from nuclia.data import get_async_auth, get_auth
-from nuclia.decorators import kb, pretty
+from nuclia.decorators import kb
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.lib.nua_responses import SummarizedModel
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
@@ -16,7 +15,6 @@ from nuclia.sdk.export_import import (
     NucliaExports,
     NucliaImports,
 )
-from nuclia.sdk.logger import logger
 from nuclia.sdk.logs import NucliaLogs
 from nuclia.sdk.resource import AsyncNucliaResource, NucliaResource
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
@@ -38,18 +36,10 @@ class NucliaKB:
         self.logs = NucliaLogs()
 
     @kb
-    def list(self, *, interactive: bool = True, **kwargs) -> Optional[ResourceList]:
+    def list(self, **kwargs) -> ResourceList:
         ndb: NucliaDBClient = kwargs["ndb"]
         data: ResourceList = ndb.ndb.list_resources(kbid=ndb.kbid)
-        if interactive:
-            for resource in data.resources:
-                status = (
-                    resource.metadata.status if resource.metadata is not None else ""
-                )
-                print(f"{resource.id} {resource.icon:30} {resource.title} - {status}")
-            return None
-        else:
-            return data
+        return data
 
     @kb
     def get_labelset(
@@ -146,37 +136,14 @@ class NucliaKB:
         )
 
     @kb
-    @pretty
-    def get_resource_by_id(self, *, rid: str, **kwargs) -> Resource:
-        warn(
-            "get_resource_by_id is deprecated, use resource.get instead",
-            DeprecationWarning,
-        )
-        logger.warning("get_resource_by_slug is deprecated, use resource.get instead")
+    def get_configuration(
+        self,
+        **kwargs,
+    ) -> Any:
         ndb: NucliaDBClient = kwargs["ndb"]
-        return ndb.ndb.get_resource_by_id(
-            kbid=ndb.kbid, rid=rid, query_params={"show": "values"}
+        return ndb.ndb.get_configuration(
+            kbid=ndb.kbid,
         )
-
-    @kb
-    @pretty
-    def get_resource_by_slug(self, *, slug: str, **kwargs) -> Resource:
-        warn(
-            "get_resource_by_slug is deprecated, use resource.get instead",
-            DeprecationWarning,
-        )
-        logger.warning("get_resource_by_slug is deprecated, use resource.get instead")
-        ndb: NucliaDBClient = kwargs["ndb"]
-        return ndb.ndb.get_resource_by_slug(
-            kbid=ndb.kbid, slug=slug, query_params={"show": "values"}
-        )
-
-    @kb
-    def delete(self, *, rid: str, **kwargs):
-        warn("delete is deprecated, use resource.delete instead", DeprecationWarning)
-        logger.warning("delete is deprecated, use resource.delete instead")
-        ndb: NucliaDBClient = kwargs["ndb"]
-        ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
 
     @kb
     def summarize(self, *, resources: List[str], **kwargs):
@@ -198,23 +165,13 @@ class AsyncNucliaKB:
         self.imports = AsyncNucliaImports()
 
     @kb
-    async def list(
-        self, *, interactive: bool = True, **kwargs
-    ) -> Optional[ResourceList]:
+    async def list(self, *, interactive: bool = True, **kwargs) -> ResourceList:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         del kwargs["ndb"]
         data: ResourceList = await ndb.ndb.list_resources(
             kbid=ndb.kbid, query_params=kwargs
         )
-        if interactive:
-            for resource in data.resources:
-                status = (
-                    resource.metadata.status if resource.metadata is not None else ""
-                )
-                print(f"{resource.id} {resource.icon:30} {resource.title} - {status}")
-            return None
-        else:
-            return data
+        return data
 
     @kb
     async def get_labelset(
@@ -321,6 +278,16 @@ class AsyncNucliaKB:
         )
 
     @kb
+    async def get_configuration(
+        self,
+        **kwargs,
+    ) -> Any:
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        return await ndb.ndb.get_configuration(
+            kbid=ndb.kbid,
+        )
+
+    @kb
     async def summarize(
         self,
         *,
@@ -339,4 +306,4 @@ class AsyncNucliaKB:
             ),
             timeout=timeout,
         )
-        return SummarizedModel.parse_obj(resp.json())
+        return SummarizedModel.model_validate(resp.json())

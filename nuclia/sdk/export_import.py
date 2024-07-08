@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 from nuclia.decorators import kb
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.sdk.logger import logger
 
 MB = 1024 * 1024
 CHUNK_SIZE = 10 * MB
@@ -43,7 +44,7 @@ class NucliaExports:
         resp = ndb.ndb.start_export(kbid=ndb.kbid)
         if path is None:
             return resp
-        print(f"Export for KB started. export_id={resp.export_id}")
+        logger.info(f"Export for KB started. export_id={resp.export_id}")
         self.download(export_id=resp.export_id, path=path, **kwargs)
         return None
 
@@ -57,7 +58,7 @@ class NucliaExports:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         wait_for_task_to_finish(ndb, "export", export_id)
-        print(f"Export is ready. Will be downloaded to {path}.")
+        logger.info(f"Export is ready. Will be downloaded to {path}.")
         export_size = ndb.ndb.export_status(kbid=ndb.kbid, export_id=export_id).total
         iterator = ndb.ndb.download_export(kbid=ndb.kbid, export_id=export_id)
         with open(path, "wb") as f:
@@ -94,7 +95,7 @@ class AsyncNucliaExports:
         resp = await ndb.ndb.start_export(kbid=ndb.kbid)
         if path is None:
             return resp
-        print(f"Export for KB started. export_id={resp.export_id}")
+        logger.info(f"Export for KB started. export_id={resp.export_id}")
         await self.download(export_id=resp.export_id, path=path, **kwargs)
         return None
 
@@ -108,7 +109,7 @@ class AsyncNucliaExports:
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         await async_wait_for_task_to_finish(ndb, "export", export_id)
-        print(f"Export is ready. Will be downloaded to {path}.")
+        logger.info(f"Export is ready. Will be downloaded to {path}.")
         await ndb.download_export(path=path, export_id=export_id, chunk_size=CHUNK_SIZE)
 
 
@@ -146,17 +147,17 @@ class NucliaImports:
                         pbar.update(len(chunk))
                         yield chunk
 
-        print(f"Importing from {path}")
+        logger.info(f"Importing from {path}")
         response = ndb.ndb.start_import(kbid=ndb.kbid, content=iterator(path))
 
         if not sync:
-            print("Import task started.")
+            logger.info("Import task started.")
             return response
         else:
             import_id = response.import_id
-            print(f"Import task started. import_id={import_id}")
+            logger.info(f"Import task started. import_id={import_id}")
             wait_for_task_to_finish(ndb, "import", import_id)
-            print("Import finished!")
+            logger.info("Import finished!")
             return None
 
     @kb
@@ -204,17 +205,17 @@ class AsyncNucliaImports:
                         pbar.update(len(chunk))
                         yield chunk
 
-        print(f"Importing from {path}")
+        logger.info(f"Importing from {path}")
         response = await ndb.ndb.start_import(kbid=ndb.kbid, content=iterator(path))
 
         if not sync:
-            print("Import task started.")
+            logger.info("Import task started.")
             return response
         else:
             import_id = response.import_id
-            print(f"Import task started. import_id={import_id}")
+            logger.info(f"Import task started. import_id={import_id}")
             await async_wait_for_task_to_finish(ndb, "import", import_id)
-            print("Import finished!")
+            logger.info("Import finished!")
             return None
 
     @kb

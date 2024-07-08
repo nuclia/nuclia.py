@@ -9,9 +9,11 @@ def test_auth_user(testing_user: str):
 
 def test_auth_kb(testing_kb: str):
     na = NucliaAuth()
-    uuid, title = na.validate_kb(TESTING_KB, testing_kb)
-    assert uuid
-    assert title
+    kbobj = na.validate_kb(TESTING_KB, testing_kb)
+    assert kbobj
+    assert kbobj.uuid
+    assert kbobj.config
+    assert kbobj.config.title
 
 
 def test_auth_nua(testing_nua: str):

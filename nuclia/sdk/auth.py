@@ -5,12 +5,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from httpx import AsyncClient, Client, ConnectError
 from prompt_toolkit import prompt
-
-from nuclia import get_global_url, get_regional_url
+from tabulate import tabulate
+from nuclia.sdk.logger import logger
+from nuclia import get_global_url, get_regional_url, is_nuclia_hosted
+from nucliadb_models.resource import KnowledgeBoxObj
 from nuclia.config import (
     Account,
     Config,
     KnowledgeBox,
+    User,
     Zone,
     retrieve_account,
     retrieve_nua,
@@ -65,60 +68,100 @@ class BaseNucliaAuth:
         self._config.unset_default_kb(kbid=kbid)
 
 
+def print_config(config: Config):
+    if config.default:
+        if config.default.account:
+            print(f"Default account:        {config.default.account}")
+        if config.default.kbid:
+            kb_obj = config.get_kb(config.default.kbid)
+            print(f"Default KNOWLEDGEBOX:  {kb_obj}\n")
+
+
+def print_nuas(config: Config):
+    if config.default:
+        if config.default.nua:
+            nua = config.get_nua(config.default.nua)
+            print(
+                f"Default NUA KEY:        {nua.region} {nua.client_id} ({nua.account}) \n"
+            )
+
+    if len(config.nuas_token):
+        print("NUA Keys Registered locally: \n")
+        data = []
+        for nua in config.nuas_token:
+            data.append(
+                [
+                    nua.client_id,
+                    nua.region,
+                    nua.account,
+                ]
+            )
+        print(
+            tabulate(
+                data,
+                headers=[
+                    "Client ID",
+                    "Region",
+                    "Account",
+                ],
+            )
+        )
+        print()
+
+
 class NucliaAuth(BaseNucliaAuth):
     client = Client()
 
-    def show(self):
-        if self._config.default:
-            if self._config.default.account:
-                print("Default Account")
-                print("===============")
-                print()
-                print(self._config.default.account)
-                print()
-            if self._config.default.kbid:
-                print("Default Knowledge Box")
-                print("=====================")
-                print()
-                print(self._config.get_kb(self._config.default.kbid))
-                print()
-            if self._config.default.nua:
-                print("Default NUA")
-                print("===========")
-                print()
-                print(self._config.get_nua(self._config.default.nua))
-                print()
-            if self._config.default.nucliadb:
-                print("Default NUCLIADB")
-                print("================")
-                print()
-                print(self._config.default.nucliadb)
-                print()
+    def show(self) -> None:
+        self._show_user()
+        print_config(self._config)
 
-        if self._config.token:
-            print("User Auth")
-            print("=========")
-            print()
-            try:
-                self._show_user()
-            except Exception:
-                print("Not Authenticated")
-            print()
+        data = []
+        for account in self.accounts():
+            for kb in self.kbs(account.id):
+                kb_obj = self._config.get_kb(kb.id)
 
-        if len(self._config.kbs_token):
-            print("Knowledgebox Auth")
-            print("=================")
-            print()
-            for kb in self._config.kbs_token:
-                print(kb)
-            print()
+                role: Optional[str] = ""
+                if (
+                    kb_obj is not None
+                    and kb_obj.region is not None
+                    and kb_obj.token is not None
+                ):
+                    permissions = self.client.get(
+                        get_regional_url(kb_obj.region, "/api/authorizer/info"),
+                        headers={"X-NUCLIA-SERVICEACCOUNT": f"Bearer {kb_obj.token}"},
+                    )
+                    if permissions.status_code == 200:
+                        role = permissions.json().get("user", {}).get("role")
+                        if role is not None:
+                            role = role.lstrip("S")
 
-        if len(self._config.nuas_token):
-            print("NUA Key")
-            print("=======")
-            print()
-            for nua in self._config.nuas_token:
-                print(nua)
+                default = ""
+                if (
+                    self._config.default is not None
+                    and self._config.default.kbid == kb.id
+                ):
+                    default = "*"
+
+                data.append(
+                    [default, account.slug, kb.slug, kb.title, kb.region, kb.url, role]
+                )
+
+        print(
+            tabulate(
+                data,
+                headers=[
+                    "Default",
+                    "Account ID",
+                    "KnowledgeBox ID",
+                    "KnowledgeBox Title",
+                    "KnowledgeBox Region",
+                    "KnowledgeBox URL",
+                    "Local Token Available",
+                ],
+            )
+        )
+        print()
 
     def nucliadb(self, url: str = "http://localhost:8080"):
         """
@@ -131,19 +174,24 @@ class NucliaAuth(BaseNucliaAuth):
 
     def kb(self, url: str, token: Optional[str] = None) -> Optional[str]:
         url = url.strip("/")
-        kbid, title = self.validate_kb(url, token)
-        if kbid:
-            print("Validated")
-            self._config.set_kb_token(url=url, token=token, title=title, kbid=kbid)
-            self._config.set_default_kb(kbid=kbid)
+        kb = self.validate_kb(url, token)
+        if kb:
+            logger.info("Validated")
+            self._config.set_kb_token(
+                url=url,
+                token=token,
+                title=kb.config.title if kb.config is not None else "",
+                kbid=kb.uuid,
+            )
+            self._config.set_default_kb(kbid=kb.uuid)
         else:
-            print("Invalid service token")
-        return kbid
+            logger.error("Invalid service token")
+        return kb.uuid if kb is not None else None
 
     def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = self.validate_nua(token)
         if account is not None and client_id is not None and base_region is not None:
-            print("Validated")
+            logger.info("Validated")
             self._config.set_nua_token(
                 client_id=client_id,
                 account_type=account_type,
@@ -153,8 +201,11 @@ class NucliaAuth(BaseNucliaAuth):
             )
             return client_id
         else:
-            print("Invalid NUA token")
+            logger.error("Invalid NUA token")
             return None
+
+    def nuas(self):
+        print_nuas(self._config)
 
     def validate_nua(
         self, token: str
@@ -182,38 +233,53 @@ class NucliaAuth(BaseNucliaAuth):
 
     def validate_kb(
         self, url: str, token: Optional[str] = None
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> Optional[KnowledgeBoxObj]:
         # Validate the code is ok
+        data = None
         if token is None:
-            # Validate OSS version
-            resp = self.client.get(
-                url,
-                headers={"X-NucliaDB-ROLES": "READER"},
-            )
+            if is_nuclia_hosted(url):
+                # Use nuclia User Auth
+                data = self._request("GET", url)
+            else:
+                # Validate OSS version
+                resp = self.client.get(
+                    url,
+                    headers={"X-NucliaDB-ROLES": "READER"},
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
         else:
             # Validate Cloud version
             resp = self.client.get(
                 url,
                 headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
             )
-        if resp.status_code == 200:
-            data = resp.json()
-            return data.get("uuid"), data.get("config", {}).get("title")
+            if resp.status_code == 200:
+                data = resp.json()
+        if data is not None:
+            return KnowledgeBoxObj.model_validate(data)
         else:
-            return None, None
+            return None
+
+    def get_user(self) -> User:
+        resp = self._request("GET", get_global_url(MEMBER))
+        assert resp
+        return User.model_validate_json(resp.json)
 
     def _show_user(self):
         resp = self._request("GET", get_global_url(MEMBER))
         assert resp
+        print()
         print(f"User: {resp.get('name')} <{resp.get('email')}>")
         print(f"Type: {resp.get('type')}")
+        print()
 
     def login(self):
         """
         Lets redirect the user to the UI to capture a token
         """
         if self._validate_user_token():
-            print("Logged in!")
+            logger.info("Logged in!")
             self._show_user()
             return
 
@@ -232,7 +298,7 @@ class NucliaAuth(BaseNucliaAuth):
     def set_user_token(self, code: str):
         if self._validate_user_token(code):
             self._config.set_user_token(code)
-            print("Auth completed!")
+            logger.info("Auth completed!")
             self.post_login()
         else:
             print("Invalid token auth not completed")
@@ -272,7 +338,7 @@ class NucliaAuth(BaseNucliaAuth):
         if data is not None:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
-            kwargs["data"] = json.dumps(data)
+            kwargs["content"] = json.dumps(data)
         resp = self.client.request(
             method,
             path,
@@ -296,7 +362,7 @@ class NucliaAuth(BaseNucliaAuth):
         if accounts is None:
             return result
         for account in accounts:
-            account_obj = Account.parse_obj(account)
+            account_obj = Account.model_validate(account)
             result.append(account_obj)
             self._config.accounts.append(account_obj)
         self._config.save()
@@ -311,7 +377,7 @@ class NucliaAuth(BaseNucliaAuth):
         if zones is None:
             return result
         for zone in zones:
-            zone_obj = Zone.parse_obj(zone)
+            zone_obj = Zone.model_validate(zone)
             result.append(zone_obj)
             self._config.zones.append(zone_obj)
         self._config.save()
@@ -353,44 +419,8 @@ class AsyncNucliaAuth(BaseNucliaAuth):
     client = AsyncClient()
 
     async def show(self):
-        if self._config.default:
-            if self._config.default.account:
-                print("Default Account")
-                print("===============")
-                print()
-                print(self._config.default.account)
-                print()
-            if self._config.default.kbid:
-                print("Default Knowledge Box")
-                print("=====================")
-                print()
-                print(self._config.get_kb(self._config.default.kbid))
-                print()
-
-        if self._config.token:
-            print("User Auth")
-            print("=========")
-            print()
-            try:
-                await self._show_user()
-            except Exception:
-                print("Not Authenticated")
-            print()
-
-        if len(self._config.kbs_token):
-            print("Knowledgebox Auth")
-            print("=================")
-            print()
-            for kb in self._config.kbs_token:
-                print(kb)
-            print()
-
-        if len(self._config.nuas_token):
-            print("NUA Key")
-            print("=======")
-            print()
-            for nua in self._config.nuas_token:
-                print(nua)
+        await self._show_user()
+        print_config(self._config)
 
     async def nucliadb(self, url: str = "http://localhost:8080"):
         """
@@ -401,22 +431,26 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             raise Exception("Not a valid URL")
         self._config.set_default_nucliadb(nucliadb=url)
 
-    async def kb(self, url: str, token: Optional[str] = None) -> bool:
+    async def kb(self, url: str, token: Optional[str] = None) -> Optional[str]:
         url = url.strip("/")
-        kbid, title = await self.validate_kb(url, token)
-        if kbid:
-            print("Validated")
-            self._config.set_kb_token(url=url, token=token, title=title, kbid=kbid)
-            self._config.set_default_kb(kbid=kbid)
-            return True
+        kb = await self.validate_kb(url, token)
+        if kb:
+            logger.info("Validated")
+            self._config.set_kb_token(
+                url=url,
+                token=token,
+                title=kb.config.title if kb.config is not None else "",
+                kbid=kb.uuid,
+            )
+            self._config.set_default_kb(kbid=kb.uuid)
         else:
-            print("Invalid service token")
-            return False
+            logger.error("Invalid service token")
+        return kb.uuid if kb is not None else None
 
     async def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = await self.validate_nua(token)
         if account is not None and client_id is not None and base_region is not None:
-            print("Validated")
+            logger.info("Validated")
             self._config.set_nua_token(
                 client_id=client_id,
                 account_type=account_type,
@@ -426,7 +460,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             )
             return client_id
         else:
-            print("Invalid NUA token")
+            logger.error("Invalid NUA token")
             return None
 
     async def validate_nua(
@@ -455,25 +489,33 @@ class AsyncNucliaAuth(BaseNucliaAuth):
 
     async def validate_kb(
         self, url: str, token: Optional[str] = None
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> Optional[KnowledgeBoxObj]:
         # Validate the code is ok
+        data = None
         if token is None:
-            # Validate OSS version
-            resp = await self.client.get(
-                url,
-                headers={"X-NucliaDB-ROLES": "READER"},
-            )
+            if is_nuclia_hosted(url):
+                # Use nuclia User Auth
+                data = await self._request("GET", url)
+            else:
+                # Validate OSS version
+                resp = await self.client.get(
+                    url,
+                    headers={"X-NucliaDB-ROLES": "READER"},
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
         else:
             # Validate Cloud version
             resp = await self.client.get(
                 url,
                 headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
             )
-        if resp.status_code == 200:
-            data = resp.json()
-            return data.get("uuid"), data.get("config", {}).get("title")
+            if resp.status_code == 200:
+                data = resp.json()
+        if data is not None:
+            return KnowledgeBoxObj.model_validate(data)
         else:
-            return None, None
+            return None
 
     async def _show_user(self):
         resp = await self._request("GET", get_global_url(MEMBER))
@@ -486,14 +528,14 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         Lets redirect the user to the UI to capture a token
         """
         if await self._validate_user_token():
-            print("Logged in!")
+            logger.info("Logged in!")
             await self._show_user()
             return
 
         webbrowser.open(get_global_url("/redirect?display=token"))
         # we cannot use Python's `input` here because the copy/pasted token is too long
         code = prompt("Follow the browser flow and copy the token and paste it here:")
-        print("Checking...")
+        logger.info("Checking...")
         await self.set_user_token(code)
 
     def logout(self):
@@ -505,10 +547,10 @@ class AsyncNucliaAuth(BaseNucliaAuth):
     async def set_user_token(self, code: str):
         if await self._validate_user_token(code):
             self._config.set_user_token(code)
-            print("Auth completed!")
+            logger.info("Auth completed!")
             await self.post_login()
         else:
-            print("Invalid token auth not completed")
+            logger.error("Invalid token auth not completed")
 
     def _extract_account(self, token: str) -> str:
         base64url = token.split(".")[1]
@@ -569,7 +611,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         if accounts is None:
             return result
         for account in accounts:
-            account_obj = Account.parse_obj(account)
+            account_obj = Account.model_validate(account)
             result.append(account_obj)
             self._config.accounts.append(account_obj)
         self._config.save()
@@ -584,7 +626,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         if zones is None:
             return result
         for zone in zones:
-            zone_obj = Zone.parse_obj(zone)
+            zone_obj = Zone.model_validate(zone)
             result.append(zone_obj)
             self._config.zones.append(zone_obj)
         self._config.save()
@@ -603,7 +645,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             except UserTokenExpired:
                 return result
             except ConnectionError:
-                print(
+                logger.error(
                     f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                 )
                 continue

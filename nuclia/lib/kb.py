@@ -168,6 +168,9 @@ class NucliaDBClient(BaseNucliaDBClient):
                 base_url=url,  # type: ignore
             )
 
+    def __repr__(self):
+        return f"{self.environment} - {self.url}"
+
     def ask(self, request: AskRequest, timeout: int = 1000):
         if self.url is None or self.stream_session is None:
             raise Exception("KB not configured")
@@ -430,7 +433,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         url = f"{self.url}{SUMMARIZE_URL}"
         assert self.reader_session
         response = await self.reader_session.post(
-            url, json=request.dict(), timeout=timeout
+            url, json=request.model_dump(), timeout=timeout
         )
         handle_http_errors(response)
         return response

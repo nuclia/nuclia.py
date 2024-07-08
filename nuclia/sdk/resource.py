@@ -1,12 +1,16 @@
-from typing import List, Optional
+import json
+from typing import Any, Dict, List, Optional, Union
 from uuid import uuid4
 
 from nucliadb_models.metadata import ResourceProcessingStatus
 from nucliadb_models.resource import Resource
-
+import os
 from nuclia import get_list_parameter
 from nuclia.decorators import kb, pretty
+from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.logger import logger
+from nucliadb_models.search import AskRequest, Filter
+from pydantic import ValidationError
 
 RESOURCE_ATTRIBUTES = [
     "icon",
@@ -46,6 +50,61 @@ class NucliaResource:
         resource = ndb.ndb.create_resource(**kw)
         rid = resource.uuid
         return rid
+
+    @kb
+    @pretty
+    def ask(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        query: Union[str, dict, AskRequest],
+        answer_json_schema: Optional[Dict[str, Any]] = None,
+        answer_json_file: Optional[str] = None,
+        filters: Optional[Union[List[str], List[Filter]]] = None,
+        **kwargs,
+    ):
+        ndb: NucliaDBClient = kwargs["ndb"]
+
+        if answer_json_file is not None:
+            if os.path.exists(answer_json_file):
+                with open(answer_json_file, "r") as json_file_handler:
+                    answer_json_schema = json.load(json_file_handler)
+
+        if isinstance(query, str):
+            req = AskRequest(
+                query=query,
+                answer_json_schema=answer_json_schema,
+            )
+            if filters is not None:
+                req.filters = filters
+        elif isinstance(query, dict):
+            try:
+                req = AskRequest.model_validate(query)
+            except ValidationError:
+                raise ValueError("Invalid AskRequest object.")
+
+        elif isinstance(query, AskRequest):
+            req = query
+        else:
+            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
+
+        if rid:
+            res = ndb.ndb.ask_on_resource(
+                req,
+                kbid=ndb.kbid,
+                rid=rid,
+            )
+        elif slug:
+            res = ndb.ndb.ask_on_resource_by_slug(
+                req,
+                kbid=ndb.kbid,
+                slug=slug,
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+
+        return res
 
     @kb
     @pretty

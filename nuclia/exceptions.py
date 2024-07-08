@@ -32,3 +32,11 @@ class GettingRemoteFileError(Exception):
 
 class RateLimitError(Exception):
     pass
+
+
+class NucliaConnectionError(Exception):
+    pass
+
+
+class KBNotAvailable(Exception):
+    pass

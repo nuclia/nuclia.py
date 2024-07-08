@@ -19,11 +19,13 @@ def test_conversation(testing_config):
         pass
 
     res = nkb.list()
-    assert res is None
+    assert len(res.resources)
 
     nu = NucliaUpload()
     nu.conversation(path=path, slug="conversation1", field="c1")
 
     res = nresource.get(slug="conversation1", show=["values"])
     assert res
+    assert res.data
+    assert res.data.conversations
     assert res.data.conversations["c1"]
