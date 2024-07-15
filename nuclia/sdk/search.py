@@ -484,9 +484,6 @@ class AsyncNucliaSearch:
                 ask_response_item = AskResponseItem.model_validate_json(line).item
             except Exception as e:
                 warnings.warn(f"Failed to parse AskResponseItem: {e}. item: {line}")
-                import pdb
-
-                pdb.set_trace()
                 continue
             if ask_response_item.type == "answer":
                 result.answer += ask_response_item.text.encode()

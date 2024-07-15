@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import kb
-from nuclia.exceptions import GettingRemoteFileError
+from nuclia.exceptions import DuplicateError, GettingRemoteFileError
 from nuclia.lib.conversations import Conversation
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
@@ -62,7 +62,7 @@ class NucliaUpload:
         field: Optional[str] = None,
         interpretTables: Optional[bool] = False,
         **kwargs,
-    ) -> str:
+    ) -> Optional[str]:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
         ndb: NucliaDBClient = kwargs["ndb"]
         filename = path.split("/")[-1]
@@ -72,9 +72,11 @@ class NucliaUpload:
             mimetype = "application/octet-stream"
         if interpretTables:
             mimetype += "+aitable"
-        rid, is_new_resource = self._get_or_create_resource(
-            rid=rid, icon=mimetype, **kwargs
-        )
+        is_new_resource = False
+        if rid is not None:
+            rid, is_new_resource = self._get_or_create_resource(
+                rid=rid, icon=mimetype, **kwargs
+            )
         if not field:
             field = uuid4().hex
         md5_hash = hashlib.md5()
@@ -99,6 +101,8 @@ class NucliaUpload:
                     offset = ndb.patch_tus_upload(
                         upload_url=upload_url, data=chunk, offset=offset
                     )
+            except DuplicateError:
+                logger.info("Duplicated file")
             except Exception:
                 logger.exception("Error on uploading")
                 if is_new_resource:
@@ -273,7 +277,7 @@ class NucliaUpload:
                     chunk = r.raw.read(CHUNK_SIZE)
                     offset = ndb.patch_tus_upload(upload_url, chunk, offset)
             except Exception:
-                logger.exception("Error on uploading")
+                logger.exception("Error uploading")
                 if is_new_resource:
                     ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
                 raise

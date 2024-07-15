@@ -40,3 +40,7 @@ class NucliaConnectionError(Exception):
 
 class KBNotAvailable(Exception):
     pass
+
+
+class DuplicateError(Exception):
+    pass

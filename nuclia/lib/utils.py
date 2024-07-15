@@ -5,7 +5,7 @@ import httpx
 import requests
 from tabulate import tabulate
 
-from nuclia.exceptions import RateLimitError, UserTokenExpired
+from nuclia.exceptions import RateLimitError, UserTokenExpired, DuplicateError
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SyncAskResponse
 
@@ -18,6 +18,8 @@ def handle_http_errors(response: Union[httpx.Response, requests.models.Response]
         raise UserTokenExpired()
     elif response.status_code == 429:
         raise RateLimitError(f"Rate limited: {response.text}")
+    elif response.status_code == 409:
+        raise DuplicateError("Duplicate resource")
     elif response.status_code >= 400:
         raise httpx.HTTPError(f"Status code {response.status_code}: {response.text}")
 
@@ -27,10 +29,12 @@ def serialize(obj):
         data = []
         for resource in obj.resources:
             status = resource.metadata.status if resource.metadata is not None else ""
-            data.append([resource.id, resource.icon, resource.title, status])
+            data.append(
+                [resource.id, resource.icon, resource.title, status, resource.slug]
+            )
         return tabulate(
             data,
-            headers=["UUID", "Icon", "Title", "Status"],
+            headers=["UUID", "Icon", "Title", "Status", "Slug"],
         )
     if isinstance(obj, SyncAskResponse):
         if obj.status != "success":

@@ -3,6 +3,8 @@
 ## 4.0.0 (unreleased)
 
 
+- Notification endpoint
+- Duplication file detection
 - Improve serialization of CLI output
 - Support to add existing KBs as enabled local KBs
 - Listing of available KBs

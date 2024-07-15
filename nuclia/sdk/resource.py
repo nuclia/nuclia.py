@@ -9,8 +9,13 @@ from nuclia import get_list_parameter
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.logger import logger
-from nucliadb_models.search import AskRequest, Filter
-from pydantic import ValidationError
+from nucliadb_models.search import (
+    AskRequest,
+    Filter,
+    RagStrategies,
+    RagImagesStrategies,
+)
+from pydantic import ValidationError, BaseModel, Field
 
 RESOURCE_ATTRIBUTES = [
     "icon",
@@ -27,6 +32,14 @@ RESOURCE_ATTRIBUTES = [
     "metadata",
     "security",
 ]
+
+
+class RagStrategiesParse(BaseModel):
+    rag_strategies: list[RagStrategies] = Field(default=[])
+
+
+class RagImagesStrategiesParse(BaseModel):
+    rag_images_strategies: list[RagImagesStrategies] = Field(default=[])
 
 
 class NucliaResource:
@@ -58,13 +71,18 @@ class NucliaResource:
         *,
         rid: Optional[str] = None,
         slug: Optional[str] = None,
-        query: Union[str, dict, AskRequest],
+        query: Union[str, dict, AskRequest, None] = None,
         answer_json_schema: Optional[Dict[str, Any]] = None,
         answer_json_file: Optional[str] = None,
         filters: Optional[Union[List[str], List[Filter]]] = None,
+        rag_strategies: Optional[list[RagStrategies]] = None,
+        rag_images_strategies: Optional[list[RagImagesStrategies]] = None,
         **kwargs,
     ):
         ndb: NucliaDBClient = kwargs["ndb"]
+
+        if query is None:
+            query = ""
 
         if answer_json_file is not None:
             if os.path.exists(answer_json_file):
@@ -78,6 +96,14 @@ class NucliaResource:
             )
             if filters is not None:
                 req.filters = filters
+            if rag_strategies is not None:
+                req.rag_strategies = RagStrategiesParse.model_validate(
+                    {"rag_strategies": rag_strategies}
+                ).rag_strategies
+            if rag_images_strategies is not None:
+                req.rag_images_strategies = RagImagesStrategiesParse.model_validate(
+                    {"rag_images_strategies": rag_images_strategies}
+                ).rag_images_strategies
         elif isinstance(query, dict):
             try:
                 req = AskRequest.model_validate(query)

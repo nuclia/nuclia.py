@@ -1,5 +1,6 @@
 from typing import Any, List, Optional
 
+from nucliadb_models import Notification
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SummarizeRequest, SummaryKind
@@ -150,6 +151,13 @@ class NucliaKB:
         ndb: NucliaDBClient = kwargs["ndb"]
         return ndb.ndb.summarize(kbid=ndb.kbid, resources=resources)
 
+    @kb
+    def notifications(self, **kwargs):
+        ndb: NucliaDBClient = kwargs["ndb"]
+        response = ndb.notifications()
+        for notification in response.iter_lines():
+            yield Notification.model_validate_json(notification)
+
 
 class AsyncNucliaKB:
     @property
@@ -165,7 +173,7 @@ class AsyncNucliaKB:
         self.imports = AsyncNucliaImports()
 
     @kb
-    async def list(self, *, interactive: bool = True, **kwargs) -> ResourceList:
+    async def list(self, **kwargs) -> ResourceList:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         del kwargs["ndb"]
         data: ResourceList = await ndb.ndb.list_resources(
@@ -307,3 +315,10 @@ class AsyncNucliaKB:
             timeout=timeout,
         )
         return SummarizedModel.model_validate(resp.json())
+
+    @kb
+    async def notifications(self, **kwargs):
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        response = await ndb.notifications()
+        async for notification in response.aiter_lines():
+            yield Notification.model_validate_json(notification)
