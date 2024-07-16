@@ -19,7 +19,7 @@ def test_find_object(testing_config):
 
 def test_ask(testing_config):
     search = NucliaSearch()
-    results = search.ask(query="Who is hedy Lamarr?")
+    results = search.ask(query="Who is Hedy Lamarr?")
     answer = results.answer.decode()
     assert "Lamarr" in answer
 
