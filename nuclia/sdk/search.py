@@ -195,7 +195,14 @@ class NucliaSearch:
         if isinstance(schema, str):
             if os.path.exists(schema):
                 with open(schema, "r") as json_file_handler:
-                    schema_json = json.load(json_file_handler)
+                    try:
+                        schema_json = json.load(json_file_handler)
+                    except Exception:
+                        logger.exception("File format is not JSON")
+                        return
+            else:
+                logger.exception("File not found")
+                return
         else:
             schema_json = schema
 
