@@ -1,11 +1,7 @@
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
-from nuclia.tests.fixtures import IS_PROD
 
 
 def test_find(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = NucliaSearch()
     results = search.find(query="Who is hedy Lamarr?")
     assert len(results.resources.keys()) == 2
@@ -14,9 +10,6 @@ def test_find(testing_config):
 
 
 def test_find_object(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = NucliaSearch()
     results = search.find(query={"query": "Who is hedy Lamarr?"})
     assert len(results.resources.keys()) == 2
@@ -25,9 +18,6 @@ def test_find_object(testing_config):
 
 
 def test_ask(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = NucliaSearch()
     results = search.ask(query="Who is hedy Lamarr?")
     answer = results.answer.decode()
@@ -35,9 +25,6 @@ def test_ask(testing_config):
 
 
 def test_search(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = NucliaSearch()
     results = search.search(query="Who is hedy Lamarr?")
     assert len(results.resources.keys()) == 2
@@ -46,9 +33,6 @@ def test_search(testing_config):
 
 
 def test_search_object(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = NucliaSearch()
     results = search.search(query={"query": "Who is hedy Lamarr?"})
     assert len(results.resources.keys()) == 2
@@ -57,9 +41,6 @@ def test_search_object(testing_config):
 
 
 def test_filters(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = NucliaSearch()
     results = search.find(
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"]
@@ -73,7 +54,7 @@ SCHEMA = {
     "parameters": {
         "$defs": {
             "Options": {
-                "enum": ["SPORTS", "POLITICAL", "TECHNOLOGY"],
+                "enum": ["SPORTS", "TECHNOLOGY"],
                 "title": "Options",
                 "type": "string",
             }
@@ -99,9 +80,6 @@ SCHEMA = {
 
 
 def test_ask_json(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = NucliaSearch()
     results = search.ask_json(
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"], schema=SCHEMA
@@ -111,9 +89,6 @@ def test_ask_json(testing_config):
 
 
 async def test_ask_json_async(testing_config):
-    if IS_PROD:
-        assert True
-        return
     search = AsyncNucliaSearch()
     results = await search.ask_json(
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"], schema=SCHEMA
