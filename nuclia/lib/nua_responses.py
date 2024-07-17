@@ -519,7 +519,6 @@ class GenerativeFullResponse(BaseModel):
     code: Optional[str] = None
     details: Optional[str] = None
     answer: str
-    text: str = Field("", deprecated=True)
     object: Optional[Dict[str, Any]] = None
 
 

@@ -7,6 +7,7 @@ from nucliadb_sdk import exceptions
 
 from nuclia.data import get_auth
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
+from nuclia.lib.utils import serialize
 from nuclia.sdk.accounts import NucliaAccounts
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
@@ -30,7 +31,7 @@ class NucliaCLI(object):
         """Print the version of the CLI"""
         _dir = Path(__file__).resolve().parent.parent.parent
         VERSION = _dir.joinpath("VERSION").open().read().strip()
-        print(VERSION)
+        return VERSION
 
 
 def run():
@@ -41,7 +42,7 @@ def run():
     logger.addHandler(ch)
 
     try:
-        fire.Fire(NucliaCLI)
+        fire.Fire(NucliaCLI, serialize=serialize)
     except exceptions.AuthError:
         handleAuthError()
     except NeedUserToken:

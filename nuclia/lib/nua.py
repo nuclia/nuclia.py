@@ -178,7 +178,7 @@ class NuaClient:
         if model:
             endpoint += f"?model={model}"
 
-        result = GenerativeFullResponse(answer="", text="")
+        result = GenerativeFullResponse(answer="")
         for chunk in self._stream(
             "POST",
             endpoint,
@@ -187,7 +187,6 @@ class NuaClient:
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
-                result.text += chunk.chunk.text
             elif isinstance(chunk.chunk, JSONGenerativeResponse):
                 result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
@@ -455,7 +454,7 @@ class AsyncNuaClient:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
             endpoint += f"?model={model}"
-        result = GenerativeFullResponse(answer="", text="")
+        result = GenerativeFullResponse(answer="")
 
         async for chunk in self._stream(
             "POST",
@@ -465,7 +464,6 @@ class AsyncNuaClient:
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
-                result.text += chunk.chunk.text
             elif isinstance(chunk.chunk, JSONGenerativeResponse):
                 result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):

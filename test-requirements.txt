@@ -10,4 +10,5 @@ types-aiofiles
 types-PyYAML
 types-tqdm
 types-Deprecated
+types-tabulate
 ruff
