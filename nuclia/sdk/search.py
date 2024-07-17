@@ -1,5 +1,5 @@
 import json
-import sys
+import os
 import warnings
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, List, Optional, Union
@@ -21,6 +21,7 @@ from pydantic import ValidationError
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 
@@ -78,10 +79,10 @@ class NucliaSearch:
             req = query
         elif isinstance(query, dict):
             try:
-                req = SearchRequest.parse_obj(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+                req = SearchRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         else:
             raise Exception("Invalid Query either str or SearchRequest")
 
@@ -115,10 +116,10 @@ class NucliaSearch:
             req = query
         elif isinstance(query, dict):
             try:
-                req = FindRequest.parse_obj(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+                req = FindRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         else:
             raise Exception("Invalid Query either str or FindRequest")
 
@@ -149,10 +150,10 @@ class NucliaSearch:
             )
         elif isinstance(query, dict):
             try:
-                req = AskRequest.parse_obj(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+                req = AskRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         elif isinstance(query, AskRequest):
             req = query
         else:
@@ -172,17 +173,16 @@ class NucliaSearch:
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
-                result.timings = ask_response.metadata.timings.dict()
+                result.timings = ask_response.metadata.timings.model_dump()
             if ask_response.metadata.tokens is not None:
-                result.tokens = ask_response.metadata.tokens.dict()
+                result.tokens = ask_response.metadata.tokens.model_dump()
         return result
 
     @kb
     def ask_json(
         self,
-        *,
-        query: Union[str, dict, AskRequest],
-        schema: Dict[str, Any],
+        schema: Union[str, Dict[str, Any]],
+        query: Union[str, dict, AskRequest, None] = None,
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ):
@@ -192,23 +192,44 @@ class NucliaSearch:
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
+        if isinstance(schema, str):
+            if os.path.exists(schema):
+                with open(schema, "r") as json_file_handler:
+                    try:
+                        schema_json = json.load(json_file_handler)
+                    except Exception:
+                        logger.exception("File format is not JSON")
+                        return
+            else:
+                logger.exception("File not found")
+                return
+        else:
+            schema_json = schema
+
         if isinstance(query, str):
             req = AskRequest(
                 query=query,
-                answer_json_schema=schema,
-                filters=filters or [],
+                answer_json_schema=schema_json,
             )
+            if filters is not None:
+                req.filters = filters
         elif isinstance(query, dict):
             try:
                 req = AskRequest.model_validate(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         elif isinstance(query, AskRequest):
             req = query
+        elif query is None:
+            req = AskRequest(
+                query="",
+                answer_json_schema=schema_json,
+            )
+            if filters is not None:
+                req.filters = filters
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
 
         result = AskAnswer(
@@ -264,10 +285,10 @@ class AsyncNucliaSearch:
             req = query
         elif isinstance(query, dict):
             try:
-                req = SearchRequest.parse_obj(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+                req = SearchRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         else:
             raise Exception("Invalid Query either str or SearchRequest")
 
@@ -299,10 +320,10 @@ class AsyncNucliaSearch:
             req = query
         elif isinstance(query, dict):
             try:
-                req = FindRequest.parse_obj(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+                req = FindRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         else:
             raise Exception("Invalid Query either str or FindRequest")
 
@@ -326,6 +347,7 @@ class AsyncNucliaSearch:
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
+
         if isinstance(query, str):
             req = AskRequest(
                 query=query,
@@ -335,9 +357,9 @@ class AsyncNucliaSearch:
         elif isinstance(query, dict):
             try:
                 req = AskRequest.model_validate(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         elif isinstance(query, AskRequest):
             req = query
         else:
@@ -371,9 +393,9 @@ class AsyncNucliaSearch:
                 result.citations = ask_response_item.citations
             elif ask_response_item.type == "metadata":
                 if ask_response_item.timings:
-                    result.timings = ask_response_item.timings.dict()
+                    result.timings = ask_response_item.timings.model_dump()
                 if ask_response_item.tokens:
-                    result.tokens = ask_response_item.tokens.dict()
+                    result.tokens = ask_response_item.tokens.model_dump()
             elif ask_response_item.type == "status":
                 # Status is ignored
                 pass
@@ -404,9 +426,9 @@ class AsyncNucliaSearch:
         elif isinstance(query, dict):
             try:
                 req = AskRequest.model_validate(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         elif isinstance(query, AskRequest):
             req = query
         else:
@@ -436,6 +458,7 @@ class AsyncNucliaSearch:
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
+
         if isinstance(query, str):
             req = AskRequest(
                 query=query,
@@ -445,9 +468,9 @@ class AsyncNucliaSearch:
         elif isinstance(query, dict):
             try:
                 req = AskRequest.model_validate(query)
-            except ValidationError as exc:
-                print(exc)
-                sys.exit(1)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
         elif isinstance(query, AskRequest):
             req = query
         else:
@@ -481,9 +504,9 @@ class AsyncNucliaSearch:
                 result.citations = ask_response_item.citations
             elif ask_response_item.type == "metadata":
                 if ask_response_item.timings:
-                    result.timings = ask_response_item.timings.dict()
+                    result.timings = ask_response_item.timings.model_dump()
                 if ask_response_item.tokens:
-                    result.tokens = ask_response_item.tokens.dict()
+                    result.tokens = ask_response_item.tokens.model_dump()
             elif ask_response_item.type == "status":
                 # Status is ignored
                 pass

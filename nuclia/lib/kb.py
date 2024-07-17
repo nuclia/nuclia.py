@@ -34,6 +34,7 @@ TUS_UPLOAD_RESOURCE_URL = "/resource/{rid}/file/{field}/tusupload"
 TUS_UPLOAD_URL = "/tusupload"
 ACTIVITY_LOG_URL = "/activity/download?type={type}&month={month}"
 FEEDBACK_LOG_URL = "/feedback/{month}"
+NOTIFICATIONS = "/notifications"
 
 
 class Environment(str, Enum):
@@ -167,6 +168,17 @@ class NucliaDBClient(BaseNucliaDBClient):
                 headers=self.writer_headers,
                 base_url=url,  # type: ignore
             )
+
+    def __repr__(self):
+        return f"{self.environment} - {self.url}"
+
+    def notifications(self):
+        if self.url is None or self.stream_session is None:
+            raise Exception("KB not configured")
+        url = f"{self.url}{NOTIFICATIONS}"
+        response = self.stream_session.get(url, stream=True, timeout=3660)
+        handle_http_errors(response)
+        return response
 
     def ask(self, request: AskRequest, timeout: int = 1000):
         if self.url is None or self.stream_session is None:
@@ -320,6 +332,15 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
                 base_url=url,  # type: ignore
             )
 
+    async def notifications(self):
+        if self.url is None or self.reader_session is None:
+            raise Exception("KB not configured")
+        url = f"{self.url}{NOTIFICATIONS}"
+        req = self.reader_session.build_request("GET", url, timeout=3660)
+        response = await self.reader_session.send(req, stream=True)
+        handle_http_errors(response)
+        return response
+
     async def ask(self, request: AskRequest, timeout: int = 1000):
         if self.url is None or self.reader_session is None:
             raise Exception("KB not configured")
@@ -430,7 +451,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         url = f"{self.url}{SUMMARIZE_URL}"
         assert self.reader_session
         response = await self.reader_session.post(
-            url, json=request.dict(), timeout=timeout
+            url, json=request.model_dump(), timeout=timeout
         )
         handle_http_errors(response)
         return response

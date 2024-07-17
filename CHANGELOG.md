@@ -1,9 +1,17 @@
 # Changelog
 
-## 3.3.1 (unreleased)
+## 4.0.0 (unreleased)
 
 
-- Nothing changed yet.
+- Notification endpoint
+- Duplication file detection
+- Improve serialization of CLI output
+- Support to add existing KBs as enabled local KBs
+- Listing of available KBs
+- Move from print to logger
+- Remove sys.exit calls
+- Support ask_json with json file path
+- Remove deprecated functions and text field on GenerativeFullResponse
 
 
 ## 3.3.0 (2024-06-24)

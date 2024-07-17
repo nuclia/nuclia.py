@@ -1,5 +1,7 @@
 import warnings
 
+from time import sleep
+
 from nucliadb_sdk.v2.exceptions import NotFoundError
 
 from nuclia.sdk.resource import NucliaResource
@@ -41,6 +43,7 @@ def test_resource(testing_config):
     nresource.delete(rid=res_id)
 
     try:
+        sleep(0.5)
         nresource.get(slug="res1")
         assert False
     except NotFoundError:

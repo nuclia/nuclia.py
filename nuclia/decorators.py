@@ -2,11 +2,12 @@ import asyncio
 from functools import wraps
 import inspect
 
+from httpx import ConnectError
 import yaml
 
 from nuclia import BASE_DOMAIN
 from nuclia.data import get_async_auth, get_auth
-from nuclia.exceptions import NotDefinedDefault
+from nuclia.exceptions import KBNotAvailable, NotDefinedDefault, NucliaConnectionError
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
 
@@ -49,7 +50,9 @@ def kb(func):
 
             kb_obj = auth._config.get_kb(kbid)
 
-            if kb_obj.region is None:
+            if kb_obj is None:
+                raise KBNotAvailable(kbid)
+            elif kb_obj.region is None:
                 # OSS
                 ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
             else:
@@ -84,7 +87,11 @@ def kb(func):
         else:
             ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=url)
         kwargs["ndb"] = ndb
-        return await func(*args, **kwargs)
+        try:
+            result = await func(*args, **kwargs)
+            return result
+        except ConnectError:
+            raise NucliaConnectionError(f"Could not connect to {ndb}")
 
     @wraps(func)
     def wrapper_checkout_kb(*args, **kwargs):
@@ -101,7 +108,9 @@ def kb(func):
 
             kb_obj = auth._config.get_kb(kbid)
 
-            if kb_obj.region is None:
+            if kb_obj is None:
+                raise KBNotAvailable(kbid)
+            elif kb_obj.region is None:
                 # OSS
                 ndb = NucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
             else:
@@ -136,7 +145,11 @@ def kb(func):
         else:
             ndb = NucliaDBClient(environment=Environment.OSS, url=url)
         kwargs["ndb"] = ndb
-        return func(*args, **kwargs)
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except ConnectError:
+            raise NucliaConnectionError(f"Could not connect to {ndb}")
 
     if asyncio.iscoroutinefunction(func):
         return async_wrapper_checkout_kb

@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 from typing import List, Optional
 
@@ -20,7 +21,14 @@ class KnowledgeBox(BaseModel):
     account: Optional[str] = None
 
     def __str__(self):
-        return f"{self.id:36} -> {self.slug} {'(account: ' + self.account + ')' if self.account else ''}"
+        origin = self.region + " " + self.id if self.region else "LOCAL " + self.url
+        return f"{origin:20} {'(' + self.account + ')' if self.account else ''} {self.slug if self.slug else ''}"
+
+
+class User(BaseModel):
+    name: str
+    email: str
+    type: str
 
 
 class NuaKey(BaseModel):
@@ -49,7 +57,13 @@ class Account(BaseModel):
     slug: Optional[str] = None
 
     def __str__(self):
-        return f"{self.slug:15} => {self.title:40}"
+        return f"{self.id:30} - {self.slug:20} => {self.title:40}"
+
+
+class Role(str, Enum):
+    OWNER = "OWNER"
+    READER = "READER"
+    CONTRIBUTOR = "CONTRIBUTOR"
 
 
 class Selection(BaseModel):
@@ -80,7 +94,7 @@ class Config(BaseModel):
 
         return nua_obj
 
-    def get_kb(self, kbid: str) -> KnowledgeBox:
+    def get_kb(self, kbid: str) -> Optional[KnowledgeBox]:
         try:
             kb_obj = next(
                 filter(
@@ -89,9 +103,7 @@ class Config(BaseModel):
                 )
             )
         except StopIteration:
-            kb_obj = next(
-                filter(lambda x: x.id == kbid, self.kbs if self.kbs is not None else [])
-            )
+            kb_obj = None
         return kb_obj
 
     def set_user_token(self, code: str):
@@ -234,7 +246,7 @@ class Config(BaseModel):
 
         DATA.config = self
         with open(os.path.expanduser(CONFIG_PATH), "w") as config_file:
-            config_file.write(self.json())
+            config_file.write(self.model_dump_json())
 
 
 def read_config() -> Config:
@@ -242,10 +254,10 @@ def read_config() -> Config:
         os.makedirs(os.path.expanduser(CONFIG_DIR), exist_ok=True)
         config = Config()
         with open(os.path.expanduser(CONFIG_PATH), "w") as config_file:
-            config_file.write(config.json())
+            config_file.write(config.model_dump_json())
 
     with open(os.path.expanduser(CONFIG_PATH), "r") as config_file:
-        config = Config.parse_raw(config_file.read())
+        config = Config.model_validate_json(config_file.read())
 
     if config.default is None:
         config.default = Selection()

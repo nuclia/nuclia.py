@@ -1,8 +1,6 @@
-import logging
 import os
 from typing import List, Optional
-
-logger = logging.getLogger("nuclia")
+from urllib.parse import urlparse
 
 BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "nuclia.cloud")
 BASE = f"https://{BASE_DOMAIN}"
@@ -24,3 +22,7 @@ def get_list_parameter(param: Optional[List[str]]) -> List[str]:
         # Python Fire converts single string to list of chars
         param = ["".join(param)]
     return param
+
+
+def is_nuclia_hosted(url: str):
+    return BASE_DOMAIN in urlparse(url).netloc
