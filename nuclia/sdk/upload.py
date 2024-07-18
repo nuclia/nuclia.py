@@ -10,6 +10,7 @@ from typing import Optional, Tuple
 from uuid import uuid4
 
 import aiofiles
+import backoff
 import requests
 from httpx import AsyncClient
 from nucliadb_models.text import TextFormat
@@ -18,7 +19,7 @@ from tqdm import tqdm
 
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import kb
-from nuclia.exceptions import DuplicateError, GettingRemoteFileError
+from nuclia.exceptions import DuplicateError, GettingRemoteFileError, RateLimitError
 from nuclia.lib.conversations import Conversation
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
@@ -283,6 +284,13 @@ class NucliaUpload:
                 raise
         return rid
 
+    @backoff.on_exception(
+        backoff.expo,
+        RateLimitError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
+    )
     def _get_or_create_resource(*args, **kwargs) -> Tuple[str, bool]:
         rid = kwargs.get("rid")
         if rid:
@@ -315,6 +323,13 @@ class NucliaUpload:
 
         return (rid, need_to_create_resource)
 
+    @backoff.on_exception(
+        backoff.expo,
+        RateLimitError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
+    )
     def _update_resource(self, rid: str, **kwargs):
         return NucliaResource().update(rid=rid, **kwargs)
 
