@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0.1 (unreleased)
+## 4.0.1 (2024-07-18)
 
 
 - Backoff retry rate limit errors in resource create/update ops
