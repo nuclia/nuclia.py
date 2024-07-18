@@ -211,7 +211,11 @@ class NucliaDBClient(BaseNucliaDBClient):
         return response.content
 
     @backoff.on_exception(
-        backoff.expo, RateLimitError, jitter=backoff.random_jitter, max_tries=5
+        backoff.expo,
+        RateLimitError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
     )
     def start_tus_upload(
         self,
@@ -394,7 +398,11 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         return response.content
 
     @backoff.on_exception(
-        backoff.expo, RateLimitError, jitter=backoff.random_jitter, max_tries=5
+        backoff.expo,
+        RateLimitError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
     )
     async def start_tus_upload(
         self,
