@@ -3,7 +3,7 @@
 ## 4.0.1 (unreleased)
 
 
-- Nothing changed yet.
+- Backoff retry rate limit errors in resource craete/update ops
 
 
 ## 4.0.0 (2024-07-17)
