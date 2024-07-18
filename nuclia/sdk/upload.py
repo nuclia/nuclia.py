@@ -285,7 +285,11 @@ class NucliaUpload:
         return rid
 
     @backoff.on_exception(
-        backoff.expo, RateLimitError, jitter=backoff.random_jitter, max_tries=5
+        backoff.expo,
+        RateLimitError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
     )
     def _get_or_create_resource(*args, **kwargs) -> Tuple[str, bool]:
         rid = kwargs.get("rid")
@@ -320,7 +324,11 @@ class NucliaUpload:
         return (rid, need_to_create_resource)
 
     @backoff.on_exception(
-        backoff.expo, RateLimitError, jitter=backoff.random_jitter, max_tries=5
+        backoff.expo,
+        RateLimitError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
     )
     def _update_resource(self, rid: str, **kwargs):
         return NucliaResource().update(rid=rid, **kwargs)
