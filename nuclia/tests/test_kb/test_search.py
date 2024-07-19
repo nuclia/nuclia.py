@@ -25,18 +25,20 @@ def test_ask(testing_config):
     assert "Lamarr" in answer
 
 
-def test_ask_with_custom_prompt(testing_config):
+def test_ask_with_custom_prompt_markdown_answer(testing_config):
     search = NucliaSearch()
     ask = AskRequest(
         query="Who is Pepito Palotes?",
         prompt=CustomPrompt(
-            system="Answer the question as if you were a teacher. If you don't know the anwser, say 'I don't know'",
+            system="Answer the question. If you don't know the anwser, write 'I don't know' and a list of bullet points with the reasons why you don't know the answer.",
             user="Based on this context {context}, answer the question {question}",
         ),
+        generative_model="chatgpt-azure-4-turbo",
+        prefer_markdown=True,
     )
     results = search.ask(query=ask)
     answer = results.answer.decode()
-    assert "I don't know" in answer
+    assert "I don't know" in answer, print(answer)
 
 
 def test_search(testing_config):
