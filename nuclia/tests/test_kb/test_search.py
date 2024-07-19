@@ -1,4 +1,5 @@
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
+from nucliadb_models.search import AskRequest, CustomPrompt
 
 
 def test_find(testing_config):
@@ -22,6 +23,20 @@ def test_ask(testing_config):
     results = search.ask(query="Who is Hedy Lamarr?")
     answer = results.answer.decode()
     assert "Lamarr" in answer
+
+
+def test_ask_with_custom_prompt(testing_config):
+    search = NucliaSearch()
+    ask = AskRequest(
+        query="Who is Pepito Palotes?",
+        prompt=CustomPrompt(
+            system="Answer the question as if you were a teacher. If you don't know the anwser, say 'I don't know'",
+            user="Based on this context {context}, answer the question {question}",
+        ),
+    )
+    results = search.ask(query=ask)
+    answer = results.answer.decode()
+    assert "I don't know" in answer
 
 
 def test_search(testing_config):
