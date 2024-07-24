@@ -39,6 +39,8 @@ def test_ask_with_custom_prompt_markdown_answer(testing_config):
     results = search.ask(query=ask)
     answer = results.answer.decode()
     assert "I don't know" in answer, print(answer)
+    markdown_keywords = ["**", "#", "1."]
+    assert any([keyword in answer.lower() for keyword in markdown_keywords])
 
 
 def test_search(testing_config):
