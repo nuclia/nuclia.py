@@ -188,6 +188,8 @@ class NucliaResource:
                 kw[param] = kwargs.get(param)
         if rid:
             kw["rid"] = rid
+            if slug:
+                kw["slug"] = slug
             ndb.ndb.update_resource(**kw)
         elif slug:
             kw["rslug"] = slug
