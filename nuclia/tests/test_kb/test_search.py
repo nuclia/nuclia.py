@@ -25,7 +25,7 @@ def test_ask(testing_config):
     assert "Lamarr" in answer
 
 
-def test_ask_with_custom_prompt_markdown_answer(testing_config):
+def test_ask_with_custom_prompt(testing_config):
     search = NucliaSearch()
     ask = AskRequest(
         query="Are Pepito Palotes and Hedy Lamarr friends?",
@@ -34,11 +34,25 @@ def test_ask_with_custom_prompt_markdown_answer(testing_config):
             user="Based on this context {context}, answer the question {question}",
         ),
         generative_model="chatgpt-azure-4-turbo",
-        prefer_markdown=True,
     )
     results = search.ask(query=ask)
     answer = results.answer.decode()
     assert "I don't know" in answer, print(answer)
+
+
+def test_ask_with_markdown_answer(testing_config):
+    search = NucliaSearch()
+    ask = AskRequest(
+        query="Who is Hedy Lamarr and what did she do?",
+        prompt=CustomPrompt(
+            system="Answer the question and use lists as much as possible.",
+            user="Based on this context {context}, answer the question {question}",
+        ),
+        generative_model="gemini-1-5-pro",
+        prefer_markdown=True,
+    )
+    results = search.ask(query=ask)
+    answer = results.answer.decode()
     markdown_keywords = ["**", "#", "1."]
     assert any([keyword in answer.lower() for keyword in markdown_keywords])
 
