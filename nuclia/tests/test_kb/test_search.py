@@ -1,4 +1,5 @@
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
+from nucliadb_models.search import AskRequest, CustomPrompt
 
 
 def test_find(testing_config):
@@ -22,6 +23,38 @@ def test_ask(testing_config):
     results = search.ask(query="Who is Hedy Lamarr?")
     answer = results.answer.decode()
     assert "Lamarr" in answer
+
+
+def test_ask_with_custom_prompt(testing_config):
+    search = NucliaSearch()
+    ask = AskRequest(
+        query="Are Pepito Palotes and Hedy Lamarr friends?",
+        prompt=CustomPrompt(
+            system="Answer the question. If you don't know the anwser, write 'I don't know' and a list of bullet points with the reasons why you don't know the answer.",
+            user="Based on this context {context}, answer the question {question}",
+        ),
+        generative_model="chatgpt-azure-4-turbo",
+    )
+    results = search.ask(query=ask)
+    answer = results.answer.decode()
+    assert "I don't know" in answer, print(answer)
+
+
+def test_ask_with_markdown_answer(testing_config):
+    search = NucliaSearch()
+    ask = AskRequest(
+        query="Who is Hedy Lamarr and what did she do?",
+        prompt=CustomPrompt(
+            system="Answer the question and use lists as much as possible.",
+            user="Based on this context {context}, answer the question {question}",
+        ),
+        generative_model="gemini-1-5-pro",
+        prefer_markdown=True,
+    )
+    results = search.ask(query=ask)
+    answer = results.answer.decode()
+    markdown_keywords = ["**", "#", "1."]
+    assert any([keyword in answer.lower() for keyword in markdown_keywords])
 
 
 def test_search(testing_config):
