@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0.2 (unreleased)
+## 4.0.2 (2024-07-24)
 
 
 - Fix: allow to update the resource slug
