@@ -247,7 +247,7 @@ class NucliaUpload:
     ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
         ndb = kwargs["ndb"]
-        with requests.get(origin, stream=True) as r:
+        with requests.get(origin, stream=True, allow_redirects=True) as r:
             try:
                 r.raise_for_status()
             except Exception as ex:
@@ -546,7 +546,7 @@ class AsyncNucliaUpload:
         """Upload a remote url to a Nuclia KnowledgeBox"""
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         client = AsyncClient()
-        async with client.stream("GET", origin) as r:
+        async with client.stream("GET", origin, follow_redirects=True) as r:
             filename = origin.split("/")[-1]
             size_str = r.headers.get("Content-Length")
             if size_str is None:
