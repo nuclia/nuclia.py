@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0.3 (unreleased)
+## 4.0.3 (2024-07-26)
 
 
 - Support `page` and `size` parameters on KB's `list` method
