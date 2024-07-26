@@ -3,7 +3,7 @@
 ## 4.0.3 (unreleased)
 
 
-- Nothing changed yet.
+- Support `page` and `size` parameters on KB's `list` method
 
 
 ## 4.0.2 (2024-07-24)
