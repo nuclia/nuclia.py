@@ -3,7 +3,7 @@
 ## 4.0.4 (unreleased)
 
 
-- Nothing changed yet.
+- Follow redirect when uploading a remote file via URL
 
 
 ## 4.0.3 (2024-07-26)
