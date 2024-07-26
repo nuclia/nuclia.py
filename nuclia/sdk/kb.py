@@ -37,9 +37,13 @@ class NucliaKB:
         self.logs = NucliaLogs()
 
     @kb
-    def list(self, page: Optional[int] = None, size: Optional[int] = None, **kwargs) -> ResourceList:
+    def list(
+        self, page: Optional[int] = None, size: Optional[int] = None, **kwargs
+    ) -> ResourceList:
         ndb: NucliaDBClient = kwargs["ndb"]
-        data: ResourceList = ndb.ndb.list_resources(kbid=ndb.kbid, query_params={"page": page, "size": size})
+        data: ResourceList = ndb.ndb.list_resources(
+            kbid=ndb.kbid, query_params={"page": page, "size": size}
+        )
         return data
 
     @kb
