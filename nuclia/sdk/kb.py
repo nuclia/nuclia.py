@@ -41,8 +41,13 @@ class NucliaKB:
         self, page: Optional[int] = None, size: Optional[int] = None, **kwargs
     ) -> ResourceList:
         ndb: NucliaDBClient = kwargs["ndb"]
+        query_params = {}
+        if page:
+            query_params["page"] = f"{page}"
+        if size:
+            query_params["size"] = f"{size}"
         data: ResourceList = ndb.ndb.list_resources(
-            kbid=ndb.kbid, query_params={"page": page, "size": size}
+            kbid=ndb.kbid, query_params=query_params
         )
         return data
 
