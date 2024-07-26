@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0.4 (unreleased)
+## 4.0.4 (2024-07-26)
 
 
 - Follow redirect when uploading a remote file via URL
