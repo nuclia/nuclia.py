@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0.5 (unreleased)
+## 4.0.5 (2024-08-01)
 
 
 - Fix: properly get the kb from the current configuration.
