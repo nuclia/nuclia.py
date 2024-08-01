@@ -144,7 +144,16 @@ class NucliaAuth(BaseNucliaAuth):
                     default = "*"
 
                 data.append(
-                    [default, account.slug, kb.id, kb.slug, kb.title, kb.region, kb.url, role]
+                    [
+                        default,
+                        account.slug,
+                        kb.id,
+                        kb.slug,
+                        kb.title,
+                        kb.region,
+                        kb.url,
+                        role,
+                    ]
                 )
 
         print(
@@ -270,14 +279,14 @@ class NucliaAuth(BaseNucliaAuth):
     def _show_user(self):
         resp = None
         try:
-          resp = self._request("GET", get_global_url(MEMBER))
+            resp = self._request("GET", get_global_url(MEMBER))
         except NeedUserToken:
-          print("No user logged in.")
+            print("No user logged in.")
         if resp:
-          print()
-          print(f"User: {resp.get('name')} <{resp.get('email')}>")
-          print(f"Type: {resp.get('type')}")
-          print()
+            print()
+            print(f"User: {resp.get('name')} <{resp.get('email')}>")
+            print(f"Type: {resp.get('type')}")
+            print()
 
     def login(self):
         """
