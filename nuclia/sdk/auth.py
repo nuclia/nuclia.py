@@ -144,7 +144,16 @@ class NucliaAuth(BaseNucliaAuth):
                     default = "*"
 
                 data.append(
-                    [default, account.slug, kb.slug, kb.title, kb.region, kb.url, role]
+                    [
+                        default,
+                        account.slug,
+                        kb.id,
+                        kb.slug,
+                        kb.title,
+                        kb.region,
+                        kb.url,
+                        role,
+                    ]
                 )
 
         print(
@@ -154,6 +163,7 @@ class NucliaAuth(BaseNucliaAuth):
                     "Default",
                     "Account ID",
                     "KnowledgeBox ID",
+                    "KnowledgeBox slug",
                     "KnowledgeBox Title",
                     "KnowledgeBox Region",
                     "KnowledgeBox URL",
@@ -267,12 +277,16 @@ class NucliaAuth(BaseNucliaAuth):
         return User.model_validate_json(resp.json)
 
     def _show_user(self):
-        resp = self._request("GET", get_global_url(MEMBER))
-        assert resp
-        print()
-        print(f"User: {resp.get('name')} <{resp.get('email')}>")
-        print(f"Type: {resp.get('type')}")
-        print()
+        resp = None
+        try:
+            resp = self._request("GET", get_global_url(MEMBER))
+        except NeedUserToken:
+            print("No user logged in.")
+        if resp:
+            print()
+            print(f"User: {resp.get('name')} <{resp.get('email')}>")
+            print(f"Type: {resp.get('type')}")
+            print()
 
     def login(self):
         """

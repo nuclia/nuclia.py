@@ -3,7 +3,7 @@
 ## 4.0.5 (unreleased)
 
 
-- Nothing changed yet.
+- Fix: properly get the kb from the current configuration.
 
 
 ## 4.0.4 (2024-07-26)

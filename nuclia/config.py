@@ -103,7 +103,9 @@ class Config(BaseModel):
                 )
             )
         except StopIteration:
-            kb_obj = None
+            kb_obj = next(
+                filter(lambda x: x.id == kbid, self.kbs if self.kbs is not None else [])
+            )
         return kb_obj
 
     def set_user_token(self, code: str):
