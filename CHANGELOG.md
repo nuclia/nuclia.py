@@ -3,7 +3,7 @@
 ## 4.2.4 (unreleased)
 
 
-- Search methods: backoff on 503 errors
+- Backoff on 503 errors for ask, find and search
 
 
 ## 4.2.3 (2024-10-11)

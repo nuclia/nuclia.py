@@ -69,8 +69,8 @@ class NucliaSearch:
         backoff.expo,
         exceptions.UnknownError,
         jitter=backoff.random_jitter,
-        max_tries=5,
-        factor=10,
+        max_tries=3,
+        factor=5,
     )
     def search(
         self,
@@ -106,8 +106,8 @@ class NucliaSearch:
         backoff.expo,
         exceptions.UnknownError,
         jitter=backoff.random_jitter,
-        max_tries=5,
-        factor=10,
+        max_tries=3,
+        factor=5,
     )
     def find(
         self,
@@ -152,8 +152,8 @@ class NucliaSearch:
         backoff.expo,
         exceptions.UnknownError,
         jitter=backoff.random_jitter,
-        max_tries=5,
-        factor=10,
+        max_tries=3,
+        factor=5,
     )
     def ask(
         self,
@@ -219,8 +219,8 @@ class NucliaSearch:
         backoff.expo,
         exceptions.UnknownError,
         jitter=backoff.random_jitter,
-        max_tries=5,
-        factor=10,
+        max_tries=3,
+        factor=5,
     )
     def ask_json(
         self,
