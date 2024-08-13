@@ -3,7 +3,7 @@
 ## 4.2.4 (unreleased)
 
 
-- Nothing changed yet.
+- Search methods: backoff on 503 errors
 
 
 ## 4.2.3 (2024-10-11)

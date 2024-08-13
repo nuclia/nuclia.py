@@ -1,3 +1,4 @@
+import backoff
 import json
 import os
 import warnings
@@ -18,6 +19,7 @@ from nucliadb_models.search import (
     SearchRequest,
     SyncAskResponse,
 )
+from nucliadb_sdk import exceptions
 from pydantic import ValidationError
 
 from nuclia.data import get_async_auth, get_auth
@@ -63,6 +65,13 @@ class NucliaSearch:
 
     @kb
     @pretty
+    @backoff.on_exception(
+        backoff.expo,
+        exceptions.UnknownError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
+    )
     def search(
         self,
         *,
@@ -93,6 +102,13 @@ class NucliaSearch:
 
     @kb
     @pretty
+    @backoff.on_exception(
+        backoff.expo,
+        exceptions.UnknownError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
+    )
     def find(
         self,
         *,
@@ -132,6 +148,13 @@ class NucliaSearch:
         return ndb.ndb.find(req, kbid=ndb.kbid)
 
     @kb
+    @backoff.on_exception(
+        backoff.expo,
+        exceptions.UnknownError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
+    )
     def ask(
         self,
         *,
@@ -192,6 +215,13 @@ class NucliaSearch:
         return result
 
     @kb
+    @backoff.on_exception(
+        backoff.expo,
+        exceptions.UnknownError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
+    )
     def ask_json(
         self,
         schema: Union[str, Dict[str, Any]],
