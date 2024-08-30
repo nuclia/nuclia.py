@@ -17,21 +17,20 @@ In order to check which NUA keys you have access you can run execute:
 - CLI:
 
   ```bash
-  nuclia nuas list
+  nuclia auth nuas
   ```
 
 - SDK:
 
   ```python
   from nuclia import sdk
-  nuas = sdk.NucliaNUAS()
-  nuas.list()
+  sdk.NucliaAuth().nuas()
   ```
 
 In order to set default NUA key you should use:
 
 ```bash
-nuclia nuas default NUA_CLIENT_ID
+nuclia auth default_nua NUA_CLIENT_ID
 ```
 
 ## Services
@@ -118,6 +117,25 @@ It can generate a response to a question given a context:
   from nuclia import sdk
   predict = sdk.NucliaPredict()
   predict.rag(question="QUESTION", context=["TEXT1", "TEXT2"])
+  ```
+
+It can rephrase a user question into a proper question more suitable for a search engine (optionally using a context):
+
+- CLI:
+
+  ```bash
+  nuclia nua predict rephrase --question="french revolution causes"
+  > What were the causes of the French Revolution?
+  nuclia nua predict rephrase --question="next step" --user_context='["pan con tomate recipe", "first step: blend the tomatoes"]'
+  > What is the next step in the pan con tomate recipe after blending the tomatoes?
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  predict = sdk.NucliaPredict()
+  predict.rephrase(question="french revolution causes")
   ```
 
 ### Agent
