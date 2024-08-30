@@ -28,6 +28,7 @@ from nuclia.lib.nua_responses import (
     PushPayload,
     PushResponseV2,
     QueryInfo,
+    RephraseModel,
     RestrictedIDString,
     Sentence,
     Source,
@@ -43,6 +44,7 @@ from nuclia.lib.nua_responses import (
 SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
 SUMMARIZE_PREDICT = "/api/v1/predict/summarize"
+REPHRASE_PREDICT = "/api/v1/predict/rephrase"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
 QUERY_PREDICT = "/api/v1/predict/query"
 UPLOAD_PROCESS = "/api/v1/processing/upload"
@@ -92,7 +94,6 @@ class NuaClient:
         resp = self.client.request(method, url, json=payload, timeout=timeout)
         if resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
-
         try:
             data = output.model_validate(resp.json())
         except Exception:
@@ -233,6 +234,28 @@ class NuaClient:
             payload=body.model_dump(),
             output=SummarizedModel,
             timeout=timeout,
+        )
+
+    def rephrase(
+        self,
+        question: str,
+        user_context: Optional[List[str]] = None,
+        model: Optional[str] = None,
+    ) -> RephraseModel:
+        endpoint = f"{self.url}{REPHRASE_PREDICT}"
+        if model:
+            endpoint += f"?model={model}"
+
+        body = {
+            "question": question,
+            "user_context": user_context,
+            "user_id": "USER",
+        }
+        return self._request(
+            "POST",
+            endpoint,
+            payload=body,
+            output=RephraseModel,
         )
 
     def process_file(self, path: str, kbid: str = "default") -> PushResponseV2:
@@ -510,6 +533,28 @@ class AsyncNuaClient:
             payload=body.model_dump(),
             output=SummarizedModel,
             timeout=timeout,
+        )
+
+    async def rephrase(
+        self,
+        question: str,
+        user_context: Optional[List[str]] = None,
+        model: Optional[str] = None,
+    ) -> RephraseModel:
+        endpoint = f"{self.url}{REPHRASE_PREDICT}"
+        if model:
+            endpoint += f"?model={model}"
+
+        body = {
+            "question": question,
+            "user_context": user_context,
+            "user_id": "USER",
+        }
+        return await self._request(
+            "POST",
+            endpoint,
+            payload=body,
+            output=RephraseModel,
         )
 
     async def generate_retrieval(
