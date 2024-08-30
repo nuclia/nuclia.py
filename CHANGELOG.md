@@ -1,9 +1,9 @@
 # Changelog
 
-## 4.0.6 (unreleased)
+## 4.1.0 (unreleased)
 
 
-- Nothing changed yet.
+- Support `/predict/rephrase` endpoint
 
 
 ## 4.0.5 (2024-08-01)
