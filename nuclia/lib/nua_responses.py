@@ -135,13 +135,6 @@ class RephraseModel(RootModel[str]):
     pass
 
 
-# class RephraseModel(BaseModel):
-#     question: str
-#     chat_history: List[Message] = []
-#     context: List[Message] = []
-#     user_id: str
-
-
 class WebhookConfig(BaseModel):
     uri: Optional[str] = None
     headers: Dict[str, str] = {}
