@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pydantic
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, RootModel, model_validator
 from typing_extensions import Annotated, Self
 
 
@@ -131,11 +131,15 @@ class SummarizedModel(BaseModel):
     summary: str = ""
 
 
-class RephraseModel(BaseModel):
-    question: str
-    chat_history: List[Message] = []
-    context: List[Message] = []
-    user_id: str
+class RephraseModel(RootModel[str]):
+    pass
+
+
+# class RephraseModel(BaseModel):
+#     question: str
+#     chat_history: List[Message] = []
+#     context: List[Message] = []
+#     user_id: str
 
 
 class WebhookConfig(BaseModel):

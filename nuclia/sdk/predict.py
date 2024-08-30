@@ -116,6 +116,17 @@ class NucliaPredict:
         return nc.summarize(texts, model)
 
     @nua
+    def rephrase(
+        self,
+        question: str,
+        user_context: Optional[List[str]] = None,
+        model: Optional[str] = None,
+        **kwargs,
+    ) -> str:
+        nc: NuaClient = kwargs["nc"]
+        return nc.rephrase(question, user_context, model).root
+
+    @nua
     def rag(
         self, question: str, context: List[str], model: Optional[str] = None, **kwargs
     ) -> GenerativeFullResponse:
@@ -224,6 +235,17 @@ class AsyncNucliaPredict:
     ) -> SummarizedModel:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.summarize(texts, model)
+
+    @nua
+    async def rephrase(
+        self,
+        question: str,
+        user_context: Optional[List[str]] = None,
+        model: Optional[str] = None,
+        **kwargs,
+    ) -> str:
+        nc: NuaClient = kwargs["nc"]
+        return nc.rephrase(question, user_context, model).root
 
     @nua
     async def rag(
