@@ -3,7 +3,7 @@
 ## 4.1.1 (unreleased)
 
 
-- Nothing changed yet.
+- Update dependencies
 
 
 ## 4.1.0 (2024-08-30)

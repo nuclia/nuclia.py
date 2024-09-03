@@ -11,6 +11,8 @@ from nucliadb_models.search import (
     FindRequest,
     KnowledgeboxFindResults,
     KnowledgeboxSearchResults,
+    RagStrategies,
+    RagImagesStrategies,
     Relations,
     SearchOptions,
     SearchRequest,
@@ -23,6 +25,7 @@ from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
+from nuclia.sdk.resource import RagImagesStrategiesParse, RagStrategiesParse
 
 
 @dataclass
@@ -134,6 +137,8 @@ class NucliaSearch:
         *,
         query: Union[str, dict, AskRequest],
         filters: Optional[Union[List[str], List[Filter]]] = None,
+        rag_strategies: Optional[list[RagStrategies]] = None,
+        rag_images_strategies: Optional[list[RagImagesStrategies]] = None,
         **kwargs,
     ):
         """
@@ -148,6 +153,14 @@ class NucliaSearch:
                 filters=filters or [],  # type: ignore
                 **kwargs,
             )
+            if rag_strategies is not None:
+                req.rag_strategies = RagStrategiesParse.model_validate(
+                    {"rag_strategies": rag_strategies}
+                ).rag_strategies
+            if rag_images_strategies is not None:
+                req.rag_images_strategies = RagImagesStrategiesParse.model_validate(
+                    {"rag_images_strategies": rag_images_strategies}
+                ).rag_images_strategies
         elif isinstance(query, dict):
             try:
                 req = AskRequest.model_validate(query)
