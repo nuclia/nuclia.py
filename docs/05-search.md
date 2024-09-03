@@ -97,3 +97,45 @@ Here are some examples:
     filters=[Filter(any=['/classification.labels/region/Europe','/classification.labels/region/Asia'])],
   )
   ```
+
+## Using RAG strategies
+
+RAG strategies can be used to improve the quality of the answers by extending the search results passed to the LLM as context.
+
+- CLI:
+
+  ```bash
+  nuclia kb search ask --query="My question" --rag_strategies='[{"name":"hierarchy"}]'
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  search = sdk.NucliaSearch()
+  search.ask(query="My question", rag_strategies=[rag_strategies=[{"name": "hierarchy"}]])
+  ```
+
+See the [RAG strategies documentation](https://docs.nuclia.dev/docs/rag/rag-strategy) for more information.
+
+## Complex queries
+
+The Python SDK allows to use all the options supported by the `/find` and `/ask` endpoints,
+but not all of the options can be passed as specific parameter.
+In these cases, you can just pass your query as a dictionnary in the `query` parameter.
+
+- CLI:
+
+  ```bash
+  nuclia kb search find --query='{"query": "My search", "filters": ["/icon/application/pdf", "/classification.labels/region/Asia"]}'
+  nuclia kb search ask --query='{"query": "My search","top_k": 5}'
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  search = sdk.NucliaSearch()
+  search.find(query={"query": "My search", "filters": ["/icon/application/pdf", "/classification.labels/region/Asia"]})
+  search.ask(query={"query": "My search","top_k": 5})
+  ```
