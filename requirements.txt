@@ -5,8 +5,8 @@ requests
 httpx
 httpcore>=1.0.0
 prompt_toolkit
-nucliadb_sdk>=5.0.0.post639,<6
-nucliadb_models>=5.0.0.post639,<6
+nucliadb_sdk>=5.1.0.post1274,<6
+nucliadb_models>=5.1.0.post1274,<6
 tqdm
 aiofiles
 backoff
