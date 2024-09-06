@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-from nuclia.lib.kb import NucliaDBClient
 from nuclia.exceptions import KBNotAvailable
 from nuclia.lib.kb import Environment, NucliaDBClient
 

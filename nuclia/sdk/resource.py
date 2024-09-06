@@ -8,7 +8,6 @@ import os
 
 import requests
 from nuclia import get_list_parameter, get_regional_url
-from nuclia.data import get_auth, get_client
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.logger import logger

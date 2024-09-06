@@ -269,7 +269,7 @@ class NucliaKB:
             try:
                 logger.info(f"Copying resource {res.id}")
                 self.copy(rid=res.id, destination=destination, **kwargs)
-            except exceptions.ConflictError as e:
+            except exceptions.ConflictError:
                 logger.info(f"Resource {res.id} already exists in destination KB")
         if not is_last:
             self.copy_all(destination=destination, page=page + 1, **kwargs)
@@ -537,7 +537,7 @@ class AsyncNucliaKB:
             try:
                 logger.info(f"Copying resource {res.id}")
                 await self.copy(rid=res.id, destination=destination, **kwargs)
-            except exceptions.ConflictError as e:
+            except exceptions.ConflictError:
                 logger.info(f"Resource {res.id} already exists in destination KB")
         if not is_last:
             await self.copy_all(destination=destination, page=page + 1, **kwargs)
