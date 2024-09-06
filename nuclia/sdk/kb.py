@@ -1,14 +1,18 @@
+import os
+import tempfile
 from typing import Any, List, Optional
 
 from nucliadb_models import Notification
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SummarizeRequest, SummaryKind
+from nucliadb_sdk import exceptions
 
-from nuclia.data import get_async_auth, get_auth
+from nuclia.data import get_async_auth, get_auth, get_client
 from nuclia.decorators import kb
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.lib.nua_responses import SummarizedModel
+from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 from nuclia.sdk.export_import import (
     AsyncNucliaExports,
@@ -166,6 +170,109 @@ class NucliaKB:
         response = ndb.notifications()
         for notification in response.iter_lines():
             yield Notification.model_validate_json(notification)
+
+    @kb
+    def copy(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        destination: str,
+        **kwargs,
+    ):
+        ndb = kwargs["ndb"]
+        if rid:
+            res = ndb.ndb.get_resource_by_id(
+                kbid=ndb.kbid,
+                rid=rid,
+                query_params={
+                    "show": ["basic", "origin", "extra", "values", "security"]
+                },
+            )
+        elif slug:
+            res = ndb.ndb.get_resource_by_slug(
+                kbid=ndb.kbid,
+                slug=slug,
+                query_params={
+                    "show": ["basic", "origin", "extra", "values", "security"]
+                },
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+        data = {
+            "kbid": destination,
+            "slug": res.slug,
+            "title": res.title,
+            "summary": res.summary,
+            "icon": res.icon,
+            "origin": res.origin,
+            "extra": res.extra,
+            "usermetadata": res.usermetadata,
+            "fieldmetadata": res.fieldmetadata,
+            "security": res.security,
+        }
+        files_to_upload = []
+        if res.data.conversations:
+            data["conversations"] = dict(
+                zip(
+                    res.data.conversations.keys(),
+                    [dict(v.value) for v in res.data.conversations.values()],
+                )
+            )
+        if res.data.links:
+            data["links"] = dict(
+                zip(
+                    res.data.links.keys(),
+                    [dict(v.value) for v in res.data.links.values()],
+                )
+            )
+        if res.data.texts:
+            data["texts"] = dict(
+                zip(
+                    res.data.texts.keys(),
+                    [dict(v.value) for v in res.data.texts.values()],
+                )
+            )
+        if res.data.files:
+            remote_files = {}
+            for file_id, file in res.data.files.items():
+                if file.value.external:
+                    remote_files[file_id] = file.value
+                else:
+                    files_to_upload.append({"id": file_id, "data": file.value})
+        destination_kb = get_client(destination)
+        uuid = self.resource.create(ndb=destination_kb, **data)
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            for file_data in files_to_upload:
+                file_path = os.path.join(tmpdirname, file_data["data"].file.filename)
+                self.resource.download_file(
+                    rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
+                )
+                self.upload.file(path=file_path, ndb=destination_kb, rid=uuid)
+
+    @kb
+    def copy_all(
+        self, *, destination: str, page=0, filters: Optional[List[str]] = None, **kwargs
+    ):
+        ndb = kwargs["ndb"]
+        if filters is None:
+            batch = self.list(ndb=ndb, page=page)
+            resources = batch.resources
+            is_last = batch.pagination.last
+        else:
+            batch = self.search.find(
+                ndb=ndb, filters=filters, page=page, fields=["a/title"]
+            )
+            resources = batch.resources.values()
+            is_last = batch.next_page
+        for res in resources:
+            try:
+                logger.info(f"Copying resource {res.id}")
+                self.copy(rid=res.id, destination=destination, **kwargs)
+            except exceptions.ConflictError as e:
+                logger.info(f"Resource {res.id} already exists in destination KB")
+        if not is_last:
+            self.copy_all(destination=destination, page=page + 1, **kwargs)
 
 
 class AsyncNucliaKB:
@@ -331,3 +438,106 @@ class AsyncNucliaKB:
         response = await ndb.notifications()
         async for notification in response.aiter_lines():
             yield Notification.model_validate_json(notification)
+
+    @kb
+    async def copy(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        destination: str,
+        **kwargs,
+    ):
+        ndb = kwargs["ndb"]
+        if rid:
+            res = await ndb.ndb.get_resource_by_id(
+                kbid=ndb.kbid,
+                rid=rid,
+                query_params={
+                    "show": ["basic", "origin", "extra", "values", "security"]
+                },
+            )
+        elif slug:
+            res = await ndb.ndb.get_resource_by_slug(
+                kbid=ndb.kbid,
+                slug=slug,
+                query_params={
+                    "show": ["basic", "origin", "extra", "values", "security"]
+                },
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+        data = {
+            "kbid": destination,
+            "slug": res.slug,
+            "title": res.title,
+            "summary": res.summary,
+            "icon": res.icon,
+            "origin": res.origin,
+            "extra": res.extra,
+            "usermetadata": res.usermetadata,
+            "fieldmetadata": res.fieldmetadata,
+            "security": res.security,
+        }
+        files_to_upload = []
+        if res.data.conversations:
+            data["conversations"] = dict(
+                zip(
+                    res.data.conversations.keys(),
+                    [dict(v.value) for v in res.data.conversations.values()],
+                )
+            )
+        if res.data.links:
+            data["links"] = dict(
+                zip(
+                    res.data.links.keys(),
+                    [dict(v.value) for v in res.data.links.values()],
+                )
+            )
+        if res.data.texts:
+            data["texts"] = dict(
+                zip(
+                    res.data.texts.keys(),
+                    [dict(v.value) for v in res.data.texts.values()],
+                )
+            )
+        if res.data.files:
+            remote_files = {}
+            for file_id, file in res.data.files.items():
+                if file.value.external:
+                    remote_files[file_id] = file.value
+                else:
+                    files_to_upload.append({"id": file_id, "data": file.value})
+        destination_kb = get_client(destination)
+        uuid = await self.resource.create(ndb=destination_kb, **data)
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            for file_data in files_to_upload:
+                file_path = os.path.join(tmpdirname, file_data["data"].file.filename)
+                await self.resource.download_file(
+                    rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
+                )
+                await self.upload.file(path=file_path, ndb=destination_kb, rid=uuid)
+
+    @kb
+    async def copy_all(
+        self, *, destination: str, page=0, filters: Optional[List[str]] = None, **kwargs
+    ):
+        ndb = kwargs["ndb"]
+        if filters is None:
+            batch = await self.list(ndb=ndb, page=page)
+            resources = batch.resources
+            is_last = batch.pagination.last
+        else:
+            batch = await self.search.find(
+                ndb=ndb, filters=filters, page=page, fields=["a/title"]
+            )
+            resources = batch.resources.values()
+            is_last = batch.next_page
+        for res in resources:
+            try:
+                logger.info(f"Copying resource {res.id}")
+                await self.copy(rid=res.id, destination=destination, **kwargs)
+            except exceptions.ConflictError as e:
+                logger.info(f"Resource {res.id} already exists in destination KB")
+        if not is_last:
+            await self.copy_all(destination=destination, page=page + 1, **kwargs)
