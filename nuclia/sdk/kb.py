@@ -8,7 +8,7 @@ from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SummarizeRequest, SummaryKind
 from nucliadb_sdk import exceptions
 
-from nuclia.data import get_async_auth, get_auth, get_client
+from nuclia.data import get_async_auth, get_async_client, get_auth, get_client
 from nuclia.decorators import kb
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.lib.nua_responses import SummarizedModel
@@ -508,7 +508,7 @@ class AsyncNucliaKB:
                     remote_files[file_id] = file.value
                 else:
                     files_to_upload.append({"id": file_id, "data": file.value})
-        destination_kb = get_client(destination)
+        destination_kb = await get_async_client(destination)
         uuid = await self.resource.create(ndb=destination_kb, **data)
         with tempfile.TemporaryDirectory() as tmpdirname:
             for file_data in files_to_upload:
