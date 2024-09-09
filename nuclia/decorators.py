@@ -6,7 +6,7 @@ from httpx import ConnectError
 import yaml
 
 from nuclia import BASE_DOMAIN
-from nuclia.data import get_async_auth, get_auth, get_client
+from nuclia.data import get_async_auth, get_async_client, get_auth
 from nuclia.exceptions import KBNotAvailable, NotDefinedDefault, NucliaConnectionError
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
@@ -47,7 +47,7 @@ def kb(func):
             kbid = auth._config.get_default_kb()
             if kbid is None:
                 raise NotDefinedDefault()
-            ndb = get_client(kbid)
+            ndb = get_async_client(kbid)
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             ndb = AsyncNucliaDBClient(

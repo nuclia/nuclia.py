@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from nuclia.exceptions import KBNotAvailable
-from nuclia.lib.kb import Environment, NucliaDBClient
+from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 
 if TYPE_CHECKING:
     from nuclia.config import Config
@@ -78,6 +78,41 @@ def get_client(kbid: str) -> NucliaDBClient:
             )
         else:
             ndb = NucliaDBClient(
+                environment=Environment.CLOUD,
+                url=kb_obj.url,
+                api_key=kb_obj.token,
+                region=kb_obj.region,
+            )
+    return ndb
+
+
+def get_async_client(kbid: str) -> AsyncNucliaDBClient:
+    auth = get_auth()
+    kb_obj = auth._config.get_kb(kbid)
+
+    if kb_obj is None:
+        raise KBNotAvailable(kbid)
+    elif kb_obj.region is None:
+        # OSS
+        ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
+    else:
+        if kb_obj.token is None and auth._validate_user_token():
+            # User token auth
+            ndb = AsyncNucliaDBClient(
+                environment=Environment.CLOUD,
+                url=kb_obj.url,
+                user_token=auth._config.token,
+                region=kb_obj.region,
+            )
+        elif kb_obj.token is None:
+            # Public
+            ndb = AsyncNucliaDBClient(
+                environment=Environment.CLOUD,
+                url=kb_obj.url,
+                region=kb_obj.region,
+            )
+        else:
+            ndb = AsyncNucliaDBClient(
                 environment=Environment.CLOUD,
                 url=kb_obj.url,
                 api_key=kb_obj.token,
