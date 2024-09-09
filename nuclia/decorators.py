@@ -7,7 +7,7 @@ import yaml
 
 from nuclia import BASE_DOMAIN
 from nuclia.data import get_async_auth, get_async_client, get_auth, get_client
-from nuclia.exceptions import KBNotAvailable, NotDefinedDefault, NucliaConnectionError
+from nuclia.exceptions import NotDefinedDefault, NucliaConnectionError
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
 
