@@ -508,7 +508,7 @@ class AsyncNucliaKB:
                     remote_files[file_id] = file.value
                 else:
                     files_to_upload.append({"id": file_id, "data": file.value})
-        destination_kb = await get_async_client(destination)
+        destination_kb = get_async_client(destination)
         uuid = await self.resource.create(ndb=destination_kb, **data)
         with tempfile.TemporaryDirectory() as tmpdirname:
             for file_data in files_to_upload:
