@@ -5,7 +5,9 @@ from uuid import uuid4
 from nucliadb_models.metadata import ResourceProcessingStatus
 from nucliadb_models.resource import Resource
 import os
-from nuclia import get_list_parameter
+
+import requests
+from nuclia import get_list_parameter, get_regional_url
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.logger import logger
@@ -16,6 +18,7 @@ from nucliadb_models.search import (
     RagImagesStrategies,
 )
 from pydantic import ValidationError, BaseModel, Field
+
 
 RESOURCE_ATTRIBUTES = [
     "icon",
@@ -176,6 +179,39 @@ class NucliaResource:
         return res
 
     @kb
+    def download_file(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        file_id: str,
+        output: str,
+        **kwargs,
+    ):
+        ndb = kwargs["ndb"]
+        if rid:
+            res = ndb.ndb.get_resource_by_id(
+                kbid=ndb.kbid, rid=rid, query_params={"show": ["values"]}
+            )
+        elif slug:
+            res = ndb.ndb.get_resource_by_slug(
+                kbid=ndb.kbid, slug=slug, query_params={"show": ["values"]}
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+        file_field = res.data.files.get(file_id)
+        if not file_field:
+            raise ValueError(f"File with id {file_id} not found in resource")
+        url = get_regional_url(ndb.region.value, "/api/v1" + file_field.value.file.uri)
+        download = requests.get(url, stream=True, headers=ndb.headers)
+        if download.status_code != 200:
+            raise ValueError(f"Error downloading file: {download.text}")
+        with open(output, "wb") as f:
+            for chunk in download.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+
+    @kb
     def update(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
@@ -285,6 +321,39 @@ class AsyncNucliaResource:
             )
 
         return res
+
+    @kb
+    async def download_file(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        file_id: str,
+        output: str,
+        **kwargs,
+    ):
+        ndb = kwargs["ndb"]
+        if rid:
+            res = await ndb.ndb.get_resource_by_id(
+                kbid=ndb.kbid, rid=rid, query_params={"show": ["values"]}
+            )
+        elif slug:
+            res = await ndb.ndb.get_resource_by_slug(
+                kbid=ndb.kbid, slug=slug, query_params={"show": ["values"]}
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+        file_field = res.data.files.get(file_id)
+        if not file_field:
+            raise ValueError(f"File with id {file_id} not found in resource")
+        url = get_regional_url(ndb.region.value, "/api/v1" + file_field.value.file.uri)
+        download = requests.get(url, stream=True, headers=ndb.headers)
+        if download.status_code != 200:
+            raise ValueError(f"Error downloading file: {download.text}")
+        with open(output, "wb") as f:
+            for chunk in download.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
 
     @kb
     async def update(
