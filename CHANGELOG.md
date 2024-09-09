@@ -1,9 +1,10 @@
 # Changelog
 
-## 4.1.2 (unreleased)
+## 4.2.0 (unreleased)
 
 
-- Nothing changed yet.
+- Download files stored in resources
+- Allow to copy resources between KBs
 
 
 ## 4.1.1 (2024-09-03)

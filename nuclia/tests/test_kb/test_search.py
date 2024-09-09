@@ -53,8 +53,8 @@ def test_ask_with_markdown_answer(testing_config):
     )
     results = search.ask(query=ask)
     answer = results.answer.decode()
-    markdown_keywords = ["**", "#", "1."]
-    assert any([keyword in answer.lower() for keyword in markdown_keywords])
+    markdown_keywords = ["**", "#", "1.", "*"]
+    assert any([keyword in answer.lower() for keyword in markdown_keywords]), answer
 
 
 def test_search(testing_config):

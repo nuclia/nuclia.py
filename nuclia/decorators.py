@@ -6,8 +6,8 @@ from httpx import ConnectError
 import yaml
 
 from nuclia import BASE_DOMAIN
-from nuclia.data import get_async_auth, get_auth
-from nuclia.exceptions import KBNotAvailable, NotDefinedDefault, NucliaConnectionError
+from nuclia.data import get_async_auth, get_async_client, get_auth, get_client
+from nuclia.exceptions import NotDefinedDefault, NucliaConnectionError
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
 
@@ -47,38 +47,7 @@ def kb(func):
             kbid = auth._config.get_default_kb()
             if kbid is None:
                 raise NotDefinedDefault()
-
-            kb_obj = auth._config.get_kb(kbid)
-
-            if kb_obj is None:
-                raise KBNotAvailable(kbid)
-            elif kb_obj.region is None:
-                # OSS
-                ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
-            else:
-                if kb_obj.token is None and await auth._validate_user_token():
-                    # User token auth
-                    ndb = AsyncNucliaDBClient(
-                        environment=Environment.CLOUD,
-                        url=kb_obj.url,
-                        user_token=auth._config.token,
-                        region=kb_obj.region,
-                    )
-                elif kb_obj.token is None:
-                    # Public
-                    ndb = AsyncNucliaDBClient(
-                        environment=Environment.CLOUD,
-                        url=kb_obj.url,
-                        region=kb_obj.region,
-                    )
-                else:
-                    ndb = AsyncNucliaDBClient(
-                        environment=Environment.CLOUD,
-                        url=kb_obj.url,
-                        api_key=kb_obj.token,
-                        region=kb_obj.region,
-                    )
-
+            ndb = get_async_client(kbid)
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             ndb = AsyncNucliaDBClient(
@@ -105,38 +74,7 @@ def kb(func):
             kbid = auth._config.get_default_kb()
             if kbid is None:
                 raise NotDefinedDefault()
-
-            kb_obj = auth._config.get_kb(kbid)
-
-            if kb_obj is None:
-                raise KBNotAvailable(kbid)
-            elif kb_obj.region is None:
-                # OSS
-                ndb = NucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
-            else:
-                if kb_obj.token is None and auth._validate_user_token():
-                    # User token auth
-                    ndb = NucliaDBClient(
-                        environment=Environment.CLOUD,
-                        url=kb_obj.url,
-                        user_token=auth._config.token,
-                        region=kb_obj.region,
-                    )
-                elif kb_obj.token is None:
-                    # Public
-                    ndb = NucliaDBClient(
-                        environment=Environment.CLOUD,
-                        url=kb_obj.url,
-                        region=kb_obj.region,
-                    )
-                else:
-                    ndb = NucliaDBClient(
-                        environment=Environment.CLOUD,
-                        url=kb_obj.url,
-                        api_key=kb_obj.token,
-                        region=kb_obj.region,
-                    )
-
+            ndb = get_client(kbid)
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             ndb = NucliaDBClient(
