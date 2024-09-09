@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.0 (unreleased)
+## 4.2.0 (2024-09-09)
 
 
 - Download files stored in resources
