@@ -261,7 +261,9 @@ class NucliaKB:
         if not failed:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 for file_data in files_to_upload:
-                    file_path = os.path.join(tmpdirname, file_data["data"].file.filename)
+                    file_path = os.path.join(
+                        tmpdirname, file_data["data"].file.filename
+                    )
                     self.resource.download_file(
                         rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
                     )
@@ -543,7 +545,9 @@ class AsyncNucliaKB:
         if not failed:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 for file_data in files_to_upload:
-                    file_path = os.path.join(tmpdirname, file_data["data"].file.filename)
+                    file_path = os.path.join(
+                        tmpdirname, file_data["data"].file.filename
+                    )
                     await self.resource.download_file(
                         rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
                     )
