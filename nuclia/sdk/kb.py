@@ -26,6 +26,7 @@ from nuclia.sdk.export_import import (
 from nuclia.sdk.logs import NucliaLogs
 from nuclia.sdk.resource import AsyncNucliaResource, NucliaResource
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
+from nuclia.sdk.task import NucliaTask
 from nuclia.sdk.upload import AsyncNucliaUpload, NucliaUpload
 
 
@@ -42,6 +43,7 @@ class NucliaKB:
         self.exports = NucliaExports()
         self.imports = NucliaImports()
         self.logs = NucliaLogs()
+        self.task = NucliaTask()
 
     @kb
     def list(
