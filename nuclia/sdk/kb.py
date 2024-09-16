@@ -1,5 +1,8 @@
+import asyncio
+from datetime import datetime
 import os
 import tempfile
+import time
 from typing import Any, List, Optional
 
 from nucliadb_models import Notification
@@ -241,14 +244,30 @@ class NucliaKB:
                 else:
                     files_to_upload.append({"id": file_id, "data": file.value})
         destination_kb = get_client(destination)
-        uuid = self.resource.create(ndb=destination_kb, **data)
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            for file_data in files_to_upload:
-                file_path = os.path.join(tmpdirname, file_data["data"].file.filename)
-                self.resource.download_file(
-                    rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
-                )
-                self.upload.file(path=file_path, ndb=destination_kb, rid=uuid)
+        failed = False
+        try:
+            uuid = self.resource.create(ndb=destination_kb, **data)
+        except exceptions.RateLimitError as e:
+            failed = True
+            delay = 5
+            if e.try_after:
+                delay = round(e.try_after - datetime.utcnow().timestamp())
+            logger.warning(
+                f"Backpressure error while copying resource, retrying in {delay} seconds"
+            )
+            time.sleep(delay)
+            self.copy(rid=rid, slug=slug, destination=destination, **kwargs)
+
+        if not failed:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                for file_data in files_to_upload:
+                    file_path = os.path.join(
+                        tmpdirname, file_data["data"].file.filename
+                    )
+                    self.resource.download_file(
+                        rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
+                    )
+                    self.upload.file(path=file_path, ndb=destination_kb, rid=uuid)
 
     @kb
     def copy_all(
@@ -509,14 +528,30 @@ class AsyncNucliaKB:
                 else:
                     files_to_upload.append({"id": file_id, "data": file.value})
         destination_kb = get_async_client(destination)
-        uuid = await self.resource.create(ndb=destination_kb, **data)
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            for file_data in files_to_upload:
-                file_path = os.path.join(tmpdirname, file_data["data"].file.filename)
-                await self.resource.download_file(
-                    rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
-                )
-                await self.upload.file(path=file_path, ndb=destination_kb, rid=uuid)
+        failed = False
+        try:
+            uuid = await self.resource.create(ndb=destination_kb, **data)
+        except exceptions.RateLimitError as e:
+            failed = True
+            delay = 5
+            if e.try_after:
+                delay = round(e.try_after - datetime.utcnow().timestamp())
+            logger.warning(
+                f"Backpressure error while copying resource, retrying in {delay} seconds"
+            )
+            await asyncio.sleep(delay)
+            await self.copy(rid=rid, slug=slug, destination=destination, **kwargs)
+
+        if not failed:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                for file_data in files_to_upload:
+                    file_path = os.path.join(
+                        tmpdirname, file_data["data"].file.filename
+                    )
+                    await self.resource.download_file(
+                        rid=res.id, file_id=file_data["id"], output=file_path, **kwargs
+                    )
+                    await self.upload.file(path=file_path, ndb=destination_kb, rid=uuid)
 
     @kb
     async def copy_all(

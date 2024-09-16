@@ -3,7 +3,7 @@
 ## 4.2.1 (unreleased)
 
 
-- Nothing changed yet.
+- Manage back pressure on resource copy
 
 
 ## 4.2.0 (2024-09-09)
