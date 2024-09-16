@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.1 (unreleased)
+## 4.2.1 (2024-09-16)
 
 
 - Manage back pressure on resource copy
