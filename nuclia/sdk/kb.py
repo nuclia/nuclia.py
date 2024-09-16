@@ -251,7 +251,7 @@ class NucliaKB:
             failed = True
             delay = 5
             if e.try_after:
-                delay = (e.try_after - datetime.utcnow()).seconds
+                delay = round(e.try_after - datetime.utcnow().timestamp())
             logger.warning(
                 f"Backpressure error while copying resource, retrying in {delay} seconds"
             )
@@ -535,7 +535,7 @@ class AsyncNucliaKB:
             failed = True
             delay = 5
             if e.try_after:
-                delay = (e.try_after - datetime.utcnow()).seconds
+                delay = round(e.try_after - datetime.utcnow().timestamp())
             logger.warning(
                 f"Backpressure error while copying resource, retrying in {delay} seconds"
             )
