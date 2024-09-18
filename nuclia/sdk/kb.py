@@ -265,7 +265,9 @@ class NucliaKB:
                 f"Backpressure error while copying resource, retrying in {delay} seconds"
             )
             time.sleep(delay)
-            self.copy(rid=rid, slug=slug, destination=destination, override=override, **kwargs)
+            self.copy(
+                rid=rid, slug=slug, destination=destination, override=override, **kwargs
+            )
 
         if not failed:
             with tempfile.TemporaryDirectory() as tmpdirname:
@@ -280,7 +282,13 @@ class NucliaKB:
 
     @kb
     def copy_all(
-        self, *, destination: str, page=0, override: Optional[bool] = False, filters: Optional[List[str]] = None, **kwargs
+        self,
+        *,
+        destination: str,
+        page=0,
+        override: Optional[bool] = False,
+        filters: Optional[List[str]] = None,
+        **kwargs,
     ):
         ndb = kwargs["ndb"]
         if filters is None:
@@ -296,11 +304,15 @@ class NucliaKB:
         for res in resources:
             try:
                 logger.info(f"Copying resource {res.id}")
-                self.copy(rid=res.id, destination=destination, override=override, **kwargs)
+                self.copy(
+                    rid=res.id, destination=destination, override=override, **kwargs
+                )
             except exceptions.ConflictError:
                 logger.info(f"Resource {res.id} already exists in destination KB")
         if not is_last:
-            self.copy_all(destination=destination, page=page + 1, override=override, **kwargs)
+            self.copy_all(
+                destination=destination, page=page + 1, override=override, **kwargs
+            )
 
 
 class AsyncNucliaKB:
