@@ -3,7 +3,7 @@
 ## 4.2.2 (unreleased)
 
 
-- Nothing changed yet.
+- Optionally override already existing resources when copying 
 
 
 ## 4.2.1 (2024-09-16)

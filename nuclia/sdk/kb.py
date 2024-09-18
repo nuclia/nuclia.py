@@ -181,6 +181,7 @@ class NucliaKB:
         rid: Optional[str] = None,
         slug: Optional[str] = None,
         destination: str,
+        override: Optional[bool] = False,
         **kwargs,
     ):
         ndb = kwargs["ndb"]
@@ -244,6 +245,14 @@ class NucliaKB:
                 else:
                     files_to_upload.append({"id": file_id, "data": file.value})
         destination_kb = get_client(destination)
+        if override:
+            try:
+                self.resource.delete(
+                    ndb=destination_kb,
+                    slug=res.slug,
+                )
+            except exceptions.NotFoundError:
+                pass
         failed = False
         try:
             uuid = self.resource.create(ndb=destination_kb, **data)
@@ -256,7 +265,7 @@ class NucliaKB:
                 f"Backpressure error while copying resource, retrying in {delay} seconds"
             )
             time.sleep(delay)
-            self.copy(rid=rid, slug=slug, destination=destination, **kwargs)
+            self.copy(rid=rid, slug=slug, destination=destination, override=override, **kwargs)
 
         if not failed:
             with tempfile.TemporaryDirectory() as tmpdirname:
@@ -271,7 +280,7 @@ class NucliaKB:
 
     @kb
     def copy_all(
-        self, *, destination: str, page=0, filters: Optional[List[str]] = None, **kwargs
+        self, *, destination: str, page=0, override: Optional[bool] = False, filters: Optional[List[str]] = None, **kwargs
     ):
         ndb = kwargs["ndb"]
         if filters is None:
@@ -287,11 +296,11 @@ class NucliaKB:
         for res in resources:
             try:
                 logger.info(f"Copying resource {res.id}")
-                self.copy(rid=res.id, destination=destination, **kwargs)
+                self.copy(rid=res.id, destination=destination, override=override, **kwargs)
             except exceptions.ConflictError:
                 logger.info(f"Resource {res.id} already exists in destination KB")
         if not is_last:
-            self.copy_all(destination=destination, page=page + 1, **kwargs)
+            self.copy_all(destination=destination, page=page + 1, override=override, **kwargs)
 
 
 class AsyncNucliaKB:
