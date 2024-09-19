@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.2 (unreleased)
+## 4.2.2 (2024-09-19)
 
 
 - Optionally override already existing resources when copying 
