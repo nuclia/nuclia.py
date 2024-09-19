@@ -24,7 +24,6 @@ async def test_crud(nucliadb: NucliaFixture, event_loop: BaseEventLoop):
         ndb.create,
         slug="kb",
         title="title",
-        learning_configuration={"semantic_model": "english"},
         default=True,
     )
 
