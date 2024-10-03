@@ -2,10 +2,10 @@ from typing import TypeVar
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import field_validator
+from pydantic import field_validator, create_model
 from typing import Generic
 from typing import Annotated
-from typing import Optional
+from typing import Optional, Any
 from enum import Enum
 import re
 
@@ -139,6 +139,36 @@ show_by_default_fields = [
     and hasattr(value.json_schema_extra, "get")
     and value.json_schema_extra.get("show_by_default") is True
 ]
+
+
+def create_dynamic_model(name: str, base_model: QueryFilters):
+    field_definitions = {}
+    for field_name in base_model.model_fields.keys():
+        # TODO: fetch data type more dynamically
+        if field_name == "id":
+            field_type: Any = int
+        elif field_name == "user_type":
+            field_type = Optional[UserType]
+        elif field_name == "client_type":
+            field_type = Optional[ClientType]
+        elif field_name == "total_duration":
+            field_type = Optional[float]
+        elif field_name == "time_to_first_char":
+            field_type = Optional[float]
+        else:
+            field_type = Optional[str]
+
+        field_definitions[field_name] = (field_type, Field(default=None))
+
+    return create_model(name, **field_definitions)  # type: ignore
+
+
+ActivityLogs = create_dynamic_model(name="ActivityLogs", base_model=QueryFilters)  # type: ignore
+
+
+class ActivityLogsQueryResponse(BaseConfigModel):
+    data: list[ActivityLogs]  # type: ignore
+    has_more: bool
 
 
 class ActivityLogsQuery(BaseConfigModel):
