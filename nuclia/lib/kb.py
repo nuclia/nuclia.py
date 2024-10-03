@@ -2,7 +2,7 @@ import base64
 import csv
 import os
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import aiofiles
 import backoff
@@ -11,7 +11,7 @@ import requests
 from nucliadb_models.search import AskRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
-
+from nuclia.lib.models import ActivityLogsQuery
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 
@@ -33,6 +33,7 @@ DOWNLOAD_URL = "/{uri}"
 TUS_UPLOAD_RESOURCE_URL = "/resource/{rid}/file/{field}/tusupload"
 TUS_UPLOAD_URL = "/tusupload"
 ACTIVITY_LOG_URL = "/activity/download?type={type}&month={month}"
+ACTIVITY_LOG_QUERY_URL = "/activity/{type}/query"
 FEEDBACK_LOG_URL = "/feedback/{month}"
 NOTIFICATIONS = "/notifications"
 
@@ -43,12 +44,20 @@ class Environment(str, Enum):
 
 
 class LogType(str, Enum):
-    NEW = "NEW"
-    PROCESSED = "PROCESSED"
-    MODIFIED = "MODIFIED"
-    CHAT = "CHAT"
-    SEARCH = "SEARCH"
-    FEEDBACK = "FEEDBACK"
+    # Nucliadb
+    VISITED = "visited"
+    MODIFIED = "modified"
+    DELETED = "deleted"
+    NEW = "new"
+    SEARCH = "search"
+    SUGGEST = "suggest"
+    INDEXED = "indexed"
+    CHAT = "chat"
+    # Tasks
+    STARTED = "started"
+    STOPPED = "stopped"
+    # Processor
+    PROCESSED = "processed"
 
 
 class BaseNucliaDBClient:
@@ -270,8 +279,8 @@ class NucliaDBClient(BaseNucliaDBClient):
         if self.reader_session is None:
             raise Exception("KB not configured")
 
-        if type != "FEEDBACK":
-            url = ACTIVITY_LOG_URL.format(type=type, month=month)
+        if type != "feedback":
+            url = ACTIVITY_LOG_URL.format(type=type.value, month=month)
             response: httpx.Response = self.reader_session.get(url)
             handle_http_errors(response)
             return [row for row in csv.reader(response.iter_lines())]
@@ -296,6 +305,22 @@ class NucliaDBClient(BaseNucliaDBClient):
                 else:
                     results.append(feedback)
             return results
+
+    def logs_query(
+        self, type: LogType, query: Union[dict, ActivityLogsQuery]
+    ) -> requests.Response:
+        if self.stream_session is None:
+            raise Exception("KB not configured")
+
+        response = self.stream_session.post(
+            f"{self.url}{ACTIVITY_LOG_QUERY_URL.format(type=type.value)}",
+            json=query
+            if isinstance(query, dict)
+            else query.model_dump(exclude_unset=True),
+            stream=True,
+        )
+        handle_http_errors(response)
+        return response
 
 
 class AsyncNucliaDBClient(BaseNucliaDBClient):

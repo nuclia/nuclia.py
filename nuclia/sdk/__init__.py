@@ -17,6 +17,7 @@ from .search import NucliaSearch
 from .upload import AsyncNucliaUpload
 from .upload import NucliaUpload
 from .zones import NucliaZones
+from .activity_logs import NucliaActivityLogs
 
 __all__ = [
     "NucliaAccounts",
@@ -39,4 +40,5 @@ __all__ = [
     "AsyncNucliaUpload",
     "NucliaUpload",
     "NucliaZones",
+    "NucliaActivityLogs",
 ]
