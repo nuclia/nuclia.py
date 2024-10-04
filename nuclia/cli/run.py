@@ -14,7 +14,6 @@ from nuclia.sdk.kbs import NucliaKBS
 from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
 from nuclia.sdk.zones import NucliaZones
-from nuclia.sdk.activity_logs import NucliaActivityLogs
 from .utils import CustomFormatter
 
 
@@ -26,7 +25,6 @@ class NucliaCLI(object):
         self.kbs = self.knowledgeboxes = NucliaKBS()
         self.kb = self.knowledgebox = NucliaKB()
         self.nua = NucliaNUA()
-        self.activity_logs = NucliaActivityLogs()
 
     def version(self):
         """Print the version of the CLI"""
