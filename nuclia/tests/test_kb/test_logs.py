@@ -1,6 +1,8 @@
 from nuclia.sdk.kb import NucliaKB
 from nuclia.tests.fixtures import IS_PROD
 from nuclia.lib.kb import LogType
+from nuclia.sdk.activity_logs import NucliaActivityLogs
+from nuclia.lib.models import ActivityLogsQuery, Pagination
 
 
 def test_logs(testing_config):
@@ -16,6 +18,11 @@ def test_activity_logs_query(testing_config):
     if not IS_PROD:
         assert True
         return
-    nkb = NucliaKB()
-    logs = nkb.logs.get(type=LogType.NEW, month="2024-06")
-    assert len(logs) == 23
+    query = ActivityLogsQuery(
+        year_month="2024-10",
+        show=["id", "date", "question", "answer"],
+        filters={},
+        pagination=Pagination(limit=10),
+    )
+    output = NucliaActivityLogs().query(type=LogType.CHAT, query=query)
+    assert len(output) == 0
