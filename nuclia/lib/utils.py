@@ -8,6 +8,7 @@ from tabulate import tabulate
 from nuclia.exceptions import RateLimitError, UserTokenExpired, DuplicateError
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SyncAskResponse
+from nuclia.lib.models import ActivityLogsQueryResponse
 
 
 def handle_http_errors(response: Union[httpx.Response, requests.models.Response]):
@@ -56,4 +57,8 @@ def serialize(obj):
             headers=["UUID", "Icon", "Title"],
         )
         return response
+
+    if isinstance(obj, ActivityLogsQueryResponse):
+        obj = obj.model_dump(exclude_unset=True)
+
     return obj

@@ -11,6 +11,9 @@ class NucliaLogs:
         :param type: NEW, PROCESSED, MODIFIED, CHAT, SEARCH, FEEDBACK
         :param month: YYYY-MM
         """
+        if isinstance(type, str):
+            type = LogType[type.upper()]
+
         ndb: NucliaDBClient = kwargs["ndb"]
         resp = ndb.logs(type=type, month=month)
         return resp

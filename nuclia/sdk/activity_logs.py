@@ -13,7 +13,7 @@ class NucliaActivityLogs:
     def query(
         self,
         *args,
-        type: LogType,
+        type: Union[LogType, str],
         query: Union[dict, ActivityLogsQuery],
         **kwargs,
     ) -> ActivityLogsQueryResponse:
@@ -22,6 +22,9 @@ class NucliaActivityLogs:
 
         :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, STARTED, STOPPED, PROCESSED
         """
+        if isinstance(type, str):
+            type = LogType[type.upper()]
+
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.logs_query(type=type, query=query)
         output: list[ActivityLogsOutput] = []
