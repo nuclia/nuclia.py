@@ -1,5 +1,6 @@
 from nuclia.sdk.kb import NucliaKB
 from nuclia.tests.fixtures import IS_PROD
+from nuclia.lib.kb import LogType
 
 
 def test_logs(testing_config):
@@ -7,5 +8,5 @@ def test_logs(testing_config):
         assert True
         return
     nkb = NucliaKB()
-    logs = nkb.logs.get(type="NEW", month="2024-06")
+    logs = nkb.logs.get(type=LogType.NEW, month="2024-06")
     assert len(logs) == 23

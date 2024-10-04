@@ -163,11 +163,14 @@ def create_dynamic_model(name: str, base_model: QueryFilters):
     return create_model(name, **field_definitions)  # type: ignore
 
 
-ActivityLogs = create_dynamic_model(name="ActivityLogs", base_model=QueryFilters)  # type: ignore
+ActivityLogsOutput = create_dynamic_model(
+    name="ActivityLogsOutput",
+    base_model=QueryFilters,  # type: ignore
+)
 
 
 class ActivityLogsQueryResponse(BaseConfigModel):
-    data: list[ActivityLogs]  # type: ignore
+    data: list[ActivityLogsOutput]  # type: ignore
     has_more: bool
 
 
