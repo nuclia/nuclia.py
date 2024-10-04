@@ -1,7 +1,6 @@
 from nuclia.sdk.kb import NucliaKB
 from nuclia.tests.fixtures import IS_PROD
 from nuclia.lib.kb import LogType
-from nuclia.sdk.activity_logs import NucliaActivityLogs
 from nuclia.lib.models import ActivityLogsQuery, Pagination
 
 
@@ -24,6 +23,7 @@ def test_activity_logs_query(testing_config):
         filters={},
         pagination=Pagination(limit=10),
     )
-    output = NucliaActivityLogs().query(type=LogType.CHAT, query=query)
+    nkb = NucliaKB()
+    output = nkb.logs.query(type=LogType.CHAT, query=query)
     assert len(output.data) == 10
     assert output.has_more
