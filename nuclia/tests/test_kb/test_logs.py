@@ -25,5 +25,5 @@ def test_activity_logs_query(testing_config):
         pagination=Pagination(limit=10),
     )
     output = NucliaActivityLogs().query(type=LogType.CHAT, query=query)
-    assert len(output.data) == 0
-    assert output.has_more is False
+    assert len(output.data) == 10
+    assert output.has_more

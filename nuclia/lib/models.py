@@ -143,20 +143,15 @@ show_by_default_fields = [
 
 def create_dynamic_model(name: str, base_model: QueryFilters):
     field_definitions = {}
+    field_type_map = {
+        "id": int,
+        "user_type": Optional[UserType],
+        "client_type": Optional[ClientType],
+        "total_duration": Optional[float],
+        "time_to_first_char": Optional[float],
+    }
     for field_name in base_model.model_fields.keys():
-        # TODO: fetch data type more dynamically
-        if field_name == "id":
-            field_type: Any = int
-        elif field_name == "user_type":
-            field_type = Optional[UserType]
-        elif field_name == "client_type":
-            field_type = Optional[ClientType]
-        elif field_name == "total_duration":
-            field_type = Optional[float]
-        elif field_name == "time_to_first_char":
-            field_type = Optional[float]
-        else:
-            field_type = Optional[str]
+        field_type: Any = field_type_map.get(field_name, Optional[str])
 
         field_definitions[field_name] = (field_type, Field(default=None))
 
