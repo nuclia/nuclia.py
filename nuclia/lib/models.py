@@ -6,10 +6,24 @@ from pydantic import field_validator, create_model
 from typing import Generic
 from typing import Annotated
 from typing import Optional, Any
+from collections import defaultdict
 from enum import Enum
 import re
 
 T = TypeVar("T")
+
+
+class EventType(str, Enum):
+    VISITED = "VISITED"
+    MODIFIED = "MODIFIED"
+    DELETED = "DELETED"
+    NEW = "NEW"
+    STARTED = "STARTED"
+    STOPPED = "STOPPED"
+    SEARCH = "SEARCH"
+    PROCESSED = "PROCESSED"
+    SUGGEST = "SUGGEST"
+    CHAT = "CHAT"
 
 
 class Pagination(BaseModel):
@@ -37,7 +51,7 @@ class StringFilter(GenericFilter[str]):
     ilike: Optional[str] = None
 
 
-class UserMetadata(StringFilter):
+class AuditMetadata(StringFilter):
     key: str
 
 
@@ -55,48 +69,46 @@ class ClientType(str, Enum):
     CHROME_EXTENSION = "chrome_extension"
 
 
-class QueryFilters(BaseConfigModel):
-    id: Optional[BaseConfigModel] = Field(
-        None, json_schema_extra={"show_by_default": True, "fixed": True}
-    )
+class QueryFiltersCommon(BaseConfigModel):
+    id: Optional[BaseConfigModel] = Field(None)
+    date: Optional[BaseConfigModel] = Field(None, serialization_alias="event_date")
     user_id: Optional[GenericFilter[str]] = None
     user_type: Optional[GenericFilter[UserType]] = None
     client_type: Optional[GenericFilter[ClientType]] = None
     total_duration: Optional[GenericFilter[float]] = None
-    date: Optional[BaseConfigModel] = Field(
-        None,
-        serialization_alias="event_date",
-        json_schema_extra={"show_by_default": True},
+    audit_metadata: Optional[list[AuditMetadata]] = Field(
+        None, serialization_alias="data.user_request.audit_metadata"
     )
+
+
+class QueryFiltersSearch(QueryFiltersCommon):
     question: Optional[StringFilter] = Field(
         None, serialization_alias="data.request.body"
     )
-    rephrased_question: Optional[StringFilter] = Field(
+    resources_count: Optional[StringFilter] = Field(
         None,
-        serialization_alias="data.request.rephrased_question",
-        json_schema_extra={"show_by_default": True},
+        serialization_alias="data.resources_count",
+    )
+    filter: Optional[BaseConfigModel] = Field(
+        None, serialization_alias="data.request.filter"
+    )
+    learning_id: Optional[BaseConfigModel] = Field(
+        None, serialization_alias="data.request.learning_id"
+    )
+
+
+class QueryFiltersChat(QueryFiltersSearch):
+    rephrased_question: Optional[StringFilter] = Field(
+        None, serialization_alias="data.request.rephrased_question"
     )
     answer: Optional[StringFilter] = Field(
-        None,
-        serialization_alias="data.request.answer",
-        json_schema_extra={"show_by_default": True},
+        None, serialization_alias="data.request.answer"
     )
     retrieved_context: Optional[BaseConfigModel] = Field(
         None, serialization_alias="data.request.context"
     )
     chat_history: Optional[BaseConfigModel] = Field(
         None, serialization_alias="data.request.chat_context"
-    )
-    filter: Optional[BaseConfigModel] = Field(
-        None, serialization_alias="data.request.filter"
-    )
-    resources_count: Optional[StringFilter] = Field(
-        None,
-        serialization_alias="data.resources_count",
-        json_schema_extra={"show_by_default": True},
-    )
-    learning_id: Optional[BaseConfigModel] = Field(
-        None, serialization_alias="data.request.learning_id"
     )
     feedback_good: Optional[StringFilter] = Field(
         None, serialization_alias="data.feedback.good"
@@ -106,9 +118,7 @@ class QueryFilters(BaseConfigModel):
     )
     model: Optional[StringFilter] = Field(None, serialization_alias="data.model")
     rag_strategies_names: Optional[BaseConfigModel] = Field(
-        None,
-        serialization_alias="data.rag_strategies",
-        json_schema_extra={"show_by_default": True},
+        None, serialization_alias="data.rag_strategies"
     )
     rag_strategies: Optional[BaseConfigModel] = Field(
         None, serialization_alias="data.user_request.rag_strategies"
@@ -119,29 +129,22 @@ class QueryFilters(BaseConfigModel):
     time_to_first_char: Optional[BaseConfigModel] = Field(
         None, serialization_alias="data.generative_answer_first_chunk_time"
     )
-    audit_metadata: Optional[list[UserMetadata]] = Field(
-        None, serialization_alias="data.user_request.audit_metadata"
-    )
 
 
-allowed_fields = list(QueryFilters.__annotations__.keys())
-fixed_fields = [
-    key
-    for key, value in QueryFilters.model_fields.items()
-    if value.json_schema_extra is not None
-    and hasattr(value.json_schema_extra, "get")
-    and value.json_schema_extra.get("fixed") is True
-]
-show_by_default_fields = [
-    key
-    for key, value in QueryFilters.model_fields.items()
-    if value.json_schema_extra is not None
-    and hasattr(value.json_schema_extra, "get")
-    and value.json_schema_extra.get("show_by_default") is True
-]
+DEFAULT_SHOW_VALUES = {"id", "date"}
+DEFAULT_SHOW_SEARCH_VALUES = DEFAULT_SHOW_VALUES | {"question", "resources_count"}
+DEFAULT_SHOW_CHAT_VALUES = DEFAULT_SHOW_SEARCH_VALUES | {
+    "rephrased_question",
+    "answer",
+    "rag_strategies_names",
+}
+
+DEFAULT_SHOW_MAP = defaultdict(lambda: DEFAULT_SHOW_VALUES)
+DEFAULT_SHOW_MAP[EventType.SEARCH.value] = DEFAULT_SHOW_SEARCH_VALUES
+DEFAULT_SHOW_MAP[EventType.CHAT.value] = DEFAULT_SHOW_CHAT_VALUES
 
 
-def create_dynamic_model(name: str, base_model: QueryFilters):
+def create_dynamic_model(name: str, base_model: QueryFiltersChat):
     field_definitions = {}
     field_type_map = {
         "id": int,
@@ -160,7 +163,7 @@ def create_dynamic_model(name: str, base_model: QueryFilters):
 
 ActivityLogsOutput = create_dynamic_model(
     name="ActivityLogsOutput",
-    base_model=QueryFilters,  # type: ignore
+    base_model=QueryFiltersChat,  # type: ignore
 )
 
 
@@ -169,11 +172,8 @@ class ActivityLogsQueryResponse(BaseConfigModel):
     has_more: bool
 
 
-class ActivityLogsQuery(BaseConfigModel):
+class ActivityLogsQueryCommon(BaseConfigModel):
     year_month: str
-    show: list[str] = show_by_default_fields
-    filters: QueryFilters
-    pagination: Pagination
 
     @field_validator("year_month")
     def validate_year_month(cls, value):
@@ -181,8 +181,9 @@ class ActivityLogsQuery(BaseConfigModel):
             raise ValueError("year_month must be in the format YYYY-MM")
         return value
 
-    @field_validator("show")
-    def validate_option(cls, show: list[str]):
+    @staticmethod
+    def _validate_show(show: set[str], model: BaseModel):
+        allowed_fields = list(model.__annotations__.keys())
         for field in show:
             if field.startswith("audit_metadata."):
                 continue
@@ -190,9 +191,34 @@ class ActivityLogsQuery(BaseConfigModel):
                 raise ValueError(
                     f"{field} is not a field. List of fields: {allowed_fields}"
                 )
-
-        for field in fixed_fields:
-            if field not in show:
-                show.insert(0, field)
-
         return show
+
+
+class ActivityLogsQuery(ActivityLogsQueryCommon):
+    show: set[str] = {}
+    filters: QueryFiltersCommon
+    pagination: Pagination
+
+    @field_validator("show")
+    def validate_show(cls, show: set[str]):
+        return cls._validate_show(show=show, model=QueryFiltersCommon)
+
+
+class ActivityLogsChatQuery(ActivityLogsQueryCommon):
+    show: set[str] = {}
+    filters: QueryFiltersChat
+    pagination: Pagination
+
+    @field_validator("show")
+    def validate_show(cls, show: set[str]):
+        return cls._validate_show(show=show, model=QueryFiltersChat)
+
+
+class ActivityLogsSearchQuery(ActivityLogsQueryCommon):
+    show: set[str] = {}
+    filters: QueryFiltersSearch
+    pagination: Pagination
+
+    @field_validator("show")
+    def validate_show(cls, show: set[str]):
+        return cls._validate_show(show=show, model=QueryFiltersSearch)
