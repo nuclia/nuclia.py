@@ -19,7 +19,7 @@ def test_activity_logs_query(testing_config):
         return
     query = ActivityLogsQuery(
         year_month="2024-10",
-        show=["id", "date", "question", "answer"],
+        show=["id", "date", "answer"],
         filters={},
         pagination=Pagination(limit=10),
     )
