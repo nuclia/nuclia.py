@@ -139,7 +139,7 @@ DEFAULT_SHOW_CHAT_VALUES = DEFAULT_SHOW_SEARCH_VALUES | {
     "rag_strategies_names",
 }
 
-DEFAULT_SHOW_MAP = defaultdict(lambda: DEFAULT_SHOW_VALUES)
+DEFAULT_SHOW_MAP: dict[str, set[str]] = defaultdict(lambda: DEFAULT_SHOW_VALUES)
 DEFAULT_SHOW_MAP[EventType.SEARCH.value] = DEFAULT_SHOW_SEARCH_VALUES
 DEFAULT_SHOW_MAP[EventType.CHAT.value] = DEFAULT_SHOW_CHAT_VALUES
 
@@ -182,7 +182,7 @@ class ActivityLogsQueryCommon(BaseConfigModel):
         return value
 
     @staticmethod
-    def _validate_show(show: set[str], model: BaseModel):
+    def _validate_show(show: set[str], model: type[QueryFiltersCommon]):
         allowed_fields = list(model.__annotations__.keys())
         for field in show:
             if field.startswith("audit_metadata."):
@@ -195,7 +195,7 @@ class ActivityLogsQueryCommon(BaseConfigModel):
 
 
 class ActivityLogsQuery(ActivityLogsQueryCommon):
-    show: set[str] = {}
+    show: set[str] = set()
     filters: QueryFiltersCommon
     pagination: Pagination
 
@@ -205,7 +205,7 @@ class ActivityLogsQuery(ActivityLogsQueryCommon):
 
 
 class ActivityLogsChatQuery(ActivityLogsQueryCommon):
-    show: set[str] = {}
+    show: set[str] = set()
     filters: QueryFiltersChat
     pagination: Pagination
 
@@ -215,7 +215,7 @@ class ActivityLogsChatQuery(ActivityLogsQueryCommon):
 
 
 class ActivityLogsSearchQuery(ActivityLogsQueryCommon):
-    show: set[str] = {}
+    show: set[str] = set()
     filters: QueryFiltersSearch
     pagination: Pagination
 
