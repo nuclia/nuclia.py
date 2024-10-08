@@ -316,7 +316,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             f"{self.url}{ACTIVITY_LOG_QUERY_URL.format(type=type.value)}",
             json=query
             if isinstance(query, dict)
-            else query.model_dump(exclude_unset=True),
+            else query.model_dump(mode="json", exclude_unset=True),
             stream=True,
         )
         handle_http_errors(response)
