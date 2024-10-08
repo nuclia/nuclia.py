@@ -119,7 +119,10 @@ class NucliaAuth(BaseNucliaAuth):
         data = []
         for account in self.accounts():
             for kb in self.kbs(account.id):
-                kb_obj = self._config.get_kb(kb.id)
+                try:
+                    kb_obj = self._config.get_kb(kb.id)
+                except StopIteration:
+                    kb_obj = None
 
                 role: Optional[str] = ""
                 if (
@@ -411,7 +414,7 @@ class NucliaAuth(BaseNucliaAuth):
                 return []
             except ConnectError:
                 print(
-                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone checking account{account}"
                 )
                 continue
             if kbs is not None:
