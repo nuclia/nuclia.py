@@ -6,5 +6,6 @@ dist
 tmp
 data
 venv
+.venv
 .DS_Store
 .python-version

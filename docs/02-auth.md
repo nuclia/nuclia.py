@@ -29,7 +29,7 @@ The authentication will last as long as the key is valid (potentially forever, b
 
 It is the recommended way to authenticate for long running scripts.
 
-- CLI: `nuclia auth kb KB_URL [API_KEY]`
+- CLI: `nuclia auth kb [KB_URL] [API_KEY]`
 - SDK:
 
   ```python
