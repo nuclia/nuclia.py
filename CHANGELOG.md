@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.3 (unreleased)
+## 4.2.3 (2024-10-11)
 
 
 - Support `top_k`
