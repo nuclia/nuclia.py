@@ -3,7 +3,7 @@
 ## 4.2.3 (unreleased)
 
 
-- Nothing changed yet.
+- Support `top_k`
 
 
 ## 4.2.2 (2024-09-19)
