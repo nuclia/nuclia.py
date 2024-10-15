@@ -1,7 +1,7 @@
 from nuclia.decorators import kb
 from nuclia.lib.kb import LogType, NucliaDBClient
 from nuclia_models.events.activity_logs import ActivityLogsQuery
-from nuclia.lib.models import ActivityLogsOutput
+from nuclia.lib.models import ActivityLogsOutput, ActivityLogsQueryResponse
 from typing import Union
 
 
@@ -42,9 +42,9 @@ class NucliaLogs:
 
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.logs_query(type=type, query=query)
-        output: list[ActivityLogsOutput] = []
+        output: list[ActivityLogsQueryResponse] = []  # type: ignore
         for line in response.iter_lines():
-            output.append(ActivityLogsOutput.model_validate_json(line))
+            output.append(ActivityLogsQueryResponse.model_validate_json(line))
         return ActivityLogsOutput(
             data=output, has_more=bool(response.headers["has-more"])
         )
