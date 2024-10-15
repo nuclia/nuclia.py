@@ -1,6 +1,6 @@
 from nuclia.decorators import kb
 from nuclia.lib.kb import LogType, NucliaDBClient
-from nuclia.lib.models import (
+from nuclia_models.events.activity_logs import (
     ActivityLogsQuery,
     ActivityLogsQueryResponse,
     ActivityLogsOutput,
