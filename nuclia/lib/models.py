@@ -1,4 +1,4 @@
-from nuclia_models.events.activity_logs import (
+from nuclia_models.events.activity_logs import (  # type: ignore
     ActivityLogsQueryResponse,
     BaseConfigModel,
 )

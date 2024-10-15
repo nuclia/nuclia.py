@@ -1,7 +1,7 @@
 from nuclia.sdk.kb import NucliaKB
 from nuclia.tests.fixtures import IS_PROD
 from nuclia.lib.kb import LogType
-from nuclia_models.events.activity_logs import ActivityLogsQuery, Pagination
+from nuclia_models.events.activity_logs import ActivityLogsQuery, Pagination  # type: ignore
 
 
 def test_logs(testing_config):

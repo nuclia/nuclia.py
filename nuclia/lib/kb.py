@@ -11,7 +11,7 @@ import requests
 from nucliadb_models.search import AskRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
-from nuclia_models.events.activity_logs import ActivityLogsQuery
+from nuclia_models.events.activity_logs import ActivityLogsQuery  # type: ignore
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 
