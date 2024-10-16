@@ -9,7 +9,7 @@ The Nuclia Understanding API (or NUA) allows to call the processing services of 
 
   ```python
   from nuclia import sdk
-  sdk.NucliaAuth().nua(region=REGION, token=NUA_KEY)
+  sdk.NucliaAuth().nua(token=NUA_KEY)
   ```
 
 In order to check which NUA keys you have access you can run execute:

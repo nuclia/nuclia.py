@@ -209,6 +209,7 @@ class NucliaAuth(BaseNucliaAuth):
                 base_region=base_region,
                 token=token,
             )
+            self.default_nua(client_id)
             return client_id
         else:
             logger.error("Invalid NUA token")
