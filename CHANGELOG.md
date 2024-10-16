@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.4 (unreleased)
+## 4.2.4 (2024-10-16)
 
 
 - Fix NUA authentication
