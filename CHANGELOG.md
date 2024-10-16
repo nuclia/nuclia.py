@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.5 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 4.2.4 (2024-10-16)
 
 
