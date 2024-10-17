@@ -3,7 +3,7 @@
 ## 4.2.6 (unreleased)
 
 
-- Nothing changed yet.
+- Backoff on 503 errors for ask, find and search
 
 
 ## 4.2.5 (2024-10-17)
