@@ -138,6 +138,17 @@ It can rephrase a user question into a proper question more suitable for a searc
   predict.rephrase(question="french revolution causes")
   ```
 
+You can provide a custom prompt to the rephrase method:
+
+```python
+from nuclia import sdk
+predict = sdk.NucliaPredict()
+res = predict.rephrase(
+    question="ONU creation date",
+    prompt="Rephrase the question but preserve acronyms if any. Question: {question}"
+)
+```
+
 ### Agent
 
 `agent` allows to generate LLM agents from an initial prompt:
