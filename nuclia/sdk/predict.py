@@ -121,10 +121,11 @@ class NucliaPredict:
         question: str,
         user_context: Optional[List[str]] = None,
         model: Optional[str] = None,
+        prompt: Optional[str] = None,
         **kwargs,
     ) -> str:
         nc: NuaClient = kwargs["nc"]
-        return nc.rephrase(question, user_context, model).root
+        return nc.rephrase(question, user_context, model, prompt).root
 
     @nua
     def rag(
@@ -242,10 +243,11 @@ class AsyncNucliaPredict:
         question: str,
         user_context: Optional[List[str]] = None,
         model: Optional[str] = None,
+        prompt: Optional[str] = None,
         **kwargs,
     ) -> str:
         nc: NuaClient = kwargs["nc"]
-        return nc.rephrase(question, user_context, model).root
+        return nc.rephrase(question, user_context, model, prompt).root
 
     @nua
     async def rag(

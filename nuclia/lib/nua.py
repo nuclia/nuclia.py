@@ -241,6 +241,7 @@ class NuaClient:
         question: str,
         user_context: Optional[List[str]] = None,
         model: Optional[str] = None,
+        prompt: Optional[str] = None,
     ) -> RephraseModel:
         endpoint = f"{self.url}{REPHRASE_PREDICT}"
         if model:
@@ -251,6 +252,8 @@ class NuaClient:
             "user_context": user_context,
             "user_id": "USER",
         }
+        if prompt:
+            body["prompt"] = prompt
         return self._request(
             "POST",
             endpoint,
@@ -540,6 +543,7 @@ class AsyncNuaClient:
         question: str,
         user_context: Optional[List[str]] = None,
         model: Optional[str] = None,
+        prompt: Optional[str] = None,
     ) -> RephraseModel:
         endpoint = f"{self.url}{REPHRASE_PREDICT}"
         if model:
@@ -550,6 +554,8 @@ class AsyncNuaClient:
             "user_context": user_context,
             "user_id": "USER",
         }
+        if prompt:
+            body["prompt"] = prompt
         return await self._request(
             "POST",
             endpoint,

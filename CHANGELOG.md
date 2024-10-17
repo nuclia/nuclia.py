@@ -3,7 +3,7 @@
 ## 4.2.5 (unreleased)
 
 
-- Nothing changed yet.
+- Support custom prompt on predict rephrase
 
 
 ## 4.2.4 (2024-10-16)
