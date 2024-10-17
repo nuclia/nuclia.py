@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.5 (unreleased)
+## 4.2.5 (2024-10-17)
 
 
 - Support custom prompt on predict rephrase
