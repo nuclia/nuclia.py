@@ -95,6 +95,30 @@ The `audit_metadata` field is a customizable dictionary. Use the `key` operator 
   }
 }
 ```
+### Special Field: `audit_metadata`
+The `audit_metadata` field is a customizable dictionary. Use the `key` operator to target specific keys within the dictionary.
+
+#### Example to filter by `audit_metadata`:
+
+```json
+{
+  "year_month": "2024-10",
+  "show": ["audit_metadata.environment"],
+  "filters": {
+    "audit_metadata": [
+      {
+        "key": "environment",
+        "eq": "prod"
+      }
+    ]
+  },
+  "pagination": {
+    "limit": 10
+  }
+}
+```
+
+
 
 
 ### Download Examples
@@ -177,27 +201,4 @@ query = DownloadActivityLogsChatQuery(
 )
 request = kb.logs.download(type=LogType.CHAT, query=query, wait=True)
 return request.download_url
-
-```
-### Special Field: `audit_metadata`
-The `audit_metadata` field is a customizable dictionary. Use the `key` operator to target specific keys within the dictionary.
-
-#### Example to filter by `audit_metadata`:
-
-```json
-{
-  "year_month": "2024-10",
-  "show": ["audit_metadata.environment"],
-  "filters": {
-    "audit_metadata": [
-      {
-        "key": "environment",
-        "eq": "prod"
-      }
-    ]
-  },
-  "pagination": {
-    "limit": 10
-  }
-}
 ```
