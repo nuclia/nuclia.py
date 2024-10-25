@@ -2,7 +2,7 @@ from typing import AsyncIterator, Dict, Iterator, List, Optional, Union
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua
-from nuclia.lib.nua import AsyncNuaClient, NuaClient
+from nuclia.lib.nua import AsyncNuaClient, NuaClient, ContextItem
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
@@ -120,12 +120,13 @@ class NucliaPredict:
         self,
         question: str,
         user_context: Optional[List[str]] = None,
+        context: Optional[List[ContextItem]] = None,
         model: Optional[str] = None,
         prompt: Optional[str] = None,
         **kwargs,
     ) -> str:
         nc: NuaClient = kwargs["nc"]
-        return nc.rephrase(question, user_context, model, prompt).root
+        return nc.rephrase(question, user_context, context, model, prompt).root
 
     @nua
     def rag(
@@ -242,12 +243,12 @@ class AsyncNucliaPredict:
         self,
         question: str,
         user_context: Optional[List[str]] = None,
+        context: Optional[List[ContextItem]] = None,
         model: Optional[str] = None,
         prompt: Optional[str] = None,
         **kwargs,
     ) -> str:
-        nc: NuaClient = kwargs["nc"]
-        return nc.rephrase(question, user_context, model, prompt).root
+        return nc.rephrase(question, user_context, context, model, prompt).root
 
     @nua
     async def rag(
@@ -255,3 +256,4 @@ class AsyncNucliaPredict:
     ) -> ChatResponse:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.generate_retrieval(question, context, model)
+        nc: NuaClient = kwargs["nc"]
