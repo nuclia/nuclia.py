@@ -1,7 +1,12 @@
 from nuclia.sdk.kb import NucliaKB
 from nuclia.tests.fixtures import IS_PROD
 from nuclia.lib.kb import LogType
-from nuclia_models.events.activity_logs import ActivityLogsQuery, Pagination, DownloadActivityLogsQuery, DownloadFormat  # type: ignore
+from nuclia_models.events.activity_logs import (  # type: ignore
+    ActivityLogsQuery,
+    Pagination,
+    DownloadActivityLogsQuery,
+    DownloadFormat,
+)  # type: ignore
 
 
 def test_logs(testing_config):
@@ -28,6 +33,7 @@ def test_activity_logs_query(testing_config):
     assert len(output.data) == 10
     assert output.has_more
 
+
 def test_activity_logs_download(testing_config):
     if not IS_PROD:
         assert True
@@ -35,9 +41,11 @@ def test_activity_logs_download(testing_config):
     query = DownloadActivityLogsQuery(
         year_month="2024-10",
         show=["id", "date", "client_type", "total_duration"],
-        filters={}
+        filters={},
     )
     nkb = NucliaKB()
-    output = nkb.logs.download(type=LogType.CHAT, query=query, download_format=DownloadFormat.NDJSON)
+    output = nkb.logs.download(
+        type=LogType.CHAT, query=query, download_format=DownloadFormat.NDJSON
+    )
     assert output.request_id
     assert output.download_url is None

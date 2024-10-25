@@ -1,8 +1,10 @@
 from nuclia_models.events.activity_logs import (  # type: ignore
     ActivityLogsQueryResponse,
-    BaseConfigModel, DownloadRequest
+    BaseConfigModel,
+    DownloadRequest,
 )
 from pydantic import BaseModel
+
 
 class ActivityLogsOutput(BaseConfigModel):
     data: list[ActivityLogsQueryResponse]  # type: ignore
@@ -12,5 +14,11 @@ class ActivityLogsOutput(BaseConfigModel):
 DownloadRequestOutput = type(
     "DownloadRequestOutput",
     (BaseModel,),
-    {"__annotations__": {name: field.annotation for name, field in DownloadRequest.model_fields.items() if name not in {"id", "query", "user_id"}}}
+    {
+        "__annotations__": {
+            name: field.annotation
+            for name, field in DownloadRequest.model_fields.items()
+            if name not in {"id", "query", "user_id"}
+        }
+    },
 )

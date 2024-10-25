@@ -11,12 +11,16 @@ import requests
 from nucliadb_models.search import AskRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
-from nuclia_models.events.activity_logs import (
-    ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery,
-    DownloadActivityLogsQuery, DownloadActivityLogsSearchQuery, DownloadActivityLogsChatQuery,
+from nuclia_models.events.activity_logs import (  # type: ignore
+    ActivityLogsQuery,
+    ActivityLogsSearchQuery,
+    ActivityLogsChatQuery,
+    DownloadActivityLogsQuery,
+    DownloadActivityLogsSearchQuery,
+    DownloadActivityLogsChatQuery,
     EventType,
     DownloadFormat,
-)  # type: ignore
+)
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 
@@ -319,7 +323,9 @@ class NucliaDBClient(BaseNucliaDBClient):
             return results
 
     def logs_query(
-        self, type: LogType, query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery]
+        self,
+        type: LogType,
+        query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery],
     ) -> requests.Response:
         if self.stream_session is None:
             raise Exception("KB not configured")
@@ -335,16 +341,23 @@ class NucliaDBClient(BaseNucliaDBClient):
     def logs_download(
         self,
         type: EventType,
-        query: Union[DownloadActivityLogsQuery, DownloadActivityLogsSearchQuery, DownloadActivityLogsChatQuery],
+        query: Union[
+            DownloadActivityLogsQuery,
+            DownloadActivityLogsSearchQuery,
+            DownloadActivityLogsChatQuery,
+        ],
         download_format: DownloadFormat,
-    ) -> requests.Response:
+    ):
         if self.reader_session is None:
             raise Exception("KB not configured")
         download_request_url = f"{self.url}{ACTIVITY_LOG_URL.format(type=type.value)}"
+        format_header_value = DOWNLOAD_FORMAT_HEADERS.get(download_format)
+        if format_header_value is None:
+            raise ValueError()
         response: httpx.Response = self.reader_session.post(
             download_request_url,
             json=query.model_dump(mode="json", exclude_unset=True),
-            headers={"accept": DOWNLOAD_FORMAT_HEADERS.get(download_format)},
+            headers={"accept": format_header_value},
         )
         handle_http_errors(response)
         return response
@@ -352,7 +365,7 @@ class NucliaDBClient(BaseNucliaDBClient):
     def get_download_request(
         self,
         request_id: str,
-    ) -> requests.Response:
+    ):
         if self.reader_session is None:
             raise Exception("KB not configured")
         download_request_url = f"{self.url}{ACTIVITY_LOG_DOWNLOAD_REQUEST_URL.format(request_id=request_id)}"

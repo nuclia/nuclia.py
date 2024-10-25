@@ -1,18 +1,27 @@
 from nuclia.decorators import kb
 from nuclia.lib.kb import LogType, NucliaDBClient
-from nuclia_models.events.activity_logs import (
-    ActivityLogsQuery, ActivityLogsChatQuery, ActivityLogsSearchQuery,
+from nuclia_models.events.activity_logs import (  # type: ignore
+    ActivityLogsQuery,
+    ActivityLogsChatQuery,
+    ActivityLogsSearchQuery,
     DownloadActivityLogsQuery,
-    DownloadActivityLogsChatQuery, DownloadActivityLogsSearchQuery,
+    DownloadActivityLogsChatQuery,
+    DownloadActivityLogsSearchQuery,
     DownloadFormat,
     EventType,
-)  # type: ignore
-from nuclia.lib.models import ActivityLogsOutput, ActivityLogsQueryResponse, DownloadRequestOutput
+)
+from nuclia.lib.models import (
+    ActivityLogsOutput,
+    ActivityLogsQueryResponse,
+    DownloadRequestOutput,
+)
 from typing import Union
 from time import monotonic, sleep
 from nuclia.sdk.logger import logger
 
 WAIT_FOR_DOWNLOAD_TIMEOUT = 120
+
+
 class NucliaLogs:
     @kb
     def get(
@@ -74,7 +83,7 @@ class NucliaLogs:
         download_format: Union[DownloadFormat, str],
         wait: bool = False,
         **kwargs,
-    ) -> DownloadRequestOutput:
+    ) -> DownloadRequestOutput:  # type: ignore
         """
         Download activity logs.
 
@@ -102,7 +111,7 @@ class NucliaLogs:
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.logs_download(type=_type, query=_query, download_format=_format)
 
-        download_request = DownloadRequestOutput.model_validate(response.json())
+        download_request = DownloadRequestOutput.model_validate(response.json())  # type: ignore
 
         if not wait:
             return download_request
@@ -110,8 +119,10 @@ class NucliaLogs:
             logger.info("Waiting for the download to be generated")
             t0 = monotonic()
             while monotonic() - t0 < 120:
-                response = ndb.get_download_request(request_id=download_request.request_id)
-                download_request = DownloadRequestOutput.model_validate(response.json())
+                response = ndb.get_download_request(
+                    request_id=download_request.request_id
+                )
+                download_request = DownloadRequestOutput.model_validate(response.json())  # type: ignore
                 if download_request.download_url is not None:
                     break
                 sleep(5)
@@ -122,7 +133,7 @@ class NucliaLogs:
         self,
         request_id: str,
         **kwargs,
-    ) -> DownloadRequestOutput:
+    ) -> DownloadRequestOutput:  # type: ignore
         """
         Get the current status of a download request.
 
@@ -130,4 +141,4 @@ class NucliaLogs:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.get_download_request(request_id=request_id)
-        return DownloadRequestOutput.model_validate(response.json())
+        return DownloadRequestOutput.model_validate(response.json())  # type: ignore
