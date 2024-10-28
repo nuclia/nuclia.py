@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.6 (unreleased)
+## 4.2.6 (2024-10-28)
 
 
 - Support `context` in `rephrase()`
