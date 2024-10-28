@@ -1,7 +1,17 @@
 import base64
 from enum import Enum
 from time import sleep
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Type, TypeVar
+from typing import (
+    Any,
+    AsyncIterator,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import aiofiles
 from deprecated import deprecated
@@ -564,7 +574,7 @@ class AsyncNuaClient:
         if model:
             endpoint += f"?model={model}"
 
-        body: Dict[str, str | list[str] | list[ContextItem] | None] = {
+        body: Dict[str, Union[str, list[str], list[ContextItem], None]] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
