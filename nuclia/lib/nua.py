@@ -269,7 +269,7 @@ class NuaClient:
         if model:
             endpoint += f"?model={model}"
 
-        body: Dict[str, str | list[str] | list[ContextItem] | None] = {
+        body: Dict[str, Union[str, list[str], list[ContextItem], None]] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
