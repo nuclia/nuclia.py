@@ -248,6 +248,7 @@ class AsyncNucliaPredict:
         prompt: Optional[str] = None,
         **kwargs,
     ) -> str:
+        nc: NuaClient = kwargs["nc"]
         return nc.rephrase(question, user_context, context, model, prompt).root
 
     @nua
@@ -256,4 +257,3 @@ class AsyncNucliaPredict:
     ) -> ChatResponse:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.generate_retrieval(question, context, model)
-        nc: NuaClient = kwargs["nc"]
