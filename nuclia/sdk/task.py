@@ -1,9 +1,11 @@
 from nuclia.data import get_auth
 from nuclia.decorators import kb
+from nuclia.exceptions import InvalidPayload
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.lib.utils import handle_http_errors
 from nuclia.sdk.auth import NucliaAuth
 from nuclia.lib.tasks import (
+    ApplyOptions,
     TaskDefinition,
     TaskStart,
     TaskResponse,
@@ -50,11 +52,13 @@ class NucliaTask:
         raise KeyError("Task not found")
 
     @kb
-    def start(self, task_name: str, **kwargs) -> TaskResponse:
+    def start(
+        self, task_name: str, apply: ApplyOptions = ApplyOptions.ALL, **kwargs
+    ) -> TaskResponse:
         ndb: NucliaDBClient = kwargs["ndb"]
 
         del kwargs["ndb"]
-        parameters = TaskStart(parameters=kwargs)
+        parameters = TaskStart(parameters=kwargs, apply=apply)
         if ndb.writer_session is None:
             raise Exception("KB not configured")
         resp = ndb.writer_session.post(
@@ -70,7 +74,10 @@ class NucliaTask:
         if ndb.writer_session is None:
             raise Exception("KB not configured")
         resp = ndb.writer_session.delete(DELETE_TASK.format(task_id=task_id))
-        handle_http_errors(resp)
+        try:
+            handle_http_errors(resp)
+        except InvalidPayload:
+            pass
 
     @kb
     def stop(self, task_id: str, **kwargs) -> TaskResponse:

@@ -5,7 +5,12 @@ import httpx
 import requests
 from tabulate import tabulate
 
-from nuclia.exceptions import RateLimitError, UserTokenExpired, DuplicateError
+from nuclia.exceptions import (
+    RateLimitError,
+    UserTokenExpired,
+    DuplicateError,
+    InvalidPayload,
+)
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SyncAskResponse
 
@@ -22,6 +27,8 @@ def handle_http_errors(response: Union[httpx.Response, requests.models.Response]
         raise RateLimitError(f"Rate limited: {response.text}")
     elif response.status_code == 409:
         raise DuplicateError("Duplicate resource")
+    elif response.status_code == 422:
+        raise InvalidPayload("Invalid payload")
     elif response.status_code >= 400:
         raise httpx.HTTPError(f"Status code {response.status_code}: {response.text}")
 

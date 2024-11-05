@@ -44,3 +44,7 @@ class KBNotAvailable(Exception):
 
 class DuplicateError(Exception):
     pass
+
+
+class InvalidPayload(Exception):
+    pass
