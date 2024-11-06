@@ -1,6 +1,6 @@
 from nuclia.decorators import kb
 from nuclia.lib.kb import LogType, NucliaDBClient
-from nuclia_models.events.activity_logs import ActivityLogsQuery  # type: ignore
+from nuclia_models.events.activity_logs import ActivityLogsQuery
 from nuclia.lib.models import ActivityLogsOutput, ActivityLogsQueryResponse
 from typing import Union
 
