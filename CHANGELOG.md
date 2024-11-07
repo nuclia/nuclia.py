@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.7 (unreleased)
+## 4.2.7 (2024-11-07)
 
 
 - Support activity log query and download apis.
