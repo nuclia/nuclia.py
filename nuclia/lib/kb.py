@@ -11,7 +11,16 @@ import requests
 from nucliadb_models.search import AskRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
-from nuclia_models.events.activity_logs import ActivityLogsQuery  # type: ignore
+from nuclia_models.events.activity_logs import (  # type: ignore
+    ActivityLogsQuery,
+    ActivityLogsSearchQuery,
+    ActivityLogsChatQuery,
+    DownloadActivityLogsQuery,
+    DownloadActivityLogsSearchQuery,
+    DownloadActivityLogsChatQuery,
+    EventType,
+    DownloadFormat,
+)
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 
@@ -32,10 +41,17 @@ DOWNLOAD_EXPORT_URL = "/export/{export_id}"
 DOWNLOAD_URL = "/{uri}"
 TUS_UPLOAD_RESOURCE_URL = "/resource/{rid}/file/{field}/tusupload"
 TUS_UPLOAD_URL = "/tusupload"
-ACTIVITY_LOG_URL = "/activity/download?type={type}&month={month}"
+LEGACY_ACTIVITY_LOG_URL = "/activity/download?type={type}&month={month}"
+ACTIVITY_LOG_URL = "/activity/{type}/query/download"
+ACTIVITY_LOG_DOWNLOAD_REQUEST_URL = "/activity/download_request/{request_id}"
 ACTIVITY_LOG_QUERY_URL = "/activity/{type}/query"
 FEEDBACK_LOG_URL = "/feedback/{month}"
 NOTIFICATIONS = "/notifications"
+
+DOWNLOAD_FORMAT_HEADERS = {
+    DownloadFormat.CSV: "text/csv",
+    DownloadFormat.NDJSON: "application/x-ndjson",
+}
 
 
 class Environment(str, Enum):
@@ -280,7 +296,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
 
         if type != "feedback":
-            url = ACTIVITY_LOG_URL.format(type=type.value, month=month)
+            url = LEGACY_ACTIVITY_LOG_URL.format(type=type.value, month=month)
             response: httpx.Response = self.reader_session.get(url)
             handle_http_errors(response)
             return [row for row in csv.reader(response.iter_lines())]
@@ -307,18 +323,53 @@ class NucliaDBClient(BaseNucliaDBClient):
             return results
 
     def logs_query(
-        self, type: LogType, query: Union[dict, ActivityLogsQuery]
+        self,
+        type: EventType,
+        query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery],
     ) -> requests.Response:
         if self.stream_session is None:
             raise Exception("KB not configured")
 
         response = self.stream_session.post(
             f"{self.url}{ACTIVITY_LOG_QUERY_URL.format(type=type.value)}",
-            json=query
-            if isinstance(query, dict)
-            else query.model_dump(mode="json", exclude_unset=True),
+            json=query.model_dump(mode="json", exclude_unset=True),
             stream=True,
         )
+        handle_http_errors(response)
+        return response
+
+    def logs_download(
+        self,
+        type: EventType,
+        query: Union[
+            DownloadActivityLogsQuery,
+            DownloadActivityLogsSearchQuery,
+            DownloadActivityLogsChatQuery,
+        ],
+        download_format: DownloadFormat,
+    ):
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+        download_request_url = f"{self.url}{ACTIVITY_LOG_URL.format(type=type.value)}"
+        format_header_value = DOWNLOAD_FORMAT_HEADERS.get(download_format)
+        if format_header_value is None:
+            raise ValueError()
+        response: httpx.Response = self.reader_session.post(
+            download_request_url,
+            json=query.model_dump(mode="json", exclude_unset=True),
+            headers={"accept": format_header_value},
+        )
+        handle_http_errors(response)
+        return response
+
+    def get_download_request(
+        self,
+        request_id: str,
+    ):
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+        download_request_url = f"{self.url}{ACTIVITY_LOG_DOWNLOAD_REQUEST_URL.format(request_id=request_id)}"
+        response: httpx.Response = self.reader_session.get(download_request_url)
         handle_http_errors(response)
         return response
 

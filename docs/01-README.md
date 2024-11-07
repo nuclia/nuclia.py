@@ -39,3 +39,4 @@ pip install nuclia --upgrade
 - [Work with a NUA key](07-nua.md)
 - [Import/export a Knowledge Box](08-import-export.md)
 - [Manage Knowledge Box configuration & labels](09-manage.md)
+- [Query & download activity logs](10-activity-log.md)
