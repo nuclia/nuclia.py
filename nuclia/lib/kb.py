@@ -324,7 +324,7 @@ class NucliaDBClient(BaseNucliaDBClient):
 
     def logs_query(
         self,
-        type: LogType,
+        type: EventType,
         query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery],
     ) -> requests.Response:
         if self.stream_session is None:

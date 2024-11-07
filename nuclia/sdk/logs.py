@@ -45,7 +45,12 @@ class NucliaLogs:
         self,
         *args,
         type: Union[EventType, str],
-        query: Union[dict, ActivityLogsQuery],
+        query: Union[
+            dict,
+            ActivityLogsQuery,
+            ActivityLogsSearchQuery,
+            ActivityLogsChatQuery,
+        ],
         **kwargs,
     ) -> ActivityLogsOutput:
         """
@@ -55,6 +60,12 @@ class NucliaLogs:
         :param query: ActivityLogsQuery
         """
         _type = EventType[type.upper()] if isinstance(type, str) else type
+        _query: Union[
+            dict,
+            ActivityLogsQuery,
+            ActivityLogsSearchQuery,
+            ActivityLogsChatQuery,
+        ]
         if isinstance(query, dict):
             if _type is EventType.CHAT:
                 _query = ActivityLogsChatQuery.model_validate(query)
@@ -79,7 +90,12 @@ class NucliaLogs:
         self,
         *args,
         type: Union[EventType, str],
-        query: Union[dict, DownloadActivityLogsQuery],
+        query: Union[
+            dict,
+            DownloadActivityLogsQuery,
+            DownloadActivityLogsSearchQuery,
+            DownloadActivityLogsChatQuery,
+        ],
         download_format: Union[DownloadFormat, str],
         wait: bool = False,
         **kwargs,
@@ -98,6 +114,12 @@ class NucliaLogs:
             else download_format
         )
 
+        _query: Union[
+            dict,
+            DownloadActivityLogsQuery,
+            DownloadActivityLogsSearchQuery,
+            DownloadActivityLogsChatQuery,
+        ]
         if isinstance(query, dict):
             if _type is EventType.CHAT:
                 _query = DownloadActivityLogsChatQuery.model_validate(query)
