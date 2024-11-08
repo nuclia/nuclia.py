@@ -243,9 +243,9 @@ class NucliaDBClient(BaseNucliaDBClient):
             "content-type": content_type,
         }
         if md5 is not None:
-            headers[
-                "upload-metadata"
-            ] += f",md5 {base64.b64encode(md5.encode()).decode()}"
+            headers["upload-metadata"] += (
+                f",md5 {base64.b64encode(md5.encode()).decode()}"
+            )
 
         response: httpx.Response = self.writer_session.post(url, headers=headers)
         handle_http_errors(response)
@@ -430,9 +430,9 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             "content-type": content_type,
         }
         if md5 is not None:
-            headers[
-                "upload-metadata"
-            ] += f",md5 {base64.b64encode(md5.encode()).decode()}"
+            headers["upload-metadata"] += (
+                f",md5 {base64.b64encode(md5.encode()).decode()}"
+            )
 
         response = await self.writer_session.post(url, headers=headers)
         handle_http_errors(response)

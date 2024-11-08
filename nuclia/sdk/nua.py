@@ -1,7 +1,6 @@
 from nuclia.sdk.agent import NucliaAgent
 from nuclia.sdk.predict import NucliaPredict
 from nuclia.sdk.process import NucliaProcessing
-from nuclia.sdk.task import NucliaTask
 
 
 class NucliaNUA:
