@@ -13,6 +13,7 @@ from nuclia.exceptions import (
 )
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SyncAskResponse
+from nuclia.lib.models import ActivityLogsOutput
 
 from nuclia.lib.tasks import TaskDefinition, TaskList
 
@@ -122,4 +123,8 @@ def serialize(obj):
             headers=["UUID", "Icon", "Title"],
         )
         return response
+
+    if isinstance(obj, ActivityLogsOutput):
+        obj = obj.model_dump(exclude_unset=True)
+
     return obj

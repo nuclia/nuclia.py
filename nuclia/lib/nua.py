@@ -1,6 +1,17 @@
 import base64
+from enum import Enum
 from time import sleep
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Type, TypeVar
+from typing import (
+    Any,
+    AsyncIterator,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import aiofiles
 from deprecated import deprecated
@@ -55,6 +66,16 @@ SCHEMA_KBID = "/api/v1/schema"
 CONFIG = "/api/v1/config"
 
 ConvertType = TypeVar("ConvertType", bound=BaseModel)
+
+
+class Author(str, Enum):
+    NUCLIA = "NUCLIA"
+    USER = "USER"
+
+
+class ContextItem:
+    author: Author
+    text: str
 
 
 class NuaClient:
@@ -240,17 +261,23 @@ class NuaClient:
         self,
         question: str,
         user_context: Optional[List[str]] = None,
+        context: Optional[List[ContextItem]] = None,
         model: Optional[str] = None,
+        prompt: Optional[str] = None,
     ) -> RephraseModel:
         endpoint = f"{self.url}{REPHRASE_PREDICT}"
         if model:
             endpoint += f"?model={model}"
 
-        body = {
+        body: Dict[str, Union[str, list[str], list[ContextItem], None]] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
         }
+        if prompt:
+            body["prompt"] = prompt
+        if context and len(context) > 0:
+            body["context"] = context
         return self._request(
             "POST",
             endpoint,
@@ -539,17 +566,23 @@ class AsyncNuaClient:
         self,
         question: str,
         user_context: Optional[List[str]] = None,
+        context: Optional[List[ContextItem]] = None,
         model: Optional[str] = None,
+        prompt: Optional[str] = None,
     ) -> RephraseModel:
         endpoint = f"{self.url}{REPHRASE_PREDICT}"
         if model:
             endpoint += f"?model={model}"
 
-        body = {
+        body: Dict[str, Union[str, list[str], list[ContextItem], None]] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
         }
+        if prompt:
+            body["prompt"] = prompt
+        if context and len(context) > 0:
+            body["context"] = context
         return await self._request(
             "POST",
             endpoint,

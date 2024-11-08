@@ -1,9 +1,45 @@
 # Changelog
 
-## 4.2.2 (unreleased)
+## 4.2.8 (unreleased)
 
 
 - Nothing changed yet.
+
+
+## 4.2.7 (2024-11-07)
+
+
+- Support activity log query and download apis.
+
+
+## 4.2.6 (2024-10-28)
+
+
+- Support `context` in `rephrase()`
+
+
+## 4.2.5 (2024-10-17)
+
+
+- Support custom prompt on predict rephrase
+
+
+## 4.2.4 (2024-10-16)
+
+
+- Fix NUA authentication
+
+
+## 4.2.3 (2024-10-11)
+
+
+- Support `top_k`
+
+
+## 4.2.2 (2024-09-19)
+
+
+- Optionally override already existing resources when copying 
 
 
 ## 4.2.1 (2024-09-16)

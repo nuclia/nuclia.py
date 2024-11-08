@@ -14,7 +14,6 @@ from nuclia.sdk.kbs import NucliaKBS
 from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
 from nuclia.sdk.zones import NucliaZones
-
 from .utils import CustomFormatter
 
 

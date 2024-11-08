@@ -9,7 +9,7 @@ The Nuclia Understanding API (or NUA) allows to call the processing services of 
 
   ```python
   from nuclia import sdk
-  sdk.NucliaAuth().nua(region=REGION, token=NUA_KEY)
+  sdk.NucliaAuth().nua(token=NUA_KEY)
   ```
 
 In order to check which NUA keys you have access you can run execute:
@@ -137,6 +137,17 @@ It can rephrase a user question into a proper question more suitable for a searc
   predict = sdk.NucliaPredict()
   predict.rephrase(question="french revolution causes")
   ```
+
+You can provide a custom prompt to the rephrase method:
+
+```python
+from nuclia import sdk
+predict = sdk.NucliaPredict()
+res = predict.rephrase(
+    question="ONU creation date",
+    prompt="Rephrase the question but preserve acronyms if any. Question: {question}"
+)
+```
 
 ### Agent
 
