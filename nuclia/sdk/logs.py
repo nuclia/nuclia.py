@@ -18,6 +18,7 @@ from nuclia.lib.models import (
 from typing import Union
 from time import monotonic, sleep
 from nuclia.sdk.logger import logger
+from pydantic import TypeAdapter
 
 WAIT_FOR_DOWNLOAD_TIMEOUT = 120
 
@@ -78,11 +79,10 @@ class NucliaLogs:
 
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.logs_query(type=_type, query=_query)
-        output: list[ActivityLogsQueryResponse] = []  # type: ignore
-        for line in response.iter_lines():
-            output.append(ActivityLogsQueryResponse.model_validate_json(line))
+        ta = TypeAdapter(list[ActivityLogsQueryResponse])  # type: ignore
         return ActivityLogsOutput(
-            data=output, has_more=bool(response.headers["has-more"])
+            data=ta.validate_python(response.json()),
+            has_more=bool(response.headers["has-more"]),
         )
 
     @kb

@@ -9,6 +9,7 @@ import backoff
 import httpx
 import requests
 from nucliadb_models.search import AskRequest, SummarizeRequest
+from nuclia_models.common.utils import Aggregation
 from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
 from tqdm import tqdm
 from nuclia_models.events.activity_logs import (  # type: ignore
@@ -21,8 +22,10 @@ from nuclia_models.events.activity_logs import (  # type: ignore
     EventType,
     DownloadFormat,
 )
+from nuclia_models.events.remi import RemiQuery
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
+from datetime import datetime
 
 RESOURCE_PATH = "/resource/{rid}"
 RESOURCE_PATH_BY_SLUG = "/slug/{slug}"
@@ -47,6 +50,9 @@ ACTIVITY_LOG_DOWNLOAD_REQUEST_URL = "/activity/download_request/{request_id}"
 ACTIVITY_LOG_QUERY_URL = "/activity/{type}/query"
 FEEDBACK_LOG_URL = "/feedback/{month}"
 NOTIFICATIONS = "/notifications"
+REMI_QUERY_URL = "/remi/query"
+REMI_EVENT_URL = "/remi/events/{event_id}"
+REMI_SCORES_URL = "/remi/scores"
 
 DOWNLOAD_FORMAT_HEADERS = {
     DownloadFormat.CSV: "text/csv",
@@ -370,6 +376,51 @@ class NucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
         download_request_url = f"{self.url}{ACTIVITY_LOG_DOWNLOAD_REQUEST_URL.format(request_id=request_id)}"
         response: httpx.Response = self.reader_session.get(download_request_url)
+        handle_http_errors(response)
+        return response
+
+    def remi_query(
+        self,
+        query: RemiQuery,
+    ) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.reader_session.post(
+            f"{self.url}{REMI_QUERY_URL}",
+            json=query.model_dump(mode="json", exclude_unset=True),
+        )
+        handle_http_errors(response)
+        return response
+
+    def get_remi_event(
+        self,
+        event_id: int,
+    ) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.reader_session.get(
+            f"{self.url}{REMI_EVENT_URL.format(event_id=event_id)}"
+        )
+        handle_http_errors(response)
+        return response
+
+    def get_remi_scores(
+        self,
+        _from: datetime,
+        to: Optional[datetime],
+        aggregation: Aggregation,
+    ) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+        params = {"from": _from.isoformat(), "aggregation": aggregation.value}
+        if to:
+            params["to"] = to.isoformat()
+        response: httpx.Response = self.reader_session.get(
+            f"{self.url}{REMI_SCORES_URL}",
+            params=params,
+        )
         handle_http_errors(response)
         return response
 
