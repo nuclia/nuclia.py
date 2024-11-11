@@ -12,9 +12,9 @@ def test_remi_query_and_get_event(testing_config):
     nkb = NucliaKB()
     remi_query = nkb.remi.query(
         query=RemiQuery(
-            month="2024-11",
+            month="2024-10",
             context_relevance=ContextRelevanceQuery(
-                value=0, operation="gt", aggregation="average"
+                value=3, operation="gt", aggregation="average"
             ),
         )
     )
@@ -29,8 +29,8 @@ def test_remi_scores(testing_config):
         return
     nkb = NucliaKB()
     remi_scores_data = nkb.remi.get_remi_scores(
-        _from=datetime(year=2024, month=5, day=1),
+        _from=datetime(year=2024, month=10, day=1),
         to=datetime(year=2024, month=11, day=1),
         aggregation=Aggregation.DAY,
     )
-    assert len(remi_scores_data) == 185
+    assert len(remi_scores_data) == 20
