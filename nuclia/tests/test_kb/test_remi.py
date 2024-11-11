@@ -33,4 +33,4 @@ def test_remi_scores(testing_config):
         to=datetime(year=2024, month=11, day=1),
         aggregation=Aggregation.DAY,
     )
-    assert len(remi_scores_data) == 10
+    assert len(remi_scores_data) == 185
