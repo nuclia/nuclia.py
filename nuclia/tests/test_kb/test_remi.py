@@ -1,9 +1,11 @@
 from nuclia.sdk.kb import NucliaKB
 from nuclia.tests.fixtures import IS_PROD
 from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery
+from datetime import datetime
+from nuclia_models.common.utils import Aggregation
 
 
-def test_remi_query(testing_config):
+def test_remi_query_and_get_event(testing_config):
     if not IS_PROD:
         assert True
         return
@@ -18,4 +20,17 @@ def test_remi_query(testing_config):
     )
     assert len(remi_query.data) == 10
     remi_event = nkb.remi.get_remi_event(event_id=remi_query.data[0].id)
-    assert remi_event is not None
+    assert remi_event.id == remi_query.data[0].id
+
+
+def test_remi_scores(testing_config):
+    if not IS_PROD:
+        assert True
+        return
+    nkb = NucliaKB()
+    remi_scores_data = nkb.remi.get_remi_scores(
+        _from=datetime(year=2024, month=5, day=1),
+        to=datetime(year=2024, month=11, day=1),
+        aggregation=Aggregation.DAY,
+    )
+    assert len(remi_scores_data) == 10
