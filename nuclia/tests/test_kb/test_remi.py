@@ -14,7 +14,7 @@ def test_remi_query_and_get_event(testing_config):
         query=RemiQuery(
             month="2024-10",
             context_relevance=ContextRelevanceQuery(
-                value=2, operation="gt", aggregation="average"
+                value=0, operation="gt", aggregation="average"
             ),
         )
     )
