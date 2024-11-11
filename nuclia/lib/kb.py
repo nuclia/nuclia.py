@@ -389,6 +389,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.reader_session.post(
             f"{self.url}{REMI_QUERY_URL}",
             json=query.model_dump(mode="json", exclude_unset=True),
+            timeout=10,
         )
         handle_http_errors(response)
         return response
@@ -418,8 +419,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         if to:
             params["to"] = to.isoformat()
         response: httpx.Response = self.reader_session.get(
-            f"{self.url}{REMI_SCORES_URL}",
-            params=params,
+            f"{self.url}{REMI_SCORES_URL}", params=params, timeout=10
         )
         handle_http_errors(response)
         return response
