@@ -19,7 +19,7 @@ def test_remi_query_and_get_event(testing_config):
         )
     )
     assert len(remi_query.data) == 10
-    remi_event = nkb.remi.get_remi_event(event_id=remi_query.data[0].id)
+    remi_event = nkb.remi.get_event(event_id=remi_query.data[0].id)
     assert remi_event.id == remi_query.data[0].id
 
 
@@ -28,7 +28,7 @@ def test_remi_scores(testing_config):
         assert True
         return
     nkb = NucliaKB()
-    remi_scores_data = nkb.remi.get_remi_scores(
+    remi_scores_data = nkb.remi.get_scores(
         _from=datetime(year=2024, month=10, day=1),
         to=datetime(year=2024, month=11, day=1),
         aggregation=Aggregation.DAY,

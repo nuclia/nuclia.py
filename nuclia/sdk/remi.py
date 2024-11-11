@@ -30,7 +30,7 @@ class NucliaRemi:
 
         :param query: RemiQuery
         """
-        _query: Union[dict, RemiQuery]
+        _query: RemiQuery
         if isinstance(query, dict):
             _query = RemiQuery.model_validate(query)
         else:
@@ -41,7 +41,7 @@ class NucliaRemi:
         return RemiQueryResults.model_validate(response.json())
 
     @kb
-    def get_remi_event(
+    def get_event(
         self,
         *args,
         event_id: int,
@@ -58,15 +58,23 @@ class NucliaRemi:
         return RemiQueryResultWithContext.model_validate(response.json())
 
     @kb
-    def get_remi_scores(
+    def get_scores(
         self,
         *args,
-        _from: datetime,
-        to: Optional[datetime],
-        aggregation: Aggregation,
+        starting_at: Union[datetime, str],
+        to: Optional[Union[datetime, str]],
+        aggregation: Union[Aggregation, str],
         **kwargs,
     ) -> list[AggregatedRemiScoreMetric]:
         ndb: NucliaDBClient = kwargs["ndb"]
-        response = ndb.get_remi_scores(_from=_from, to=to, aggregation=aggregation)
+        if isinstance(starting_at, str):
+            starting_at = datetime.fromisoformat(starting_at)
+        if isinstance(to, str):
+            to = datetime.fromisoformat(to)
+        if isinstance(aggregation, str):
+            aggregation = Aggregation[aggregation.upper()]
+        response = ndb.get_remi_scores(
+            _from=starting_at, to=to, aggregation=aggregation
+        )
         ta = TypeAdapter(list[AggregatedRemiScoreMetric])
         return ta.validate_python(response.json())

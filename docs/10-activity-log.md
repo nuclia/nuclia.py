@@ -178,9 +178,6 @@ download_url=null
 (...)
 request_id='dcbb6da6-92c0-11ef-8450-36cf85ca1604'
 download_url=https://your-download-url
-
-
-
 ```
 
 #### SDK Example
@@ -201,4 +198,74 @@ query = DownloadActivityLogsChatQuery(
 )
 request = kb.logs.download(type=LogType.CHAT, query=query, wait=True)
 return request.download_url
+```
+
+
+### REMi
+
+#### REMi query
+
+Get a list of chat activity logs that matches a remi scores query
+##### CLI Example
+```bash
+nuclia kb remi query --query='{
+    "month": "2024-11",
+    "context_relevance": {
+        "value": 0,
+        "operation": "gt",
+        "aggregation": "average"
+    }
+}'
+```
+##### SDK Example
+```python
+from nuclia import sdk
+from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery
+
+kb = sdk.NucliaKB()
+kb.remi.query(
+    query=RemiQuery(
+        month="2024-11",
+        context_relevance=ContextRelevanceQuery(
+            value=0, operation="gt", aggregation="average"
+        ),
+    )
+)
+```
+#### REMi get
+
+Get a chat acitivity log with full context and REMI scores. Intended for obtaining complete context for an item originating from a REMi query
+
+##### CLI Example
+```bash
+nuclia kb remi get_event --event_id=16987522
+```
+##### SDK Example
+```python
+from nuclia import sdk
+
+kb = sdk.NucliaKB()
+kb.remi.get_event(event_id=16987522)
+```
+
+
+#### REMi scores
+
+Get the evolution of remi scores of a kb over a period of time
+##### CLI Example
+```bash
+nuclia kb remi get_scores --starting_at=2024-05-01 --to=None --aggregation=day
+```
+
+##### SDK Example
+```python
+from nuclia import sdk
+from nuclia_models.common.utils import Aggregation
+
+kb = sdk.NucliaKB()
+output2 = kb.remi.get_scores(
+    starting_at=datetime(year=2024, month=5, day=1),
+    to=None,
+    aggregation=Aggregation.DAY,
+)
 ```
