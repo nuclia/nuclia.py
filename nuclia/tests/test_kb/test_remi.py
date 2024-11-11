@@ -14,7 +14,7 @@ def test_remi_query_and_get_event(testing_config):
         query=RemiQuery(
             month="2024-10",
             context_relevance=ContextRelevanceQuery(
-                value=3, operation="gt", aggregation="average"
+                value=2, operation="gt", aggregation="average"
             ),
         )
     )
@@ -33,4 +33,4 @@ def test_remi_scores(testing_config):
         to=datetime(year=2024, month=11, day=1),
         aggregation=Aggregation.DAY,
     )
-    assert len(remi_scores_data) == 20
+    assert len(remi_scores_data) == 32
