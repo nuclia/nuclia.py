@@ -29,7 +29,7 @@ def test_remi_scores(testing_config):
         return
     nkb = NucliaKB()
     remi_scores_data = nkb.remi.get_scores(
-        _from=datetime(year=2024, month=10, day=1),
+        starting_at=datetime(year=2024, month=10, day=1),
         to=datetime(year=2024, month=11, day=1),
         aggregation=Aggregation.DAY,
     )

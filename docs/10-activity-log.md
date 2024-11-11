@@ -205,7 +205,7 @@ return request.download_url
 
 #### REMi query
 
-Get a list of chat activity logs that matches a remi scores query
+Retrieve a list of chat activity logs that match specific REMi score criteria.
 ##### CLI Example
 ```bash
 nuclia kb remi query --query='{
@@ -234,8 +234,7 @@ kb.remi.query(
 ```
 #### REMi get
 
-Get a chat acitivity log with full context and REMI scores. Intended for obtaining complete context for an item originating from a REMi query
-
+Fetch a specific chat activity log with detailed context and REMi scores. This command is useful for retrieving the full context of an entry from a previous REMi query.
 ##### CLI Example
 ```bash
 nuclia kb remi get_event --event_id=16987522
@@ -251,7 +250,7 @@ kb.remi.get_event(event_id=16987522)
 
 #### REMi scores
 
-Get the evolution of remi scores of a kb over a period of time
+Retrieve the progression of REMi scores for a knowledge base (KB) over a defined time period, with customizable aggregation intervals.
 ##### CLI Example
 ```bash
 nuclia kb remi get_scores --starting_at=2024-05-01 --to=None --aggregation=day
