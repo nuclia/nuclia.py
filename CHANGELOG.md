@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.8 (unreleased)
+## 4.3.0 (2024-11-12)
 
 
 - Added `REMi` endpoints
