@@ -3,7 +3,7 @@
 ## 4.2.8 (unreleased)
 
 
-- Nothing changed yet.
+- Added `REMi` endpoints
 
 
 ## 4.2.7 (2024-11-07)

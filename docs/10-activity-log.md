@@ -178,9 +178,6 @@ download_url=null
 (...)
 request_id='dcbb6da6-92c0-11ef-8450-36cf85ca1604'
 download_url=https://your-download-url
-
-
-
 ```
 
 #### SDK Example
@@ -201,4 +198,153 @@ query = DownloadActivityLogsChatQuery(
 )
 request = kb.logs.download(type=LogType.CHAT, query=query, wait=True)
 return request.download_url
+```
+
+
+## REMi
+
+The REMi module provides tools to monitor the quality of your RAG pipeline to get the best answers. Use these commands to query logs with REMi data and monitor score evolution over time.
+
+## REMi Query
+
+Use `remi query` to retrieve a list of chat activity logs that match specified criteria for REMi scores.
+
+### Basic Query
+
+Retrieve logs for a specific month and apply context relevance filters.
+
+#### CLI Example
+```bash
+nuclia kb remi query --query='{
+    "month": "2024-11",
+    "context_relevance": {
+        "value": 0,
+        "operation": "gt",
+        "aggregation": "average"
+    }
+}'
+```
+
+#### SDK Example
+```python
+from nuclia import sdk
+from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery
+
+kb = sdk.NucliaKB()
+kb.remi.query(
+    query=RemiQuery(
+        month="2024-11",
+        context_relevance=ContextRelevanceQuery(
+            value=0, operation="gt", aggregation="average"
+        ),
+    )
+)
+```
+
+---
+
+### Filtering by Feedback
+
+Further refine the query to include only logs with positive (or negative) feedback.
+
+#### CLI Example
+```bash
+nuclia kb remi query --query='{
+    "month": "2024-11",
+    "context_relevance": {
+        "value": 0,
+        "operation": "gt",
+        "aggregation": "average"
+    },
+    "feedback_good": true
+}'
+```
+
+#### SDK Example
+```python
+from nuclia import sdk
+from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery
+
+kb = sdk.NucliaKB()
+kb.remi.query(
+    query=RemiQuery(
+        month="2024-11",
+        context_relevance=ContextRelevanceQuery(
+            value=0, operation="gt", aggregation="average"
+        ),
+        feedback_good=True
+    )
+)
+```
+
+---
+
+### Filtering by Model Status
+
+Filter logs by REMi model status. Available status options are `NO_CONTEXT`, `ERROR`, and `SUCCESS`.
+
+#### CLI Example
+```bash
+nuclia kb remi query --query='{
+    "month": "2024-11",
+    "status": "NO_CONTEXT"
+}'
+```
+
+#### SDK Example
+```python
+from nuclia import sdk
+from nuclia_models.events.remi import RemiQuery, Status
+
+kb = sdk.NucliaKB()
+kb.remi.query(
+    query=RemiQuery(
+        month="2024-11",
+        status=Status.NO_CONTEXT
+    )
+)
+```
+
+---
+
+### REMi Get
+
+Use `remi get_event` to fetch detailed information for a specific chat activity log. This command is useful for retrieving full context and score details of an entry obtained from a previous REMi query.
+
+#### CLI Example
+```bash
+nuclia kb remi get_event --event_id=16987522
+```
+
+#### SDK Example
+```python
+from nuclia import sdk
+
+kb = sdk.NucliaKB()
+kb.remi.get_event(event_id=16987522)
+```
+
+---
+
+### REMi Scores
+
+Use `remi get_scores` to retrieve the progression of REMi scores over a specified time period, with options to aggregate scores by day, month, or other intervals.
+
+#### CLI Example
+```bash
+nuclia kb remi get_scores --starting_at=2024-05-01 --to=None --aggregation=day
+```
+
+#### SDK Example
+```python
+from nuclia import sdk
+from nuclia_models.common.utils import Aggregation
+from datetime import datetime
+
+kb = sdk.NucliaKB()
+output2 = kb.remi.get_scores(
+    starting_at=datetime(year=2024, month=5, day=1),
+    to=None,
+    aggregation=Aggregation.DAY,
+)
 ```

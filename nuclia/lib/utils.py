@@ -20,7 +20,7 @@ def handle_http_errors(response: Union[httpx.Response, requests.models.Response]
     elif response.status_code == 429:
         raise RateLimitError(f"Rate limited: {response.text}")
     elif response.status_code == 409:
-        raise DuplicateError("Duplicate resource")
+        raise DuplicateError(f"Duplicate resource: {response.text}")
     elif response.status_code >= 400:
         raise httpx.HTTPError(f"Status code {response.status_code}: {response.text}")
 
