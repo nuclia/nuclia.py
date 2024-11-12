@@ -61,7 +61,6 @@ class NucliaLogs:
         """
         _type = EventType[type.upper()] if isinstance(type, str) else type
         _query: Union[
-            dict,
             ActivityLogsQuery,
             ActivityLogsSearchQuery,
             ActivityLogsChatQuery,
