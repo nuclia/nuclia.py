@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Dict, Iterator, List, Optional, Union
+from typing import AsyncIterator, Iterator, Optional, Union
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua
@@ -110,7 +110,7 @@ class NucliaPredict:
 
     @nua
     def summarize(
-        self, texts: Dict[str, str], model: Optional[str] = None, **kwargs
+        self, texts: dict[str, str], model: Optional[str] = None, **kwargs
     ) -> SummarizedModel:
         nc: NuaClient = kwargs["nc"]
         return nc.summarize(texts, model)
@@ -119,8 +119,8 @@ class NucliaPredict:
     def rephrase(
         self,
         question: str,
-        user_context: Optional[List[str]] = None,
-        context: Optional[List[ContextItem]] = None,
+        user_context: Optional[list[str]] = None,
+        context: Optional[list[Union[dict, ContextItem]]] = None,
         model: Optional[str] = None,
         prompt: Optional[str] = None,
         **kwargs,
@@ -130,7 +130,7 @@ class NucliaPredict:
 
     @nua
     def rag(
-        self, question: str, context: List[str], model: Optional[str] = None, **kwargs
+        self, question: str, context: list[str], model: Optional[str] = None, **kwargs
     ) -> GenerativeFullResponse:
         nc: NuaClient = kwargs["nc"]
         body = ChatModel(
@@ -233,7 +233,7 @@ class AsyncNucliaPredict:
 
     @nua
     async def summarize(
-        self, texts: Dict[str, str], model: Optional[str] = None, **kwargs
+        self, texts: dict[str, str], model: Optional[str] = None, **kwargs
     ) -> SummarizedModel:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.summarize(texts, model)
@@ -242,8 +242,8 @@ class AsyncNucliaPredict:
     async def rephrase(
         self,
         question: str,
-        user_context: Optional[List[str]] = None,
-        context: Optional[List[ContextItem]] = None,
+        user_context: Optional[list[str]] = None,
+        context: Optional[list[Union[dict, ContextItem]]] = None,
         model: Optional[str] = None,
         prompt: Optional[str] = None,
         **kwargs,
@@ -253,7 +253,7 @@ class AsyncNucliaPredict:
 
     @nua
     async def rag(
-        self, question: str, context: List[str], model: Optional[str] = None, **kwargs
+        self, question: str, context: list[str], model: Optional[str] = None, **kwargs
     ) -> ChatResponse:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.generate_retrieval(question, context, model)

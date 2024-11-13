@@ -4,9 +4,7 @@ from time import sleep
 from typing import (
     Any,
     AsyncIterator,
-    Dict,
     Iterator,
-    List,
     Optional,
     Type,
     TypeVar,
@@ -73,7 +71,7 @@ class Author(str, Enum):
     USER = "USER"
 
 
-class ContextItem:
+class ContextItem(BaseModel):
     author: Author
     text: str
 
@@ -84,7 +82,7 @@ class NuaClient:
         region: str,
         account: str,
         token: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
     ):
         self.region = region
         self.account = account
@@ -109,7 +107,7 @@ class NuaClient:
         method: str,
         url: str,
         output: Type[ConvertType],
-        payload: Optional[Dict[Any, Any]] = None,
+        payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> ConvertType:
         resp = self.client.request(method, url, json=payload, timeout=timeout)
@@ -125,7 +123,7 @@ class NuaClient:
         self,
         method: str,
         url: str,
-        payload: Optional[Dict[Any, Any]] = None,
+        payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> Iterator[GenerativeChunk]:
         with self.stream_client.stream(
@@ -237,7 +235,7 @@ class NuaClient:
             yield gr
 
     def summarize(
-        self, documents: Dict[str, str], model: Optional[str] = None, timeout: int = 300
+        self, documents: dict[str, str], model: Optional[str] = None, timeout: int = 300
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
         if model:
@@ -260,8 +258,8 @@ class NuaClient:
     def rephrase(
         self,
         question: str,
-        user_context: Optional[List[str]] = None,
-        context: Optional[List[ContextItem]] = None,
+        user_context: Optional[list[str]] = None,
+        context: Optional[list[Union[dict, ContextItem]]] = None,
         model: Optional[str] = None,
         prompt: Optional[str] = None,
     ) -> RephraseModel:
@@ -269,15 +267,18 @@ class NuaClient:
         if model:
             endpoint += f"?model={model}"
 
-        body: Dict[str, Union[str, list[str], list[ContextItem], None]] = {
+        body: dict[str, Union[str, list[str], list[ContextItem], None]] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
         }
         if prompt:
             body["prompt"] = prompt
-        if context and len(context) > 0:
-            body["context"] = context
+        if context:
+            body["context"] = [
+                c.model_dump(mode="json") if isinstance(c, BaseModel) else c
+                for c in context
+            ]
         return self._request(
             "POST",
             endpoint,
@@ -313,9 +314,9 @@ class NuaClient:
         self,
         url: str,
         kbid: Optional[str] = None,
-        headers: Dict[str, str] = {},
-        cookies: Dict[str, str] = {},
-        localstorage: Dict[str, str] = {},
+        headers: dict[str, str] = {},
+        cookies: dict[str, str] = {},
+        localstorage: dict[str, str] = {},
     ) -> PushResponseV2:
         payload = PushPayload(
             uuid=None, source=Source.HTTP, kbid=RestrictedIDString(kbid)
@@ -364,7 +365,7 @@ class AsyncNuaClient:
         region: str,
         account: str,
         token: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
     ):
         self.region = region
         self.account = account
@@ -389,7 +390,7 @@ class AsyncNuaClient:
         method: str,
         url: str,
         output: Type[ConvertType],
-        payload: Optional[Dict[Any, Any]] = None,
+        payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> ConvertType:
         resp = await self.client.request(method, url, json=payload, timeout=timeout)
@@ -406,7 +407,7 @@ class AsyncNuaClient:
         self,
         method: str,
         url: str,
-        payload: Optional[Dict[Any, Any]] = None,
+        payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> AsyncIterator[GenerativeChunk]:
         async with self.stream_client.stream(
@@ -542,7 +543,7 @@ class AsyncNuaClient:
             yield gr
 
     async def summarize(
-        self, documents: Dict[str, str], model: Optional[str] = None, timeout: int = 300
+        self, documents: dict[str, str], model: Optional[str] = None, timeout: int = 300
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
         if model:
@@ -565,8 +566,8 @@ class AsyncNuaClient:
     async def rephrase(
         self,
         question: str,
-        user_context: Optional[List[str]] = None,
-        context: Optional[List[ContextItem]] = None,
+        user_context: Optional[list[str]] = None,
+        context: Optional[list[Union[dict, ContextItem]]] = None,
         model: Optional[str] = None,
         prompt: Optional[str] = None,
     ) -> RephraseModel:
@@ -574,15 +575,18 @@ class AsyncNuaClient:
         if model:
             endpoint += f"?model={model}"
 
-        body: Dict[str, Union[str, list[str], list[ContextItem], None]] = {
+        body: dict[str, Union[str, list[str], list[ContextItem], None]] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
         }
         if prompt:
             body["prompt"] = prompt
-        if context and len(context) > 0:
-            body["context"] = context
+        if context:
+            body["context"] = [
+                c.model_dump(mode="json") if isinstance(c, BaseModel) else c
+                for c in context
+            ]
         return await self._request(
             "POST",
             endpoint,
@@ -593,7 +597,7 @@ class AsyncNuaClient:
     async def generate_retrieval(
         self,
         question: str,
-        context: List[str],
+        context: list[str],
         model: Optional[str] = None,
     ) -> ChatResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
@@ -613,9 +617,9 @@ class AsyncNuaClient:
         self,
         url: str,
         kbid: Optional[str] = None,
-        headers: Dict[str, str] = {},
-        cookies: Dict[str, str] = {},
-        localstorage: Dict[str, str] = {},
+        headers: dict[str, str] = {},
+        cookies: dict[str, str] = {},
+        localstorage: dict[str, str] = {},
     ) -> PushResponseV2:
         payload = PushPayload(
             uuid=None, source=Source.HTTP, kbid=RestrictedIDString(kbid)
