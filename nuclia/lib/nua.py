@@ -267,7 +267,7 @@ class NuaClient:
         if model:
             endpoint += f"?model={model}"
 
-        body: dict[str, Union[str, list[str], list[ContextItem], None]] = {
+        body: dict[str, Any] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
@@ -575,7 +575,7 @@ class AsyncNuaClient:
         if model:
             endpoint += f"?model={model}"
 
-        body: dict[str, Union[str, list[str], list[ContextItem], None]] = {
+        body: dict[str, Any] = {
             "question": question,
             "user_context": user_context,
             "user_id": "USER",
