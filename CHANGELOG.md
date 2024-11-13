@@ -3,7 +3,7 @@
 ## 4.3.1 (unreleased)
 
 
-- Nothing changed yet.
+- Fix: allow passing context as `ContextItem` in rephrase
 
 
 ## 4.3.0 (2024-11-12)
