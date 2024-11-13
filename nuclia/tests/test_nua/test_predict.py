@@ -15,7 +15,7 @@ def test_predict_query(testing_config):
         text="Ramon, this is my text",
         semantic_model="multilingual-2024-05-06",
         token_model="multilingual",
-        generative_model="chatgpt-azure-3",
+        generative_model="chatgpt-azure-4o",
     )
     assert query.language == "en"
     assert query.visual_llm is False
@@ -32,20 +32,20 @@ def test_rag(testing_config):
             "Nuclia CTO is Ramon Navarro",
             "Eudald Camprubí is CEO at the same company as Ramon Navarro",
         ],
-        model="chatgpt-azure-3",
+        model="chatgpt-azure-4o",
     )
     assert "Eudald" in generated.answer
 
 
 def test_generative(testing_config):
     np = NucliaPredict()
-    generated = np.generate(text="How much is 2 + 2?", model="chatgpt-azure-3")
+    generated = np.generate(text="How much is 2 + 2?", model="chatgpt-azure-4o")
     assert "4" in generated.answer
 
 
 async def test_async_generative(testing_config):
     np = AsyncNucliaPredict()
-    generated = await np.generate(text="How much is 2 + 2?", model="chatgpt-azure-3")
+    generated = await np.generate(text="How much is 2 + 2?", model="chatgpt-azure-4o")
     assert "4" in generated.answer
 
 
@@ -53,7 +53,7 @@ def test_stream_generative(testing_config):
     np = NucliaPredict()
     found = False
     for stream in np.generate_stream(
-        text="How much is 2 + 2?", model="chatgpt-azure-3"
+        text="How much is 2 + 2?", model="chatgpt-azure-4o"
     ):
         if isinstance(stream.chunk, TextGenerativeResponse) and stream.chunk.text:
             if "4" in stream.chunk.text:
@@ -64,7 +64,7 @@ def test_stream_generative(testing_config):
 async def test_async_stream_generative(testing_config):
     np = AsyncNucliaPredict()
     async for stream in np.generate_stream(
-        text="How much is 2 + 2?", model="chatgpt-azure-3"
+        text="How much is 2 + 2?", model="chatgpt-azure-4o"
     ):
         if isinstance(stream.chunk, TextGenerativeResponse) and stream.chunk.text:
             if "4" in stream.chunk.text:
