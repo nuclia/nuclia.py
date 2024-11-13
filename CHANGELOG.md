@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.1 (unreleased)
+## 4.3.1 (2024-11-13)
 
 
 - Fix: allow passing context as `ContextItem` in rephrase
