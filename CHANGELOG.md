@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.2 (unreleased)
+## 4.3.2 (2024-11-19)
 
 
 - Fix pagination activity logs
