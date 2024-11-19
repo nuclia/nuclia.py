@@ -3,7 +3,7 @@
 ## 4.3.2 (unreleased)
 
 
-- Nothing changed yet.
+- Fix pagination activity logs
 
 
 ## 4.3.1 (2024-11-13)
