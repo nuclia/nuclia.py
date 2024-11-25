@@ -61,7 +61,6 @@ class NucliaLogs:
         """
         _type = EventType[type.upper()] if isinstance(type, str) else type
         _query: Union[
-            dict,
             ActivityLogsQuery,
             ActivityLogsSearchQuery,
             ActivityLogsChatQuery,
@@ -82,7 +81,7 @@ class NucliaLogs:
         for line in response.iter_lines():
             output.append(ActivityLogsQueryResponse.model_validate_json(line))
         return ActivityLogsOutput(
-            data=output, has_more=bool(response.headers["has-more"])
+            data=output, has_more=response.headers["has-more"].lower() == "true"
         )
 
     @kb

@@ -1,9 +1,27 @@
 # Changelog
 
-## 4.2.8 (unreleased)
+## 4.3.3 (unreleased)
 
 
 - Support Tasks API 
+
+
+## 4.3.2 (2024-11-19)
+
+
+- Fix pagination activity logs
+
+
+## 4.3.1 (2024-11-13)
+
+
+- Fix: allow passing context as `ContextItem` in rephrase
+
+
+## 4.3.0 (2024-11-12)
+
+
+- Added `REMi` endpoints
 
 
 ## 4.2.7 (2024-11-07)
