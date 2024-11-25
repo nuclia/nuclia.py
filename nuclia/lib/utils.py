@@ -14,8 +14,7 @@ from nuclia.exceptions import (
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SyncAskResponse
 from nuclia.lib.models import ActivityLogsOutput
-
-from nuclia.lib.tasks import TaskDefinition, TaskList
+from nuclia_models.worker.tasks import TaskDefinition, TaskList
 
 
 def handle_http_errors(response: Union[httpx.Response, requests.models.Response]):
@@ -29,7 +28,7 @@ def handle_http_errors(response: Union[httpx.Response, requests.models.Response]
     elif response.status_code == 409:
         raise DuplicateError(f"Duplicate resource: {response.text}")
     elif response.status_code == 422:
-        raise InvalidPayload("Invalid payload")
+        raise InvalidPayload(f"Invalid payload: {response.text}")
     elif response.status_code >= 400:
         raise httpx.HTTPError(f"Status code {response.status_code}: {response.text}")
 

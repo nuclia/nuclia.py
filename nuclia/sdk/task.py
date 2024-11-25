@@ -2,23 +2,16 @@ from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.exceptions import InvalidPayload
 from nuclia.lib.kb import NucliaDBClient
-from nuclia.lib.utils import handle_http_errors
 from nuclia.sdk.auth import NucliaAuth
-from nuclia.lib.tasks import (
+from nuclia_models.worker.tasks import (
     ApplyOptions,
-    TaskDefinition,
-    TaskStart,
+    TaskStartKB,
     TaskResponse,
     PublicTaskRequest,
     TaskList,
+    TaskName,
+    PARAMETERS_TYPING,
 )
-
-LIST_TASKS = "/tasks"
-START_TASK = "/task/{task_name}/start"
-STOP_TASK = "/task/{task_id}/stop"
-DELETE_TASK = "/task/{task_id}"
-GET_TASK = "/task/{task_id}/inspect"
-RESTART_TASK = "/task/{task_id}/restart"
 
 
 class NucliaTask:
@@ -29,81 +22,76 @@ class NucliaTask:
 
     @kb
     def list(self, **kwargs) -> TaskList:
+        """
+        List tasks
+        """
         ndb: NucliaDBClient = kwargs["ndb"]
-
-        if ndb.reader_session is None:
-            raise Exception("KB not configured")
-        resp = ndb.reader_session.get(LIST_TASKS)
-        handle_http_errors(resp)
-        return TaskList.model_validate_json(resp.content)
-
-    @kb
-    def schema(self, task_name: str, **kwargs) -> TaskDefinition:
-        ndb: NucliaDBClient = kwargs["ndb"]
-
-        if ndb.reader_session is None:
-            raise Exception("KB not configured")
-        resp = ndb.reader_session.get(LIST_TASKS)
-        handle_http_errors(resp)
-        tasks = TaskList.model_validate_json(resp.content)
-        for task in tasks.tasks:
-            if task.name == task_name:
-                return task
-        raise KeyError("Task not found")
+        response = ndb.list_tasks()
+        return TaskList.model_validate(response.json())
 
     @kb
     def start(
-        self, task_name: str, apply: ApplyOptions = ApplyOptions.ALL, **kwargs
+        self,
+        task_name: TaskName,
+        apply: ApplyOptions = ApplyOptions.ALL,
+        parameters=PARAMETERS_TYPING,
+        **kwargs,
     ) -> TaskResponse:
-        ndb: NucliaDBClient = kwargs["ndb"]
+        """
+        Start task
 
-        del kwargs["ndb"]
-        parameters = TaskStart(parameters=kwargs, apply=apply)
-        if ndb.writer_session is None:
-            raise Exception("KB not configured")
-        resp = ndb.writer_session.post(
-            START_TASK.format(task_name=task_name), json=parameters.model_dump()
+        :param task_name: TaskName enum
+        :param apply: EXISTING, NEW, ALL
+        :param parameters: Specific parameters depending on the task choosen
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        response = ndb.start_task(
+            body=TaskStartKB(name=task_name, parameters=parameters, apply=apply)
         )
-        handle_http_errors(resp)
-        return TaskResponse.model_validate_json(resp.content)
+        return TaskResponse.model_validate(response.json())
 
     @kb
     def delete(self, task_id: str, **kwargs):
-        ndb: NucliaDBClient = kwargs["ndb"]
+        """
+        Delete task
 
-        if ndb.writer_session is None:
-            raise Exception("KB not configured")
-        resp = ndb.writer_session.delete(DELETE_TASK.format(task_id=task_id))
+        :param task_id: ID of the task to delete
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
         try:
-            handle_http_errors(resp)
+            _ = ndb.delete_task(task_id=task_id)
         except InvalidPayload:
             pass
 
     @kb
     def stop(self, task_id: str, **kwargs) -> TaskResponse:
-        ndb: NucliaDBClient = kwargs["ndb"]
+        """
+        Stop task
 
-        if ndb.writer_session is None:
-            raise Exception("KB not configured")
-        resp = ndb.writer_session.post(STOP_TASK.format(task_id=task_id))
-        handle_http_errors(resp)
-        return TaskResponse.model_validate_json(resp.content)
+        :param task_id: ID of the task to stop
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        response = ndb.stop_task(task_id=task_id)
+        return TaskResponse.model_validate(response.json())
 
     @kb
     def get(self, task_id: str, **kwargs) -> PublicTaskRequest:
-        ndb: NucliaDBClient = kwargs["ndb"]
+        """
+        Get task
 
-        if ndb.reader_session is None:
-            raise Exception("KB not configured")
-        resp = ndb.reader_session.get(GET_TASK.format(task_id=task_id))
-        handle_http_errors(resp)
-        return PublicTaskRequest.model_validate_json(resp.content)
+        :param task_id: ID of the task to show
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        response = ndb.get_task(task_id=task_id)
+        return PublicTaskRequest.model_validate(response.json())
 
     @kb
-    def restart(self, task_id: str, **kwargs):
-        ndb: NucliaDBClient = kwargs["ndb"]
+    def restart(self, task_id: str, **kwargs) -> TaskResponse:
+        """
+        Restart task
 
-        if ndb.writer_session is None:
-            raise Exception("KB not configured")
-        resp = ndb.writer_session.post(RESTART_TASK.format(task_id=task_id))
-        handle_http_errors(resp)
+        :param task_id: ID of the task to restart
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        response = ndb.restart_task(task_id=task_id)
+        return TaskResponse.model_validate(response.json())
