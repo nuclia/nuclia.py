@@ -11,7 +11,9 @@ from nuclia_models.worker.tasks import (
     TaskName,
     PARAMETERS_TYPING,
     PublicTaskSet,
+    TASKS,
 )
+from typing import Union
 
 
 class NucliaTask:
@@ -33,9 +35,9 @@ class NucliaTask:
     def start(
         self,
         *args,
-        task_name: TaskName,
-        apply: ApplyOptions,
-        parameters: PARAMETERS_TYPING,
+        task_name: Union[TaskName, str],
+        apply: Union[ApplyOptions, str],
+        parameters: Union[PARAMETERS_TYPING, dict],
         **kwargs,
     ) -> TaskResponse:
         """
@@ -45,6 +47,16 @@ class NucliaTask:
         :param apply: EXISTING, NEW, ALL
         :param parameters: Specific parameters depending on the task choosen
         """
+        if isinstance(task_name, str):
+            task_name = TaskName(task_name.lower())
+        if isinstance(apply, str):
+            apply = ApplyOptions(apply.upper())
+        if isinstance(parameters, dict):
+            parameters_model = TASKS[task_name].validation
+            if parameters_model is None:
+                raise InvalidPayload(f"Invalid parameters for task {task_name.value}")
+            parameters = parameters_model.model_validate(parameters)
+
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.start_task(
             body=TaskStartKB(name=task_name, parameters=parameters, apply=apply)
