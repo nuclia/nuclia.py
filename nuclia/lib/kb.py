@@ -553,7 +553,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         if self.reader_session is None:
             raise Exception("KB not configured")
 
-        parent = "/".join(path.split("/")[:-1])
+        parent = "/".join(path.split(os.sep)[:-1])
         if os.path.exists(parent) is False:
             os.makedirs(parent)
 
