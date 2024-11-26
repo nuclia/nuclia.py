@@ -66,7 +66,7 @@ class NucliaUpload:
     ) -> Optional[str]:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
         ndb: NucliaDBClient = kwargs["ndb"]
-        filename = path.split("/")[-1]
+        filename = path.split(os.sep)[-1]
         size = os.path.getsize(path)
         mimetype = mimetypes.guess_type(path)[0]
         if not mimetype:
@@ -254,7 +254,7 @@ class NucliaUpload:
                 raise GettingRemoteFileError(
                     f"Unable to get remote file {origin}: {ex}"
                 ) from ex
-            filename = origin.split("/")[-1]
+            filename = origin.split(os.sep)[-1]
             size_str = r.headers.get("Content-Length")
             if size_str is None:
                 size_str = "-1"
@@ -371,7 +371,7 @@ class AsyncNucliaUpload:
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        filename = path.split("/")[-1]
+        filename = path.split(os.sep)[-1]
         size = os.path.getsize(path)
         mimetype = mimetype or mimetypes.guess_type(path)[0]
         if not mimetype:
@@ -547,7 +547,7 @@ class AsyncNucliaUpload:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         client = AsyncClient()
         async with client.stream("GET", origin, follow_redirects=True) as r:
-            filename = origin.split("/")[-1]
+            filename = origin.split(os.sep)[-1]
             size_str = r.headers.get("Content-Length")
             if size_str is None:
                 size_str = "-1"
