@@ -14,6 +14,7 @@ from .resource import AsyncNucliaResource
 from .resource import NucliaResource
 from .search import AsyncNucliaSearch
 from .search import NucliaSearch
+from .task import NucliaTask
 from .upload import AsyncNucliaUpload
 from .upload import NucliaUpload
 from .zones import NucliaZones
@@ -36,6 +37,7 @@ __all__ = [
     "NucliaResource",
     "AsyncNucliaSearch",
     "NucliaSearch",
+    "NucliaTask",
     "AsyncNucliaUpload",
     "NucliaUpload",
     "NucliaZones",
