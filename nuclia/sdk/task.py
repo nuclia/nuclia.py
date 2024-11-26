@@ -7,10 +7,10 @@ from nuclia_models.worker.tasks import (
     ApplyOptions,
     TaskStartKB,
     TaskResponse,
-    PublicTaskRequest,
     TaskList,
     TaskName,
     PARAMETERS_TYPING,
+    PublicTaskSet,
 )
 
 
@@ -21,7 +21,7 @@ class NucliaTask:
         return auth
 
     @kb
-    def list(self, **kwargs) -> TaskList:
+    def list(self, *args, **kwargs) -> TaskList:
         """
         List tasks
         """
@@ -32,9 +32,10 @@ class NucliaTask:
     @kb
     def start(
         self,
+        *args,
         task_name: TaskName,
-        apply: ApplyOptions = ApplyOptions.ALL,
-        parameters=PARAMETERS_TYPING,
+        apply: ApplyOptions,
+        parameters: PARAMETERS_TYPING,
         **kwargs,
     ) -> TaskResponse:
         """
@@ -51,7 +52,7 @@ class NucliaTask:
         return TaskResponse.model_validate(response.json())
 
     @kb
-    def delete(self, task_id: str, **kwargs):
+    def delete(self, *args, task_id: str, **kwargs):
         """
         Delete task
 
@@ -64,7 +65,7 @@ class NucliaTask:
             pass
 
     @kb
-    def stop(self, task_id: str, **kwargs) -> TaskResponse:
+    def stop(self, *args, task_id: str, **kwargs) -> TaskResponse:
         """
         Stop task
 
@@ -75,7 +76,7 @@ class NucliaTask:
         return TaskResponse.model_validate(response.json())
 
     @kb
-    def get(self, task_id: str, **kwargs) -> PublicTaskRequest:
+    def get(self, *args, task_id: str, **kwargs) -> PublicTaskSet:
         """
         Get task
 
@@ -83,10 +84,10 @@ class NucliaTask:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.get_task(task_id=task_id)
-        return PublicTaskRequest.model_validate(response.json())
+        return PublicTaskSet.model_validate(response.json())
 
     @kb
-    def restart(self, task_id: str, **kwargs) -> TaskResponse:
+    def restart(self, *args, task_id: str, **kwargs) -> TaskResponse:
         """
         Restart task
 
