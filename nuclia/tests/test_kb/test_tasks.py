@@ -45,7 +45,7 @@ def test_worker_manager_tasks(testing_config):
 
     output = nkb.task.stop(task_id=task_id)
     assert output.id == task_id
-    assert output.status == JobStatus.STOPPED
+    assert output.status == JobStatus.NOT_RUNNING
 
     output = nkb.task.restart(task_id=task_id)
     assert output.id == task_id
@@ -53,7 +53,7 @@ def test_worker_manager_tasks(testing_config):
 
     output = nkb.task.stop(task_id=task_id)
     assert output.id == task_id
-    assert output.status == JobStatus.STOPPED
+    assert output.status == JobStatus.NOT_RUNNING
 
     output = nkb.task.delete(task_id=task_id)
     assert output is None
