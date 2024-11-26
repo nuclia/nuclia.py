@@ -3,7 +3,7 @@
 ## 4.3.3 (unreleased)
 
 
-- Nothing changed yet.
+- Fix paths in Windows
 
 
 ## 4.3.2 (2024-11-19)
