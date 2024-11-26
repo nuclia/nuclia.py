@@ -4,6 +4,7 @@
 
 
 - Fix paths in Windows
+- Support Task Manager API
 
 
 ## 4.3.2 (2024-11-19)

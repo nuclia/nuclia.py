@@ -5,10 +5,16 @@ import httpx
 import requests
 from tabulate import tabulate
 
-from nuclia.exceptions import RateLimitError, UserTokenExpired, DuplicateError
+from nuclia.exceptions import (
+    RateLimitError,
+    UserTokenExpired,
+    DuplicateError,
+    InvalidPayload,
+)
 from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SyncAskResponse
 from nuclia.lib.models import ActivityLogsOutput
+from nuclia_models.worker.tasks import TaskDefinition, TaskList
 
 
 def handle_http_errors(response: Union[httpx.Response, requests.models.Response]):
@@ -21,6 +27,8 @@ def handle_http_errors(response: Union[httpx.Response, requests.models.Response]
         raise RateLimitError(f"Rate limited: {response.text}")
     elif response.status_code == 409:
         raise DuplicateError(f"Duplicate resource: {response.text}")
+    elif response.status_code == 422:
+        raise InvalidPayload(f"Invalid payload: {response.text}")
     elif response.status_code >= 400:
         raise httpx.HTTPError(f"Status code {response.status_code}: {response.text}")
 
@@ -37,6 +45,63 @@ def serialize(obj):
             data,
             headers=["UUID", "Icon", "Title", "Status", "Slug"],
         )
+
+    if isinstance(obj, TaskDefinition):
+        return json.dumps(obj.validation, indent=2)
+
+    if isinstance(obj, TaskList):
+        output = ""
+        if obj.tasks:
+            output += "# Available tasks\n"
+            output += "\n"
+            data = []
+            for task in obj.tasks:
+                data.append([task.name, task.description])
+
+            output += tabulate(
+                data,
+                headers=["Name", "Description"],
+            )
+            output += "\n\n"
+
+        if obj.running:
+            output += "# Running tasks\n"
+            output += "\n"
+            data = []
+            for running_task in obj.running:
+                data.append(
+                    [
+                        running_task.task.name,
+                        running_task.id,
+                        running_task.scheduled_at,
+                    ]
+                )
+
+            output += tabulate(
+                data,
+                headers=["Task", "ID", "Started"],
+            )
+            output += "\n\n"
+
+        if obj.configs:
+            output += "# Configured tasks\n"
+            output += "\n"
+            data = []
+            for running_task in obj.configs:
+                data.append(
+                    [
+                        running_task.task.name,
+                        running_task.id,
+                    ]
+                )
+
+            output += tabulate(
+                data,
+                headers=["Task", "ID"],
+            )
+            output += "\n\n"
+        return output
+
     if isinstance(obj, SyncAskResponse):
         if obj.status != "success":
             response = f"ERROR: {obj.error_details}"

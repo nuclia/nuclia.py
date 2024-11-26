@@ -23,6 +23,7 @@ from nuclia_models.events.activity_logs import (  # type: ignore
     DownloadFormat,
 )
 from nuclia_models.events.remi import RemiQuery
+from nuclia_models.worker.tasks import TaskStartKB
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 from datetime import datetime
@@ -53,6 +54,12 @@ NOTIFICATIONS = "/notifications"
 REMI_QUERY_URL = "/remi/query"
 REMI_EVENT_URL = "/remi/events/{event_id}"
 REMI_SCORES_URL = "/remi/scores"
+LIST_TASKS = "/tasks"
+START_TASK = "/task/start"
+STOP_TASK = "/task/{task_id}/stop"
+DELETE_TASK = "/task/{task_id}"
+GET_TASK = "/task/{task_id}/inspect"
+RESTART_TASK = "/task/{task_id}/restart"
 
 DOWNLOAD_FORMAT_HEADERS = {
     DownloadFormat.CSV: "text/csv",
@@ -420,6 +427,65 @@ class NucliaDBClient(BaseNucliaDBClient):
             params["to"] = to.isoformat()
         response: httpx.Response = self.reader_session.get(
             f"{self.url}{REMI_SCORES_URL}", params=params, timeout=10
+        )
+        handle_http_errors(response)
+        return response
+
+    def list_tasks(self) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.reader_session.get(f"{self.url}{LIST_TASKS}")
+        handle_http_errors(response)
+        return response
+
+    def start_task(self, body: TaskStartKB) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.post(
+            f"{self.url}{START_TASK}",
+            json=body.model_dump(mode="json", exclude_unset=True),
+        )
+        handle_http_errors(response)
+        return response
+
+    def delete_task(self, task_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.delete(
+            f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
+        )
+        handle_http_errors(response)
+        return response
+
+    def stop_task(self, task_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.post(
+            f"{self.url}{STOP_TASK.format(task_id=task_id)}",
+        )
+        handle_http_errors(response)
+        return response
+
+    def get_task(self, task_id: str) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.reader_session.get(
+            f"{self.url}{GET_TASK.format(task_id=task_id)}",
+        )
+        handle_http_errors(response)
+        return response
+
+    def restart_task(self, task_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.post(
+            f"{self.url}{RESTART_TASK.format(task_id=task_id)}",
         )
         handle_http_errors(response)
         return response
