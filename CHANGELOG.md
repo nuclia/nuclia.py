@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.3 (unreleased)
+## 4.3.3 (2024-11-28)
 
 
 - Relax dependencies
