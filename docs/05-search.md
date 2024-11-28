@@ -113,7 +113,7 @@ RAG strategies can be used to improve the quality of the answers by extending th
   ```python
   from nuclia import sdk
   search = sdk.NucliaSearch()
-  search.ask(query="My question", rag_strategies=[rag_strategies=[{"name": "hierarchy"}]])
+  search.ask(query="My question", rag_strategies=[{"name": "hierarchy"}])
   ```
 
 See the [RAG strategies documentation](https://docs.nuclia.dev/docs/rag/rag-strategy) for more information.

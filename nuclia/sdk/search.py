@@ -36,8 +36,10 @@ class AskAnswer:
     relations_result: Optional[Relations]
     find_result: Optional[KnowledgeboxFindResults]
     citations: Optional[Dict[str, Any]]
+    prequeries: Optional[Dict[str, KnowledgeboxFindResults]]
     timings: Optional[Dict[str, float]]
     tokens: Optional[Dict[str, int]]
+    retrieval_best_matches: Optional[List[str]]
 
     def __str__(self):
         if self.answer:
@@ -179,6 +181,8 @@ class NucliaSearch:
             learning_id=ask_response.learning_id,
             relations_result=ask_response.relations,
             find_result=ask_response.retrieval_results,
+            prequeries=ask_response.prequeries,
+            retrieval_best_matches=[best.id for best in ask_response.retrieval_best_matches],
             citations=ask_response.citations,
             timings=None,
             tokens=None,
@@ -250,6 +254,8 @@ class NucliaSearch:
             learning_id=ask_response.learning_id,
             relations_result=ask_response.relations,
             find_result=ask_response.retrieval_results,
+            prequeries=ask_response.prequeries,
+            retrieval_best_matches=[best.id for best in ask_response.retrieval_best_matches],
             citations=ask_response.citations,
             timings=None,
             tokens=None,
