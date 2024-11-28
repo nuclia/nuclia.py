@@ -182,7 +182,9 @@ class NucliaSearch:
             relations_result=ask_response.relations,
             find_result=ask_response.retrieval_results,
             prequeries=ask_response.prequeries,
-            retrieval_best_matches=[best.id for best in ask_response.retrieval_best_matches],
+            retrieval_best_matches=[
+                best.id for best in ask_response.retrieval_best_matches
+            ],
             citations=ask_response.citations,
             timings=None,
             tokens=None,
@@ -255,7 +257,9 @@ class NucliaSearch:
             relations_result=ask_response.relations,
             find_result=ask_response.retrieval_results,
             prequeries=ask_response.prequeries,
-            retrieval_best_matches=[best.id for best in ask_response.retrieval_best_matches],
+            retrieval_best_matches=[
+                best.id for best in ask_response.retrieval_best_matches
+            ],
             citations=ask_response.citations,
             timings=None,
             tokens=None,
@@ -389,6 +393,8 @@ class AsyncNucliaSearch:
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
             relations_result=None,
             find_result=None,
+            prequeries=None,
+            retrieval_best_matches=None,
             citations=None,
             timings=None,
             tokens=None,
@@ -500,6 +506,8 @@ class AsyncNucliaSearch:
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
             relations_result=None,
             find_result=None,
+            prequeries=None,
+            retrieval_best_matches=None,
             citations=None,
             timings=None,
             tokens=None,
