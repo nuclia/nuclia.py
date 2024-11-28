@@ -3,6 +3,7 @@
 ## 4.3.3 (unreleased)
 
 
+- Relax dependencies
 - Fix paths in Windows
 - Support Task Manager API
 
