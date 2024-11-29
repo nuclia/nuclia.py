@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.4 (unreleased)
+## 4.3.4 (2024-11-29)
 
 
 - Return prequeries results
