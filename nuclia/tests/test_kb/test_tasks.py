@@ -61,3 +61,12 @@ def test_worker_manager_tasks(testing_config):
     output = nkb.task.get(task_id=task_id)
     assert output.request is None
     assert output.config is None
+
+    # Delete all tasks
+    output = nkb.task.list()
+    assert isinstance(output, TaskList)
+    for task in output.running:
+        nkb.task.stop(task_id=task.id)
+        nkb.task.delete(task_id=task.id)
+    for task in output.done:
+        nkb.task.delete(task_id=task.id)
