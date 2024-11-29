@@ -3,7 +3,7 @@
 ## 4.3.4 (unreleased)
 
 
-- Nothing changed yet.
+- Return prequeries results
 
 
 ## 4.3.3 (2024-11-28)
