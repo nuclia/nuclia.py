@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.5 (unreleased)
+## 4.3.5 (2024-11-29)
 
 
 - Allow activity downloads to be filtered by id.
