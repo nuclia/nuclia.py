@@ -3,7 +3,7 @@
 ## 4.3.5 (unreleased)
 
 
-- Nothing changed yet.
+- Allow activity downloads to be filtered by id.
 
 
 ## 4.3.4 (2024-11-29)
