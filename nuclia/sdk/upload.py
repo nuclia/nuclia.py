@@ -62,13 +62,14 @@ class NucliaUpload:
         rid: Optional[str] = None,
         field: Optional[str] = None,
         interpretTables: Optional[bool] = False,
+        mimetype: Optional[str] = None,
         **kwargs,
     ) -> Optional[str]:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
         ndb: NucliaDBClient = kwargs["ndb"]
         filename = path.split(os.sep)[-1]
         size = os.path.getsize(path)
-        mimetype = mimetypes.guess_type(path)[0]
+        mimetype = mimetype or mimetypes.guess_type(path)[0]
         if not mimetype:
             mimetype = "application/octet-stream"
         if interpretTables:
