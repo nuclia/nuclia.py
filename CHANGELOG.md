@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.7 (unreleased)
+## 4.3.7 (2024-12-02)
 
 
 - Allow to pass the mimetype when uploading a file.
