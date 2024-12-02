@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.6 (unreleased)
+## 4.3.6 (2024-12-02)
 
 
 - Fix dependencies regarding RRF
