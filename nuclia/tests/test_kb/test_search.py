@@ -33,7 +33,7 @@ def test_ask_with_custom_prompt(testing_config):
             system="Answer the question. If you don't know the anwser, write 'I don't know' and a list of bullet points with the reasons why you don't know the answer.",
             user="Based on this context {context}, answer the question {question}",
         ),
-        generative_model="chatgpt-azure-4-turbo",
+        generative_model="chatgpt-azure-4o",
     )
     results = search.ask(query=ask)
     answer = results.answer.decode()
