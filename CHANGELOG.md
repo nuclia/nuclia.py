@@ -3,7 +3,7 @@
 ## 4.3.7 (unreleased)
 
 
-- Nothing changed yet.
+- Allow to pass the mimetype when uploading a file.
 
 
 ## 4.3.6 (2024-12-02)
