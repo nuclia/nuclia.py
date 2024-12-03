@@ -1,9 +1,21 @@
 # Changelog
 
-## 4.3.6 (unreleased)
+## 4.3.8 (unreleased)
 
 
 - Nothing changed yet.
+
+
+## 4.3.7 (2024-12-02)
+
+
+- Allow to pass the mimetype when uploading a file.
+
+
+## 4.3.6 (2024-12-02)
+
+
+- Fix dependencies regarding RRF
 
 
 ## 4.3.5 (2024-11-29)
