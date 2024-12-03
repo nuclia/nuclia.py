@@ -1,4 +1,4 @@
-# Agents: Automate Tasks for Better Search Performance
+# Data Augmentation Agents: Automate Tasks for Better Search Performance
 
 Enhance your Knowledge Box's performance and precision by running automated agents.
 
@@ -7,14 +7,18 @@ Enhance your Knowledge Box's performance and precision by running automated agen
 ## **Available Task Names**
 Below is a list of task names you can use:
 
-- **DEMO_DATASET**: Upload a demo dataset.
-- **LABELER**: Apply labels to text blocks or resources based on descriptions and examples.
-- **LLM_GRAPH**: Use an LLM to generate a Knowledge Graph by extracting relationships and entities.
-- **SYNTHETIC_QUESTIONS**: Generate questions and answers from documents
-- **ASK**: Ask questions directly from your documents.
-- **SEMANTIC_MODEL_MIGRATOR**: Compute the vectors of a new semantic model for the fields of a knowledge box and send them back to NucliaDB for ingestion.
-- **LLAMA_GUARD**: Label text blocks or resources as unsafe if they have been flagged as inappropriate.
-- **PROMPT_GUARD**: Detect and label jailbreak-related content.
+- **`LABELER`**: Automatically apply labels to text blocks or resources based on provided descriptions and examples.
+- **`LLM_GRAPH`**: Extract relationships and entities to generate a Knowledge Graph using a large language model (LLM).
+  *Dashboard label*: *Graph Extraction*
+- **`SYNTHETIC_QUESTIONS`**: Create questions and answers derived from your documents.
+  *Dashboard label*: *Generator*
+- **`ASK`**: Directly ask questions from your documents to generate questions and answers.
+  *Dashboard label*: *Generate Questions & Answers*
+- **`SEMANTIC_MODEL_MIGRATOR`**: Recompute vectors for a new semantic model and send the updated data back to NucliaDB for ingestion.
+- **`LLAMA_GUARD`**: Identify and flag inappropriate content by labeling unsafe text blocks or resources.
+  *Dashboard label*: *Content Safety*
+- **`PROMPT_GUARD`**: Detect and label content related to jailbreak attempts.
+  *Dashboard label*: *LLM Security*
 
 ---
 
