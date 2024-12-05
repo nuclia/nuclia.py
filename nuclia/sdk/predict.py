@@ -18,6 +18,7 @@ from nuclia.lib.nua_responses import (
     UserPrompt,
 )
 from nuclia.sdk.auth import NucliaAuth
+from nuclia_models.predict.remi import RemiRequest, RemiResponse
 
 
 class NucliaPredict:
@@ -142,6 +143,17 @@ class NucliaPredict:
 
         return nc.generate(body, model)
 
+    @nua
+    def remi(self, request: RemiRequest, **kwargs) -> RemiResponse:
+        """
+        Perform a REMi evaluation over a RAG experience
+
+        :param request: RemiRequest
+        :return: RemiResponse
+        """
+        nc: NuaClient = kwargs["nc"]
+        return nc.remi(request)
+
 
 class AsyncNucliaPredict:
     @property
@@ -257,3 +269,14 @@ class AsyncNucliaPredict:
     ) -> ChatResponse:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.generate_retrieval(question, context, model)
+
+    @nua
+    async def remi(self, request: RemiRequest, **kwargs) -> RemiResponse:
+        """
+        Perform a REMi evaluation over a RAG experience
+
+        :param request: RemiRequest
+        :return: RemiResponse
+        """
+        nc: AsyncNuaClient = kwargs["nc"]
+        return await nc.remi(request)

@@ -3,7 +3,7 @@
 ## 4.3.8 (unreleased)
 
 
-- Nothing changed yet.
+- Feature: Add NUA REMi endpoints
 
 
 ## 4.3.7 (2024-12-02)
