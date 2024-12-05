@@ -1,5 +1,7 @@
 from nuclia.lib.nua_responses import ChatModel, TextGenerativeResponse, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
+import pytest
+from nuclia_models.predict.remi import RemiRequest
 
 
 def test_predict(testing_config):
@@ -119,3 +121,48 @@ async def test_nua_parse(testing_config):
         )
     )
     assert "SPORTS" in results.object["document_type"]
+
+
+def test_nua_remi(testing_config):
+    np = NucliaPredict()
+    results = np.remi(
+        RemiRequest(
+            user_id="Nuclia PY CLI",
+            question="What is the capital of France?",
+            answer="Paris is the capital of france!",
+            contexts=[
+                "Paris is the capital of France.",
+                "Berlin is the capital of Germany.",
+            ],
+        )
+    )
+    assert results.answer_relevance.score >= 4
+
+    assert results.context_relevance[0] >= 4
+    assert results.groundedness[0] >= 4
+
+    assert results.context_relevance[1] < 2
+    assert results.groundedness[1] < 2
+
+
+@pytest.mark.asyncio
+async def test_nua_async_remi(testing_config):
+    np = AsyncNucliaPredict()
+    results = await np.remi(
+        RemiRequest(
+            user_id="Nuclia PY CLI",
+            question="What is the capital of France?",
+            answer="Paris is the capital of france!",
+            contexts=[
+                "Paris is the capital of France.",
+                "Berlin is the capital of Germany.",
+            ],
+        )
+    )
+    assert results.answer_relevance.score >= 4
+
+    assert results.context_relevance[0] >= 4
+    assert results.groundedness[0] >= 4
+
+    assert results.context_relevance[1] < 2
+    assert results.groundedness[1] < 2
