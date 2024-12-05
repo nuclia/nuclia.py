@@ -11,6 +11,7 @@ lint:
 	mypy nuclia
 
 fmt:
+	ruff check --fix nuclia
 	ruff format nuclia
 
 test:
