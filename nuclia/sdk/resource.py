@@ -78,6 +78,9 @@ class NucliaResource:
         try:
             resource = ndb.ndb.create_resource(**kw)
         except exceptions.RateLimitError as exc:
+            logger.debug(
+                "Rate limited while trying to create a resource. Waiting a bit before trying again..."
+            )
             raise RateLimitError() from exc
         rid = resource.uuid
         return rid
