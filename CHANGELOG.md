@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.8 (unreleased)
+## 4.3.8 (2024-12-09)
 
 
 - Support blanklineSplitter
