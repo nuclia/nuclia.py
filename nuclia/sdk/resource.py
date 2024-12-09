@@ -1,18 +1,22 @@
 import json
 from typing import Any, Dict, List, Optional, Union
 from uuid import uuid4
+import os
+
+from nucliadb_sdk.v2 import exceptions
+import backoff
+import requests
+from nucliadb_models.search import AskRequest
+from nuclia.exceptions import RateLimitError
 
 from nucliadb_models.metadata import ResourceProcessingStatus
 from nucliadb_models.resource import Resource
-import os
 
-import requests
 from nuclia import get_list_parameter, get_regional_url
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.logger import logger
 from nucliadb_models.search import (
-    AskRequest,
     Filter,
     RagStrategies,
     RagImagesStrategies,
@@ -34,6 +38,7 @@ RESOURCE_ATTRIBUTES = [
     "summary",
     "metadata",
     "security",
+    "wait_for_commit",
 ]
 
 
@@ -52,6 +57,13 @@ class NucliaResource:
     All commands accept either `rid` or `slug` to identify the targeted resource.
     """
 
+    @backoff.on_exception(
+        backoff.expo,
+        RateLimitError,
+        jitter=backoff.random_jitter,
+        max_tries=5,
+        factor=10,
+    )
     @kb
     def create(*args, **kwargs) -> str:
         ndb = kwargs["ndb"]
@@ -63,7 +75,13 @@ class NucliaResource:
         for param in RESOURCE_ATTRIBUTES:
             if param in kwargs:
                 kw[param] = kwargs.get(param)
-        resource = ndb.ndb.create_resource(**kw)
+        try:
+            resource = ndb.ndb.create_resource(**kw)
+        except exceptions.RateLimitError as exc:
+            logger.debug(
+                "Rate limited while trying to create a resource. Waiting a bit before trying again..."
+            )
+            raise RateLimitError() from exc
         rid = resource.uuid
         return rid
 
