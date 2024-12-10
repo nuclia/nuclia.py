@@ -15,6 +15,7 @@ from nucliadb_models.resource import ResourceList
 from nucliadb_models.search import SyncAskResponse
 from nuclia.lib.models import ActivityLogsOutput
 from nuclia_models.worker.tasks import TaskDefinition, TaskList
+from nucliadb_models.resource import KnowledgeBoxList
 
 
 def handle_http_errors(response: Union[httpx.Response, requests.models.Response]):
@@ -44,6 +45,15 @@ def serialize(obj):
         return tabulate(
             data,
             headers=["UUID", "Icon", "Title", "Status", "Slug"],
+        )
+
+    if isinstance(obj, KnowledgeBoxList):
+        data = []
+        for kb in obj.kbs:
+            data.append([kb.uuid, kb.slug])
+        return tabulate(
+            data,
+            headers=["UUID", "Slug"],
         )
 
     if isinstance(obj, TaskDefinition):
