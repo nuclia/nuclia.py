@@ -17,6 +17,7 @@ from nucliadb_models.search import (
     SearchOptions,
     SearchRequest,
     SyncAskResponse,
+    ChatModel,
 )
 from pydantic import ValidationError
 
@@ -40,6 +41,12 @@ class AskAnswer:
     timings: Optional[Dict[str, float]]
     tokens: Optional[Dict[str, int]]
     retrieval_best_matches: Optional[List[str]]
+    prequeries: Optional[dict[str, KnowledgeboxFindResults]]
+    status: Optional[str]
+    prompt_context: Optional[list[str]]
+    relations: Optional[Relations]
+    predict_request: Optional[ChatModel]
+    error_details: Optional[str]
 
     def __str__(self):
         if self.answer:
@@ -189,12 +196,23 @@ class NucliaSearch:
             timings=None,
             tokens=None,
             object=ask_response.answer_json,
+            status=ask_response.status,
+            error_details=ask_response.error_details,
+            predict_request=ChatModel.model_validate(ask_response.predict_request)
+            if ask_response.predict_request is not None
+            else None,
+            relations=ask_response.relations,
+            prompt_context=ask_response.prompt_context,
         )
+
+        if ask_response.prompt_context:
+            result.prompt_context = ask_response.prompt_context
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
                 result.timings = ask_response.metadata.timings.model_dump()
             if ask_response.metadata.tokens is not None:
                 result.tokens = ask_response.metadata.tokens.model_dump()
+
         return result
 
     @kb
@@ -264,6 +282,13 @@ class NucliaSearch:
             timings=None,
             tokens=None,
             object=ask_response.answer_json,
+            status=ask_response.status,
+            error_details=ask_response.error_details,
+            predict_request=ChatModel.model_validate(ask_response.predict_request)
+            if ask_response.predict_request is not None
+            else None,
+            relations=ask_response.relations,
+            prompt_context=ask_response.prompt_context,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -399,6 +424,11 @@ class AsyncNucliaSearch:
             timings=None,
             tokens=None,
             object=None,
+            status=None,
+            error_details=None,
+            predict_request=None,
+            relations=None,
+            prompt_context=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -422,8 +452,16 @@ class AsyncNucliaSearch:
                 if ask_response_item.tokens:
                     result.tokens = ask_response_item.tokens.model_dump()
             elif ask_response_item.type == "status":
-                # Status is ignored
-                pass
+                result.status = ask_response_item.status
+            elif ask_response_item.type == "prequeries":
+                result.prequeries = ask_response_item.results
+            elif ask_response_item.type == "error":
+                result.error_details = ask_response_item.error
+            elif ask_response_item.type == "debug":
+                result.prompt_context = ask_response_item.metadata.get("prompt_context")
+                result.predict_request = ask_response_item.metadata.get(
+                    "predict_request"
+                )
             else:  # pragma: no cover
                 warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
@@ -512,6 +550,11 @@ class AsyncNucliaSearch:
             timings=None,
             tokens=None,
             object=None,
+            status=None,
+            error_details=None,
+            predict_request=None,
+            relations=None,
+            prompt_context=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -535,8 +578,16 @@ class AsyncNucliaSearch:
                 if ask_response_item.tokens:
                     result.tokens = ask_response_item.tokens.model_dump()
             elif ask_response_item.type == "status":
-                # Status is ignored
-                pass
+                result.status = ask_response_item.status
+            elif ask_response_item.type == "prequeries":
+                result.prequeries = ask_response_item.results
+            elif ask_response_item.type == "error":
+                result.error_details = ask_response_item.error
+            elif ask_response_item.type == "debug":
+                result.prompt_context = ask_response_item.metadata.get("prompt_context")
+                result.predict_request = ask_response_item.metadata.get(
+                    "predict_request"
+                )
             else:  # pragma: no cover
                 warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
