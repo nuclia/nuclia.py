@@ -252,6 +252,25 @@ class NucliaResource:
             raise ValueError("Either rid or slug must be provided")
 
     @kb
+    def send_to_process(
+        self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
+    ):
+        ndb = kwargs["ndb"]
+        kw = {
+            "kbid": ndb.kbid,
+        }
+        if rid:
+            kw["rid"] = rid
+            if slug:
+                kw["slug"] = slug
+            ndb.ndb.reprocess_resource(**kw)
+        elif slug:
+            kw["rslug"] = slug
+            ndb.ndb.reprocess_resource_by_slug(**kw)
+        else:
+            raise ValueError("Either rid or slug must be provided")
+
+    @kb
     def delete(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
@@ -372,6 +391,25 @@ class AsyncNucliaResource:
             for chunk in download.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
+
+    @kb
+    async def send_to_process(
+        self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
+    ):
+        ndb = kwargs["ndb"]
+        kw = {
+            "kbid": ndb.kbid,
+        }
+        if rid:
+            kw["rid"] = rid
+            if slug:
+                kw["slug"] = slug
+            await ndb.ndb.reprocess_resource(**kw)
+        elif slug:
+            kw["rslug"] = slug
+            await ndb.ndb.reprocess_resource_by_slug(**kw)
+        else:
+            raise ValueError("Either rid or slug must be provided")
 
     @kb
     async def update(
