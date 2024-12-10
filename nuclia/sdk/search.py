@@ -41,7 +41,6 @@ class AskAnswer:
     timings: Optional[Dict[str, float]]
     tokens: Optional[Dict[str, int]]
     retrieval_best_matches: Optional[List[str]]
-    prequeries: Optional[dict[str, KnowledgeboxFindResults]]
     status: Optional[str]
     prompt_context: Optional[list[str]]
     relations: Optional[Relations]
