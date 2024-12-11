@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.9 (unreleased)
+## 4.3.9 (2024-12-11)
 
 
 - Debug on ask and send to process
