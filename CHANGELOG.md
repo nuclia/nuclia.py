@@ -1,9 +1,21 @@
 # Changelog
 
-## 4.3.8 (unreleased)
+## 4.3.10 (unreleased)
 
 
 - Feature: Add NUA REMi endpoints
+
+
+## 4.3.9 (2024-12-11)
+
+
+- Debug on ask and send to process
+
+
+## 4.3.8 (2024-12-09)
+
+
+- Support blanklineSplitter
 
 
 ## 4.3.7 (2024-12-02)
