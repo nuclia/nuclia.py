@@ -149,6 +149,34 @@ res = predict.rephrase(
 )
 ```
 
+It can also evaluate a RAG Experience using our REMi model, which will compute the Answer Relevance and Context Relevance and Groundedness scores for each context. More information about the REMi model can be found [here](https://nuclia.com/developers/remi-open-source-rag-evaluation-model/).
+
+- CLI:
+
+  ```bash
+  nuclia nua predict remi --user_id="Nuclia PY CLI" --question="What is the capital of France?" --answer="Paris is the capital of France" --contexts='["Paris is the capital of France.", "Berlin is the capital of Germany."]'
+  > time=1.0570876598358154 answer_relevance=AnswerRelevance(score=5, reason='The response is accurate and directly answers the query completely.') context_relevance=[5, 0] groundedness=[5, 0]
+  ```
+
+- SDK:
+  
+    ```python
+    from nuclia import sdk
+    from nuclia_models.predict.remi import RemiRequest
+    predict = sdk.NucliaPredict()
+    predict.remi(
+        RemiRequest(
+            user_id="Nuclia PY CLI",
+            question="What is the capital of France?",
+            answer="Paris is the capital of France!",
+            contexts=[
+                "Paris is the capital of France.",
+                "Berlin is the capital of Germany.",
+            ],
+        )
+    )
+    ```
+
 ### Agent
 
 `agent` allows to generate LLM agents from an initial prompt:
