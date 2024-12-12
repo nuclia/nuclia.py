@@ -144,13 +144,19 @@ class NucliaPredict:
         return nc.generate(body, model)
 
     @nua
-    def remi(self, request: RemiRequest, **kwargs) -> RemiResponse:
+    def remi(self, request: Optional[RemiRequest] = None, **kwargs) -> RemiResponse:
         """
         Perform a REMi evaluation over a RAG experience
+
+        **SDK Usage:**
+        nuclia nua predict remi --user_id="user" --question="question" --answer="answer" --contexts='["context1", "contex2"]'
 
         :param request: RemiRequest
         :return: RemiResponse
         """
+        # If we didn't get a request model, we'll build it from the kwargs for SDK compatibility
+        if request is None:
+            request = RemiRequest(**kwargs)
         nc: NuaClient = kwargs["nc"]
         return nc.remi(request)
 
@@ -271,12 +277,18 @@ class AsyncNucliaPredict:
         return await nc.generate_retrieval(question, context, model)
 
     @nua
-    async def remi(self, request: RemiRequest, **kwargs) -> RemiResponse:
+    async def remi(
+        self, request: Optional[RemiRequest] = None, **kwargs
+    ) -> RemiResponse:
         """
         Perform a REMi evaluation over a RAG experience
 
         :param request: RemiRequest
         :return: RemiResponse
         """
+        # If we didn't get a request model, we'll build it from the kwargs for SDK compatibility
+        if request is None:
+            request = RemiRequest(**kwargs)
+
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.remi(request)
