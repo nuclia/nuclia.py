@@ -3,7 +3,8 @@
 ## 4.3.10 (unreleased)
 
 
-- Nothing changed yet.
+- Add `del_config` async version
+- Fix async `rephrase`
 
 
 ## 4.3.9 (2024-12-11)

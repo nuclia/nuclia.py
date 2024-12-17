@@ -445,23 +445,19 @@ class LearningConfigurationCreation(LearningConfigurationUpdate):
 
 
 class Empty(BaseModel):
-    @classmethod
-    def parse_raw(  # type: ignore
-        cls,
-        b: bytes,
-    ):
-        return Empty()
+    pass
 
 
 class ChatResponse(BaseModel):
     answer: str
 
     @classmethod
-    def parse_raw(  # type: ignore
+    def model_validate(
         cls,
-        b: bytes,
-    ):
-        return ChatResponse(answer=b.decode())
+        obj: bytes,
+        **kwargs,
+    ) -> "ChatResponse":
+        return ChatResponse(answer=obj.decode())
 
 
 GenerativeResponseType = Literal["text", "meta", "citations", "status"]
