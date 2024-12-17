@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.10 (unreleased)
+## 4.3.10 (2024-12-17)
 
 
 - Add `del_config` async version
