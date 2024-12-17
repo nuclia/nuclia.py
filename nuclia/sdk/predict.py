@@ -169,6 +169,11 @@ class AsyncNucliaPredict:
         await nc.add_config_predict(kbid, config)
 
     @nua
+    async def del_config(self, kbid: str, **kwargs):
+        nc: AsyncNuaClient = kwargs["nc"]
+        await nc.del_config_predict(kbid)
+
+    @nua
     async def sentence(
         self, text: str, model: Optional[str] = None, **kwargs
     ) -> Sentence:
