@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import pydantic
 from pydantic import BaseModel, Field, RootModel, model_validator
@@ -462,61 +462,6 @@ class ChatResponse(BaseModel):
         b: bytes,
     ):
         return ChatResponse(answer=b.decode())
-
-
-GenerativeResponseType = Literal["text", "meta", "citations", "status"]
-
-
-class TextGenerativeResponse(BaseModel):
-    type: Literal["text"] = "text"
-    text: str
-
-
-class JSONGenerativeResponse(BaseModel):
-    type: Literal["object"] = "object"
-    object: Dict[str, Any]
-
-
-class MetaGenerativeResponse(BaseModel):
-    type: Literal["meta"] = "meta"
-    input_tokens: int
-    output_tokens: int
-    timings: dict[str, float]
-
-
-class CitationsGenerativeResponse(BaseModel):
-    type: Literal["citations"] = "citations"
-    citations: dict[str, Any]
-
-
-class StatusGenerativeResponse(BaseModel):
-    type: Literal["status"] = "status"
-    code: str
-    details: Optional[str] = None
-
-
-GenerativeResponse = Union[
-    TextGenerativeResponse,
-    JSONGenerativeResponse,
-    MetaGenerativeResponse,
-    CitationsGenerativeResponse,
-    StatusGenerativeResponse,
-]
-
-
-class GenerativeChunk(BaseModel):
-    chunk: GenerativeResponse = Field(..., discriminator="type")
-
-
-class GenerativeFullResponse(BaseModel):
-    input_tokens: Optional[int] = None
-    output_tokens: Optional[int] = None
-    timings: Optional[dict[str, float]] = None
-    citations: Optional[dict[str, Any]] = None
-    code: Optional[str] = None
-    details: Optional[str] = None
-    answer: str
-    object: Optional[Dict[str, Any]] = None
 
 
 class StoredLearningConfiguration(BaseModel):

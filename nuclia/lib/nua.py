@@ -19,19 +19,23 @@ from pydantic import BaseModel
 
 from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
-from nuclia.lib.nua_responses import (
-    ChatModel,
-    ChatResponse,
-    CitationsGenerativeResponse,
-    ConfigSchema,
-    Empty,
+from nuclia_models.predict.generative_responses import (
     GenerativeChunk,
     GenerativeFullResponse,
     JSONGenerativeResponse,
+    TextGenerativeResponse,
+    CitationsGenerativeResponse,
+    MetaGenerativeResponse,
+    StatusGenerativeResponse,
+)
+from nuclia.lib.nua_responses import (
+    ChatModel,
+    ChatResponse,
+    ConfigSchema,
+    Empty,
     LearningConfigurationCreation,
     LearningConfigurationUpdate,
     LinkUpload,
-    MetaGenerativeResponse,
     ProcessRequestStatus,
     ProcessRequestStatusResults,
     PushPayload,
@@ -41,12 +45,10 @@ from nuclia.lib.nua_responses import (
     RestrictedIDString,
     Sentence,
     Source,
-    StatusGenerativeResponse,
     StoredLearningConfiguration,
     SummarizedModel,
     SummarizeModel,
     SummarizeResource,
-    TextGenerativeResponse,
     Tokens,
 )
 

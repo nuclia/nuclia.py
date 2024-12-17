@@ -1,4 +1,6 @@
-from nuclia.lib.nua_responses import ChatModel, TextGenerativeResponse, UserPrompt
+from nuclia_models.predict.generative_responses import TextGenerativeResponse
+
+from nuclia.lib.nua_responses import ChatModel, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 
