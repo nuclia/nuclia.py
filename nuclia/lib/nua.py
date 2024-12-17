@@ -421,9 +421,9 @@ class AsyncNuaClient:
     async def add_config_predict(
         self, kbid: str, config: LearningConfigurationCreation
     ):
-        endpoint = f"{CONFIG}/{kbid}"
+        endpoint = f"{self.url}{CONFIG}/{kbid}"
         await self._request(
-            "GET", endpoint, payload=config.dict(exclude_none=True), output=Empty
+            "POST", endpoint, payload=config.dict(exclude_none=True), output=Empty
         )
 
     async def del_config_predict(self, kbid: str):
