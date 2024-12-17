@@ -254,7 +254,7 @@ class AsyncNucliaPredict:
         **kwargs,
     ) -> str:
         nc: NuaClient = kwargs["nc"]
-        return nc.rephrase(question, user_context, context, model, prompt).root
+        return await nc.rephrase(question, user_context, context, model, prompt).root
 
     @nua
     async def rag(
