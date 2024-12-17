@@ -396,7 +396,6 @@ class AsyncNuaClient:
         resp = await self.client.request(method, url, json=payload, timeout=timeout)
         if resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
-
         try:
             data = output.model_validate(resp.json())
         except Exception:
