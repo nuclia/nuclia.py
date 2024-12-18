@@ -433,7 +433,7 @@ class AsyncNuaClient:
     async def update_config_predict(
         self, kbid: str, config: LearningConfigurationUpdate
     ):
-        endpoint = f"{CONFIG}/{kbid}"
+        endpoint = f"{self.url}{CONFIG}/{kbid}"
         await self._request(
             "POST", endpoint, payload=config.dict(exclude_none=True), output=Empty
         )
