@@ -214,6 +214,8 @@ class NuaClient:
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
                 result.input_tokens = chunk.chunk.input_tokens
                 result.output_tokens = chunk.chunk.output_tokens
+                result.input_nuclia_tokens = chunk.chunk.input_nuclia_tokens
+                result.output_nuclia_tokens = chunk.chunk.output_nuclia_tokens
                 result.timings = chunk.chunk.timings
             elif isinstance(chunk.chunk, CitationsGenerativeResponse):
                 result.citations = chunk.chunk.citations
@@ -522,6 +524,8 @@ class AsyncNuaClient:
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
                 result.input_tokens = chunk.chunk.input_tokens
                 result.output_tokens = chunk.chunk.output_tokens
+                result.input_nuclia_tokens = chunk.chunk.input_nuclia_tokens
+                result.output_nuclia_tokens = chunk.chunk.output_nuclia_tokens
                 result.timings = chunk.chunk.timings
             elif isinstance(chunk.chunk, CitationsGenerativeResponse):
                 result.citations = chunk.chunk.citations
