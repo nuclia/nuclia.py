@@ -3,7 +3,7 @@
 ## 4.3.11 (unreleased)
 
 
-- Nothing changed yet.
+- Fix async nua `set_config`
 
 
 ## 4.3.10 (2024-12-17)
