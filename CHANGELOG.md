@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.12 (unreleased)
+## 4.4.0 (2024-12-18)
 
 
 - Feature: Add NUA REMi endpoints
