@@ -439,9 +439,9 @@ class AsyncNuaClient:
         )
 
     async def schema_predict(self, kbid: Optional[str] = None) -> ConfigSchema:
-        endpoint = f"{SCHEMA}"
+        endpoint = f"{self.url}{SCHEMA}"
         if kbid is not None:
-            endpoint = f"{SCHEMA_KBID}/{kbid}"
+            endpoint = f"{self.url}{SCHEMA_KBID}/{kbid}"
         return await self._request("GET", endpoint, output=ConfigSchema)  # type: ignore
 
     async def config_predict(
