@@ -3,7 +3,7 @@
 ## 4.3.10 (unreleased)
 
 
-- Nothing changed yet.
+- Adds nuclia_input_tokens 
 
 
 ## 4.3.9 (2024-12-11)
