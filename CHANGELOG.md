@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.3.11 (unreleased)
+## 4.3.11 (2024-12-18)
 
 
 - Fix async nua `set_config`
