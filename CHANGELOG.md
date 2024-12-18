@@ -1,10 +1,8 @@
 # Changelog
-
 ## 4.3.12 (unreleased)
 
-
-- Adds nuclia_input_tokens 
-
+- Feature: Add NUA REMi endpoints
+- Adds nuclia tokens
 
 ## 4.3.11 (2024-12-18)
 

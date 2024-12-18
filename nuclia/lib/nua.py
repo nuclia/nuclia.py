@@ -51,6 +51,7 @@ from nuclia.lib.nua_responses import (
     SummarizeResource,
     Tokens,
 )
+from nuclia_models.predict.remi import RemiRequest, RemiResponse
 
 SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
@@ -58,6 +59,7 @@ SUMMARIZE_PREDICT = "/api/v1/predict/summarize"
 REPHRASE_PREDICT = "/api/v1/predict/rephrase"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
 QUERY_PREDICT = "/api/v1/predict/query"
+REMI_PREDICT = "/api/v1/predict/remi"
 UPLOAD_PROCESS = "/api/v1/processing/upload"
 STATUS_PROCESS = "/api/v2/processing/status"
 PUSH_PROCESS = "/api/v2/processing/push"
@@ -288,6 +290,18 @@ class NuaClient:
             endpoint,
             payload=body,
             output=RephraseModel,
+        )
+
+    def remi(
+        self,
+        request: RemiRequest,
+    ) -> RemiResponse:
+        endpoint = f"{self.url}{REMI_PREDICT}"
+        return self._request(
+            "POST",
+            endpoint,
+            payload=request.model_dump(),
+            output=RemiResponse,
         )
 
     def process_file(self, path: str, kbid: str = "default") -> PushResponseV2:
@@ -597,6 +611,15 @@ class AsyncNuaClient:
             endpoint,
             payload=body,
             output=RephraseModel,
+        )
+
+    async def remi(self, request: RemiRequest) -> RemiResponse:
+        endpoint = f"{self.url}{REMI_PREDICT}"
+        return await self._request(
+            "POST",
+            endpoint,
+            payload=request.model_dump(),
+            output=RemiResponse,
         )
 
     async def generate_retrieval(
