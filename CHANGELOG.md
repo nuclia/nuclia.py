@@ -1,9 +1,22 @@
 # Changelog
 
-## 4.3.10 (unreleased)
+## 4.3.12 (unreleased)
 
 
 - Adds nuclia_input_tokens 
+
+
+## 4.3.11 (2024-12-18)
+
+
+- Fix async nua `set_config`
+
+
+## 4.3.10 (2024-12-17)
+
+
+- Add `del_config` async version
+- Fix async `rephrase`
 
 
 ## 4.3.9 (2024-12-11)
