@@ -410,7 +410,6 @@ class AsyncNuaClient:
         resp = await self.client.request(method, url, json=payload, timeout=timeout)
         if resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
-
         try:
             data = output.model_validate(resp.json())
         except Exception:
@@ -436,9 +435,9 @@ class AsyncNuaClient:
     async def add_config_predict(
         self, kbid: str, config: LearningConfigurationCreation
     ):
-        endpoint = f"{CONFIG}/{kbid}"
+        endpoint = f"{self.url}{CONFIG}/{kbid}"
         await self._request(
-            "GET", endpoint, payload=config.dict(exclude_none=True), output=Empty
+            "POST", endpoint, payload=config.dict(exclude_none=True), output=Empty
         )
 
     async def del_config_predict(self, kbid: str):
@@ -448,15 +447,15 @@ class AsyncNuaClient:
     async def update_config_predict(
         self, kbid: str, config: LearningConfigurationUpdate
     ):
-        endpoint = f"{CONFIG}/{kbid}"
+        endpoint = f"{self.url}{CONFIG}/{kbid}"
         await self._request(
             "POST", endpoint, payload=config.dict(exclude_none=True), output=Empty
         )
 
     async def schema_predict(self, kbid: Optional[str] = None) -> ConfigSchema:
-        endpoint = f"{SCHEMA}"
+        endpoint = f"{self.url}{SCHEMA}"
         if kbid is not None:
-            endpoint = f"{SCHEMA_KBID}/{kbid}"
+            endpoint = f"{self.url}{SCHEMA_KBID}/{kbid}"
         return await self._request("GET", endpoint, output=ConfigSchema)  # type: ignore
 
     async def config_predict(
