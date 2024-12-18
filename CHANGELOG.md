@@ -3,7 +3,7 @@
 ## 4.3.12 (unreleased)
 
 
-- Nothing changed yet.
+- Backoff on 503 errors for ask, find and search
 
 
 ## 4.3.11 (2024-12-18)
