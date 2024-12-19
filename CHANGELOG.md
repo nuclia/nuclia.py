@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.4.1 (unreleased)
+## 4.4.1 (2024-12-19)
 
 - Adds nuclia tokens
 
