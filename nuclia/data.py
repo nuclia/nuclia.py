@@ -96,7 +96,7 @@ def get_async_client(kbid: str) -> AsyncNucliaDBClient:
         # OSS
         ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
     else:
-        if kb_obj.token is None and auth._validate_user_token():
+        if kb_obj.token is None and await auth._validate_user_token():
             # User token auth
             ndb = AsyncNucliaDBClient(
                 environment=Environment.CLOUD,
