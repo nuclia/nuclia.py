@@ -47,7 +47,7 @@ def kb(func):
             kbid = auth._config.get_default_kb()
             if kbid is None:
                 raise NotDefinedDefault()
-            ndb = get_async_client(kbid)
+            ndb = await get_async_client(kbid)
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             ndb = AsyncNucliaDBClient(
