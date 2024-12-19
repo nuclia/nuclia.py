@@ -19,19 +19,23 @@ from pydantic import BaseModel
 
 from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
-from nuclia.lib.nua_responses import (
-    ChatModel,
-    ChatResponse,
-    CitationsGenerativeResponse,
-    ConfigSchema,
-    Empty,
+from nuclia_models.predict.generative_responses import (
     GenerativeChunk,
     GenerativeFullResponse,
     JSONGenerativeResponse,
+    TextGenerativeResponse,
+    CitationsGenerativeResponse,
+    MetaGenerativeResponse,
+    StatusGenerativeResponse,
+)
+from nuclia.lib.nua_responses import (
+    ChatModel,
+    ChatResponse,
+    ConfigSchema,
+    Empty,
     LearningConfigurationCreation,
     LearningConfigurationUpdate,
     LinkUpload,
-    MetaGenerativeResponse,
     ProcessRequestStatus,
     ProcessRequestStatusResults,
     PushPayload,
@@ -41,12 +45,10 @@ from nuclia.lib.nua_responses import (
     RestrictedIDString,
     Sentence,
     Source,
-    StatusGenerativeResponse,
     StoredLearningConfiguration,
     SummarizedModel,
     SummarizeModel,
     SummarizeResource,
-    TextGenerativeResponse,
     Tokens,
 )
 from nuclia_models.predict.remi import RemiRequest, RemiResponse
@@ -214,6 +216,8 @@ class NuaClient:
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
                 result.input_tokens = chunk.chunk.input_tokens
                 result.output_tokens = chunk.chunk.output_tokens
+                result.input_nuclia_tokens = chunk.chunk.input_nuclia_tokens
+                result.output_nuclia_tokens = chunk.chunk.output_nuclia_tokens
                 result.timings = chunk.chunk.timings
             elif isinstance(chunk.chunk, CitationsGenerativeResponse):
                 result.citations = chunk.chunk.citations
@@ -533,6 +537,8 @@ class AsyncNuaClient:
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
                 result.input_tokens = chunk.chunk.input_tokens
                 result.output_tokens = chunk.chunk.output_tokens
+                result.input_nuclia_tokens = chunk.chunk.input_nuclia_tokens
+                result.output_nuclia_tokens = chunk.chunk.output_nuclia_tokens
                 result.timings = chunk.chunk.timings
             elif isinstance(chunk.chunk, CitationsGenerativeResponse):
                 result.citations = chunk.chunk.citations

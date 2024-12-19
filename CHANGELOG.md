@@ -2,15 +2,11 @@
 
 ## 4.4.1 (unreleased)
 
-
-- Nothing changed yet.
-
+- Adds nuclia tokens
 
 ## 4.4.0 (2024-12-18)
 
-
 - Feature: Add NUA REMi endpoints
-
 
 ## 4.3.11 (2024-12-18)
 

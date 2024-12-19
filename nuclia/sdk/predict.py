@@ -3,12 +3,14 @@ from typing import AsyncIterator, Iterator, Optional, Union
 from nuclia.data import get_auth
 from nuclia.decorators import nua
 from nuclia.lib.nua import AsyncNuaClient, NuaClient, ContextItem
+from nuclia_models.predict.generative_responses import (
+    GenerativeChunk,
+    GenerativeFullResponse,
+)
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
     ConfigSchema,
-    GenerativeChunk,
-    GenerativeFullResponse,
     LearningConfigurationCreation,
     QueryInfo,
     Sentence,

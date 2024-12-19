@@ -7,7 +7,7 @@ httpcore>=1.0.0
 prompt_toolkit
 nucliadb_sdk>=6.1.0,<7
 nucliadb_models>=6.1.0,<7
-nuclia-models>=0.20.1
+nuclia-models>=0.24.2
 tqdm
 aiofiles
 backoff
