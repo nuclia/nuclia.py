@@ -86,7 +86,7 @@ def get_client(kbid: str) -> NucliaDBClient:
     return ndb
 
 
-def get_async_client(kbid: str) -> AsyncNucliaDBClient:
+async def get_async_client(kbid: str) -> AsyncNucliaDBClient:
     auth = get_async_auth()
     kb_obj = auth._config.get_kb(kbid)
 
