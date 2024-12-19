@@ -2,9 +2,7 @@
 
 ## 4.4.2 (unreleased)
 
-
-- Nothing changed yet.
-
+- Fix auth validation with async client.
 
 ## 4.4.1 (2024-12-19)
 
