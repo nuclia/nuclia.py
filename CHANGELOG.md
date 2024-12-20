@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.4.2 (unreleased)
+## 4.4.2 (2024-12-20)
 
 - Fix auth validation with async client.
 - Allow overwriting client in nua decorator
