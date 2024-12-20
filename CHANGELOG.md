@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.4.3 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 4.4.2 (2024-12-20)
 
 - Fix auth validation with async client.
