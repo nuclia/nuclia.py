@@ -31,12 +31,15 @@ VERIFY_NUA = "/api/authorizer/info"
 class BaseNucliaAuth:
     _inner_config: Optional[Config] = None
 
+    def __init__(self, config_path: Optional[str] = None):
+        self.config_path = config_path
+
     @property
     def _config(self) -> Config:
         if self._inner_config is None:
             from nuclia.data import get_config
 
-            self._inner_config = get_config()
+            self._inner_config = get_config(config_path=self.config_path)
         return self._inner_config
 
     def get_account_id(self, account_slug: str) -> str:

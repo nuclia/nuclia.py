@@ -25,11 +25,11 @@ def set_config(config: Config):
     DATA.config = config
 
 
-def get_config() -> Config:
+def get_config(config_path: Optional[str] = None) -> Config:
     if DATA.config is None:
         from nuclia.config import read_config
 
-        DATA.config = read_config()
+        DATA.config = read_config(config_path=config_path)
     return DATA.config
 
 

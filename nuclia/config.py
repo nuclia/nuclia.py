@@ -251,15 +251,19 @@ class Config(BaseModel):
             config_file.write(self.model_dump_json())
 
 
-def read_config() -> Config:
-    if not os.path.exists(os.path.expanduser(CONFIG_PATH)):
-        os.makedirs(os.path.expanduser(CONFIG_DIR), exist_ok=True)
-        config = Config()
-        with open(os.path.expanduser(CONFIG_PATH), "w") as config_file:
-            config_file.write(config.model_dump_json())
+def read_config(config_path: Optional[str] = None) -> Config:
+    config_path = config_path or os.path.expanduser(CONFIG_PATH)
 
-    with open(os.path.expanduser(CONFIG_PATH), "r") as config_file:
-        config = Config.model_validate_json(config_file.read())
+    directory = os.path.dirname(config_path)
+    os.makedirs(directory, exist_ok=True)
+
+    if not os.path.exists(config_path):
+        config = Config()
+        with open(config_path, "w") as config_file:
+            config_file.write(config.model_dump_json())
+    else:
+        with open(config_path, "r") as config_file:
+            config = Config.model_validate_json(config_file.read())
 
     if config.default is None:
         config.default = Selection()
