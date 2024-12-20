@@ -41,7 +41,7 @@ def kb(func):
             return await func(*args, **kwargs)
         url = kwargs.get("url")
         api_key = kwargs.get("api_key")
-        auth = get_async_auth()
+        auth = get_async_auth(config_path=kwargs.get("config_path"))
         if url is None:
             # Get default KB
             kbid = auth._config.get_default_kb()
@@ -68,13 +68,13 @@ def kb(func):
             return func(*args, **kwargs)
         url = kwargs.get("url")
         api_key = kwargs.get("api_key")
-        auth = get_auth()
+        auth = get_auth(config_path=kwargs.get("config_path"))
         if url is None:
             # Get default KB
             kbid = auth._config.get_default_kb()
             if kbid is None:
                 raise NotDefinedDefault()
-            ndb = get_client(kbid)
+            ndb = get_client(kbid, config_path=kwargs.get("config_path"))
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             ndb = NucliaDBClient(
@@ -101,7 +101,7 @@ def nucliadb(func):
         if "ndb" in kwargs:
             return func(*args, **kwargs)
         url = kwargs.get("url")
-        auth = get_auth()
+        auth = get_auth(config_path=kwargs.get("config_path"))
         if url is None:
             # Get default KB
             nucliadb = auth._config.get_default_nucliadb()
@@ -122,7 +122,7 @@ def nucliadb(func):
 def nua(func):
     @wraps(func)
     async def async_wrapper_checkout_nua(*args, **kwargs):
-        auth = get_auth()
+        auth = get_auth(config_path=kwargs.get("config_path"))
         nua_id = auth._config.get_default_nua()
         if nua_id is None:
             raise NotDefinedDefault()
@@ -137,7 +137,7 @@ def nua(func):
 
     @wraps(func)
     async def async_generative_wrapper_checkout_nua(*args, **kwargs):
-        auth = get_auth()
+        auth = get_auth(config_path=kwargs.get("config_path"))
         nua_id = auth._config.get_default_nua()
         if nua_id is None:
             raise NotDefinedDefault()
@@ -153,7 +153,7 @@ def nua(func):
 
     @wraps(func)
     def wrapper_checkout_nua(*args, **kwargs):
-        auth = get_auth()
+        auth = get_auth(config_path=kwargs.get("config_path"))
         nua_id = auth._config.get_default_nua()
         if nua_id is None:
             raise NotDefinedDefault()
@@ -179,7 +179,7 @@ def account(func):
     def wrapper(*args, **kwargs):
         account_slug = kwargs.get("account")
         account_id = kwargs.get("account_id")
-        auth = get_auth()
+        auth = get_auth(config_path=kwargs.get("config_path"))
         if account_id is None and account_slug is None:
             account_slug = auth._config.get_default_account()
             if account_slug is None:
@@ -223,7 +223,7 @@ def zone(func):
     def wrapper_checkout_zone(*args, **kwargs):
         zone = kwargs.get("zone")
         if not zone:
-            auth = get_auth()
+            auth = get_auth(config_path=kwargs.get("config_path"))
             kwargs["zone"] = auth._config.get_default_zone()
         return func(*args, **kwargs)
 

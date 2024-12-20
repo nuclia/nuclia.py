@@ -186,6 +186,7 @@ class NucliaKB:
         slug: Optional[str] = None,
         destination: str,
         override: Optional[bool] = False,
+        config_path: Optional[str] = None,
         **kwargs,
     ):
         ndb = kwargs["ndb"]
@@ -248,7 +249,7 @@ class NucliaKB:
                     remote_files[file_id] = file.value
                 else:
                     files_to_upload.append({"id": file_id, "data": file.value})
-        destination_kb = get_client(destination)
+        destination_kb = get_client(destination, config_path=config_path)
         if override:
             try:
                 self.resource.delete(

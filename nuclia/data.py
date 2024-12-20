@@ -5,6 +5,9 @@ from typing import TYPE_CHECKING, Optional
 
 from nuclia.exceptions import KBNotAvailable
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
+from nuclia.config import read_config
+from nuclia.sdk.auth import NucliaAuth
+from nuclia.sdk.auth import AsyncNucliaAuth
 
 if TYPE_CHECKING:
     from nuclia.config import Config
@@ -26,33 +29,34 @@ def set_config(config: Config):
 
 
 def get_config(config_path: Optional[str] = None) -> Config:
-    if DATA.config is None:
-        from nuclia.config import read_config
-
+    if DATA.config is None or DATA.config.filepath != config_path:
         DATA.config = read_config(config_path=config_path)
     return DATA.config
 
 
-def get_auth() -> NucliaAuth:
-    get_config()
-    if DATA.auth is None:
-        from nuclia.sdk.auth import NucliaAuth
+def get_auth(config_path: Optional[str] = None) -> NucliaAuth:
+    get_config(config_path=config_path)
+    if config_path is not None:
+        DATA.auth = NucliaAuth(config_path=config_path)
+        return DATA.auth
 
+    if DATA.auth is None:
         DATA.auth = NucliaAuth()
     return DATA.auth
 
 
-def get_async_auth() -> AsyncNucliaAuth:
-    get_config()
-    if DATA.async_auth is None:
-        from nuclia.sdk.auth import AsyncNucliaAuth
+def get_async_auth(config_path: Optional[str] = None) -> AsyncNucliaAuth:
+    get_config(config_path=config_path)
+    if config_path is not None:
+        return AsyncNucliaAuth(config_path=config_path)
 
+    if DATA.async_auth is None:
         DATA.async_auth = AsyncNucliaAuth()
     return DATA.async_auth
 
 
-def get_client(kbid: str) -> NucliaDBClient:
-    auth = get_auth()
+def get_client(kbid: str, config_path: Optional[str] = None) -> NucliaDBClient:
+    auth = get_auth(config_path=config_path)
     kb_obj = auth._config.get_kb(kbid)
 
     if kb_obj is None:
