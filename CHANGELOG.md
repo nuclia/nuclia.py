@@ -3,6 +3,7 @@
 ## 4.4.2 (unreleased)
 
 - Fix auth validation with async client.
+- Allow custom config path on auth instances
 
 ## 4.4.1 (2024-12-19)
 
