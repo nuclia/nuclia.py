@@ -83,6 +83,7 @@ class Config(BaseModel):
     default: Optional[Selection] = Selection()
     user: Optional[str] = None
     token: Optional[str] = None
+    filepath: Optional[str] = None
 
     def get_nua(self, nua_id: str) -> NuaKey:
         nua_obj = next(
@@ -241,13 +242,14 @@ class Config(BaseModel):
         self.save()
 
     def save(self):
-        if not os.path.exists(os.path.expanduser(CONFIG_PATH)):
-            os.makedirs(os.path.expanduser(CONFIG_DIR), exist_ok=True)
+        config_path = self.filepath or os.path.expanduser(CONFIG_PATH)
+        directory = os.path.dirname(config_path)
+        os.makedirs(directory, exist_ok=True)
 
         from nuclia.data import DATA
 
         DATA.config = self
-        with open(os.path.expanduser(CONFIG_PATH), "w") as config_file:
+        with open(config_path, "w") as config_file:
             config_file.write(self.model_dump_json())
 
 
@@ -267,6 +269,8 @@ def read_config(config_path: Optional[str] = None) -> Config:
 
     if config.default is None:
         config.default = Selection()
+
+    config.filepath = config_path
     return config
 
 
