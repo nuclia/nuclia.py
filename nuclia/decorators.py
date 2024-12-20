@@ -122,6 +122,8 @@ def nucliadb(func):
 def nua(func):
     @wraps(func)
     async def async_wrapper_checkout_nua(*args, **kwargs):
+        if "nc" in kwargs:
+            return await func(*args, **kwargs)
         auth = get_auth()
         nua_id = auth._config.get_default_nua()
         if nua_id is None:
@@ -137,6 +139,10 @@ def nua(func):
 
     @wraps(func)
     async def async_generative_wrapper_checkout_nua(*args, **kwargs):
+        if "nc" in kwargs:
+            async for value in func(*args, **kwargs):
+                yield value
+
         auth = get_auth()
         nua_id = auth._config.get_default_nua()
         if nua_id is None:
@@ -153,6 +159,9 @@ def nua(func):
 
     @wraps(func)
     def wrapper_checkout_nua(*args, **kwargs):
+        if "nc" in kwargs:
+            return func(*args, **kwargs)
+
         auth = get_auth()
         nua_id = auth._config.get_default_nua()
         if nua_id is None:
