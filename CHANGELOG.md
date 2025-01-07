@@ -3,7 +3,7 @@
 ## 4.4.3 (unreleased)
 
 
-- Nothing changed yet.
+- Add documentation about the `send_to_process` method.
 
 
 ## 4.4.2 (2024-12-20)
