@@ -26,7 +26,9 @@ jobs:
           cache: 'pip'
 
       - name: Install package
-        run: make install
+        run: |-
+          pip install -r requirements.txt
+          pip install -e .
 
       - name: Test
-        run: set BASE_NUCLIA_DOMAIN="stashify.cloud" && set GA_TESTING_SERVICE_TOKEN="${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}" && set GA_TESTING_TOKEN="${{ secrets.STAGE_TESTING_TOKEN }}" && set GA_TESTING_NUA="${{ secrets.TEST_EUROPE1_STASHIFY_NUA }}" && make test
+        run: nuclia kbs list
