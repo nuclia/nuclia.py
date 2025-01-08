@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.4.3 (unreleased)
+## 4.4.3 (2025-01-08)
 
 - Add documentation about the `send_to_process` method.
 - Fix dependencies
