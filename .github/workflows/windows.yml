@@ -1,0 +1,34 @@
+name: Test on windows
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  repository_dispatch:
+    type: test-stage
+
+jobs:
+  test:
+    name: Testing
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+          cache: 'pip'
+
+      - name: Install package
+        run: |-
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Test
+        run: nuclia kb list --url="https://europe-1.nuclia.cloud/api/v1/kb/eb720a59-f879-4b23-a995-605f91c874f4" --api_key="${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}"
