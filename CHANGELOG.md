@@ -3,7 +3,7 @@
 ## 4.4.4 (unreleased)
 
 
-- Nothing changed yet.
+- Missing dependencies
 
 
 ## 4.4.3 (2025-01-08)
