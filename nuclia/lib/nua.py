@@ -52,7 +52,12 @@ from nuclia.lib.nua_responses import (
     Tokens,
 )
 from nuclia_models.predict.remi import RemiRequest, RemiResponse
+import os
+from tqdm import tqdm
+import asyncio
 
+MB = 1024 * 1024
+CHUNK_SIZE = 10 * MB
 SENTENCE_PREDICT = "/api/v1/predict/sentence"
 CHAT_PREDICT = "/api/v1/predict/chat"
 SUMMARIZE_PREDICT = "/api/v1/predict/summarize"
@@ -672,10 +677,26 @@ class AsyncNuaClient:
 
         headers = self.headers.copy()
         headers["X-FILENAME"] = base64.b64encode(filename.encode()).decode()
-        async with aiofiles.open(path, "rb") as file_to_upload:
-            data = await file_to_upload.read()
 
-        resp = await self.client.post(upload_endpoint, content=data, headers=headers)
+        async def iterator(path: str):
+            total_size = os.path.getsize(path)
+            with tqdm(
+                desc="Uploading data",
+                total=total_size,
+                unit="iB",
+                unit_scale=True,
+            ) as pbar:
+                async with aiofiles.open(path, "rb") as f:
+                    while True:
+                        chunk = await f.read(CHUNK_SIZE)
+                        if not chunk:
+                            break
+                        pbar.update(len(chunk))
+                        yield chunk
+
+        resp = await self.client.post(
+            upload_endpoint, content=iterator(path), headers=headers
+        )
 
         payload = PushPayload(
             uuid=None, source=Source.HTTP, kbid=RestrictedIDString(kbid)
@@ -697,7 +718,7 @@ class AsyncNuaClient:
         count = timeout
         while status.completed is False and status.failed is False and count > 0:
             status = await self.processing_id_status(response.processing_id)
-            sleep(3)
+            await asyncio.sleep(1)
             count -= 1
 
         bm = None
