@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.4.5 (unreleased)
+## 4.4.5 (2025-01-16)
 
 
 - Fix blocking code on upload and wait routine
