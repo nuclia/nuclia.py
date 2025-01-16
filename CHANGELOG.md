@@ -3,7 +3,7 @@
 ## 4.4.5 (unreleased)
 
 
-- Nothing changed yet.
+- Fix blocking code on upload and wait routine
 
 
 ## 4.4.4 (2025-01-10)
