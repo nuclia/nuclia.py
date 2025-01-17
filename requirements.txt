@@ -14,3 +14,4 @@ aiofiles
 backoff
 deprecated
 tabulate
+langchain_core>= 0.3.29
