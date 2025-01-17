@@ -17,7 +17,11 @@ class NucliaKBS:
         return auth
 
     @accounts
-    def list(self, account: Optional[str] = None):
+    @zone
+    def list(self, account: Optional[str] = None, zone: Optional[str] = "europe-1"):
+        if not zone:
+            raise ValueError("zone is required")
+
         if account is None:
             result = []
             accounts = (

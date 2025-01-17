@@ -3,8 +3,7 @@
 ## 4.4.6 (unreleased)
 
 
-- Nothing changed yet.
-
+- Allow override zone when listing kbs
 
 ## 4.4.5 (2025-01-16)
 
