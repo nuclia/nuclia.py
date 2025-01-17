@@ -62,4 +62,7 @@ setup(
         "Github": "https://github.com/nuclia/nucliadb",
         "Slack": "https://join.slack.com/t/nuclia-community/shared_invite/zt-2ldfznncw-LW6GJjOicdEA18kgI~95Xw",
     },
+    extras_require={
+        "langchain": ["langchain_core>=0.3.29"],
+    },
 )

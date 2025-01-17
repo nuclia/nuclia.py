@@ -4,18 +4,26 @@ from typing import Optional, Dict, List, Any, Iterator, AsyncIterator
 from datetime import datetime, timezone
 from base64 import b64decode
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.callbacks import (
-    CallbackManagerForLLMRun,
-    AsyncCallbackManagerForLLMRun,
-)
-from langchain_core.messages import BaseMessage, AIMessage, AIMessageChunk
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.outputs import (
-    ChatResult,
-    ChatGeneration,
-    ChatGenerationChunk,
-)
+try:
+    from langchain_core.language_models import BaseChatModel
+    from langchain_core.callbacks import (
+        CallbackManagerForLLMRun,
+        AsyncCallbackManagerForLLMRun,
+    )
+    from langchain_core.messages import BaseMessage, AIMessage, AIMessageChunk
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from langchain_core.outputs import (
+        ChatResult,
+        ChatGeneration,
+        ChatGenerationChunk,
+    )
+
+except ImportError:
+    raise ImportError(
+        "The 'langchain_core' library is required to use this functionality. "
+        "Install it with: pip install nuclia[langchain]"
+    )
+
 from pydantic import Field
 
 # Nuclia (sync & async)
