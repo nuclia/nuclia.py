@@ -234,7 +234,7 @@ class NucliaNuaChat(BaseChatModel):
         question, user_prompt_str = self._combine_messages(messages)
         body = ChatModel(
             question=question,
-            retrieval=self.retrieval,
+            retrieval=False,
             user_id=self.user_id,
             system=self.system_prompt,
             user_prompt=UserPrompt(prompt=user_prompt_str),
