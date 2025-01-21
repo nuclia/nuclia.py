@@ -3,7 +3,7 @@
 ## 4.4.6 (unreleased)
 
 
-- Nothing changed yet.
+- Add support for extract strategy on file uploads, link and text fields.
 
 
 ## 4.4.5 (2025-01-16)

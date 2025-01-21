@@ -263,6 +263,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         rid: Optional[str] = None,
         md5: Optional[str] = None,
         content_type: str = "application/octet-stream",
+        extract_strategy: Optional[str] = None,
     ):
         if self.writer_session is None:
             raise Exception("KB not configured")
@@ -284,6 +285,8 @@ class NucliaDBClient(BaseNucliaDBClient):
             headers["upload-metadata"] += (
                 f",md5 {base64.b64encode(md5.encode()).decode()}"
             )
+        if extract_strategy is not None:
+            headers["x-extract-strategy"] = extract_strategy
 
         response: httpx.Response = self.writer_session.post(url, headers=headers)
         handle_http_errors(response)
@@ -605,6 +608,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         rid: Optional[str] = None,
         md5: Optional[str] = None,
         content_type: str = "application/octet-stream",
+        extract_strategy: Optional[str] = None,
     ):
         if self.writer_session is None:
             raise Exception("KB not configured")
@@ -626,6 +630,8 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             headers["upload-metadata"] += (
                 f",md5 {base64.b64encode(md5.encode()).decode()}"
             )
+        if extract_strategy is not None:
+            headers["x-extract-strategy"] = extract_strategy
 
         response = await self.writer_session.post(url, headers=headers)
         handle_http_errors(response)
