@@ -17,6 +17,13 @@ try:
         ChatGeneration,
         ChatGenerationChunk,
     )
+    from litellm import (
+        CustomLLM,
+        ModelResponse,
+        Choices,
+        Message,
+        GenericStreamingChunk,
+    )
 
 except ImportError:
     raise ImportError(
@@ -36,7 +43,7 @@ from nuclia_models.predict.generative_responses import (
 )
 
 
-class NucliaNuaChat(BaseChatModel):
+class NucliaNuaChat(BaseChatModel, CustomLLM):
     """
     A LangChain-compatible ChatModel that uses nua client under the hood
     """
@@ -259,3 +266,39 @@ class NucliaNuaChat(BaseChatModel):
                 await run_manager.on_llm_new_token(token=text, chunk=chunk)
 
             yield chunk
+
+    def completion(
+        self, *args, model: str, messages: list[dict[str, str]], **kwargs
+    ) -> ModelResponse:
+        chat_result = self._generate(messages)
+        content = (
+            "Thought: I have processed the input.\n"
+            "Final Answer: " + chat_result.generations[0].message.content.strip()
+        )
+        return ModelResponse(choices=[Choices(message=Message(content=content))])
+
+    async def acompletion(
+        self, *args, model: str, messages: list[dict[str, str]], **kwargs
+    ) -> ModelResponse:
+        chat_result = await self._agenerate(messages)
+        content = (
+            "Thought: I have processed the input.\n"
+            "Final Answer: " + chat_result.generations[0].message.content.strip()
+        )
+        return ModelResponse(choices=[Choices(message=Message(content=content))])
+
+    def streaming(
+        self, *args, model: str, messages: list[dict[str, str]], **kwargs
+    ) -> Iterator[GenericStreamingChunk]:
+        for response in self._stream(messages=messages):
+            yield GenericStreamingChunk(
+                text=response, is_finished=False, finish_reason="TODO", index=0
+            )
+
+    async def astreaming(
+        self, *args, model: str, messages: list[dict[str, str]], **kwargs
+    ) -> AsyncIterator[GenericStreamingChunk]:
+        async for response in self._astream(messages=messages):
+            yield GenericStreamingChunk(
+                text=response, is_finished=False, finish_reason="TODO", index=0
+            )
