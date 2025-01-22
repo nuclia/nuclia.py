@@ -3,7 +3,7 @@
 ## 4.4.7 (unreleased)
 
 
-- Nothing changed yet.
+- Add NUA chat for CrewAI agents
 
 
 ## 4.4.6 (2025-01-22)
