@@ -14,7 +14,7 @@ try:
 except ImportError:
     raise ImportError(
         "The 'litellm' library is required to use this functionality. "
-        "Install it with: pip install nuclia[ai]"
+        "Install it with: pip install nuclia[litellm]"
     )
 
 # Nuclia (sync & async)
@@ -79,16 +79,8 @@ class NucliaNuaChat(CustomLLM):
             elif role == "user":
                 user_messages.append(content)
 
-        formatted_system = (
-            "\n--- System Messages ---\n" + "\n".join(system_messages)
-            if system_messages
-            else ""
-        )
-        formatted_user = (
-            "\n--- User Messages ---\n" + "\n".join(user_messages)
-            if user_messages
-            else ""
-        )
+        formatted_system = "\n".join(system_messages) if system_messages else ""
+        formatted_user = "\n".join(user_messages) if user_messages else ""
 
         return formatted_system, formatted_user
 
