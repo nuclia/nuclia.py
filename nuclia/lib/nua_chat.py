@@ -58,7 +58,7 @@ class NucliaNuaChat(CustomLLM):
         if token_expire_ts >= 32536850400:
             # sc-11523
             token_expire_ts = 32536850399
-        
+
         expiration_date = datetime.fromtimestamp(token_expire_ts, tz=timezone.utc)
         return regional_url, expiration_date
 
