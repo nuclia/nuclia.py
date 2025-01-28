@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.4.8 (unreleased)
+## 4.4.8 (2025-01-28)
 
 
 - Fix issue with 64 bit timestamp expirations on windows
