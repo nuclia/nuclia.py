@@ -54,7 +54,12 @@ class NucliaNuaChat(CustomLLM):
         b64_payload = parts[1]
         payload = json.loads(b64decode(b64_payload + "=="))
         regional_url = payload["iss"]
-        expiration_date = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        token_expire_ts = payload["exp"]
+        if token_expire_ts >= 32536850400:
+            # sc-11523
+            token_expire_ts = 32536850399
+
+        expiration_date = datetime.fromtimestamp(token_expire_ts, tz=timezone.utc)
         return regional_url, expiration_date
 
     def _process_messages(self, messages: list[dict[str, str]]) -> tuple[str, str]:
