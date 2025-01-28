@@ -3,7 +3,7 @@
 ## 4.4.8 (unreleased)
 
 
-- Nothing changed yet.
+- Fix issue with 64 bit timestamp expirations on windows
 
 
 ## 4.4.7 (2025-01-22)
