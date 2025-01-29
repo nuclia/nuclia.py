@@ -72,7 +72,7 @@ class NucliaNuaChat(CustomLLM):
 
             if role == "system":
                 system_messages.append(content)
-            elif role == "user":
+            else:
                 user_messages.append(content)
 
         formatted_system = "\n".join(system_messages) if system_messages else ""
@@ -110,6 +110,7 @@ class NucliaNuaChat(CustomLLM):
             system=system_prompt,
             user_prompt=UserPrompt(prompt=user_prompt),
             query_context={},
+            format_prompt=False,
         )
         response: GenerativeFullResponse = self.predict_sync.generate(
             text=body,
