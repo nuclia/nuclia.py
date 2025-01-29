@@ -3,7 +3,8 @@
 ## 4.4.9 (unreleased)
 
 
-- Nothing changed yet.
+- Keep ChatModel up to date
+- Fix nuclia nua chat format error
 
 
 ## 4.4.8 (2025-01-28)
