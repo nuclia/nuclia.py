@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.4.9 (unreleased)
+## 4.4.9 (2025-01-29)
 
 
 - Keep ChatModel up to date
