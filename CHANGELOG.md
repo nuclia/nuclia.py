@@ -3,7 +3,7 @@
 ## 4.4.9 (unreleased)
 
 
-- Nothing changed yet.
+- Keep ChatModel up to date
 
 
 ## 4.4.8 (2025-01-28)
