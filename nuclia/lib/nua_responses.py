@@ -84,6 +84,12 @@ class ChatModel(BaseModel):
     truncate: Optional[bool] = False
     user_prompt: Optional[UserPrompt] = None
     citations: Optional[bool] = False
+    citation_threshold: Optional[float] = Field(
+        default=None,
+        description="If citations is set to True, this will be the similarity threshold. Value between 0 and 1, lower values will produce more citations. If not set, it will be set to the optimized threshold found by Nuclia.",
+        ge=0.0,
+        le=1.0,
+    )
     generative_model: Optional[str] = None
     max_tokens: Optional[int] = None
     query_context_images: Union[
@@ -91,6 +97,11 @@ class ChatModel(BaseModel):
     ] = {}  # base64.b64encode(image_file.read()).decode('utf-8')
     prefer_markdown: Optional[bool] = None
     json_schema: Optional[Dict[str, Any]] = None
+    format_prompt: bool = True
+    rerank_context: bool = Field(
+        default=False,
+        description="Whether to reorder the query context based on a reranker. This option will also make it so the first response will contain the scores given for each context piece.",
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
