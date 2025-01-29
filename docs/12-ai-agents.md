@@ -2,7 +2,7 @@
 
 Build AI agent teams that work together to tackle complex tasks using Nuclia-hosted LLMs.
 
-With the `crewAI` Python library and the `NucliaNuaChat` class, you can seamlessly integrate crewAI agents with Nuclia’s LLMs to enable advanced AI capabilities.
+With the `crewAI` Python library and the `NucliaNuaChat` class, you can integrate crewAI agents with Nuclia’s LLMs.
 
 ## Prerequisites
 
