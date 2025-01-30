@@ -1,7 +1,9 @@
 import base64
+import datetime
 import json
 import webbrowser
 from typing import Any, Dict, List, Optional, Tuple
+from pydantic import TypeAdapter
 
 from httpx import AsyncClient, Client, ConnectError
 from prompt_toolkit import prompt
@@ -13,6 +15,8 @@ from nuclia.config import (
     Account,
     Config,
     KnowledgeBox,
+    PersonalTokenCreate,
+    PersonalTokenItem,
     User,
     Zone,
     retrieve_account,
@@ -26,6 +30,8 @@ ACCOUNTS = "/api/v1/accounts"
 ZONES = "/api/v1/zones"
 LIST_KBS = "/api/v1/account/{account}/kbs"
 VERIFY_NUA = "/api/authorizer/info"
+PERSONAL_TOKENS = "/api/v1/user/pa_tokens"
+PERSONAL_TOKEN = "/api/v1/user/pa_token/{token_id}"
 
 
 class BaseNucliaAuth:
@@ -345,6 +351,33 @@ class NucliaAuth(BaseNucliaAuth):
         self.accounts()
         self.zones()
 
+    def create_personal_token(
+        self, description: str, days: int = 90, login: bool = False
+    ) -> PersonalTokenCreate:
+        expiration_date = datetime.datetime.now() + datetime.timedelta(days=days)
+        resp = self._request(
+            "POST",
+            get_global_url(PERSONAL_TOKENS),
+            {
+                "description": description,
+                "expiration_date": expiration_date.isoformat(),
+            },
+        )
+        token = PersonalTokenCreate.model_validate(resp)
+        if login:
+            self.set_user_token(token.token)
+        return token
+
+    def delete_personal_token(self, token_id: str) -> None:
+        self._request(
+            "DELETE", get_global_url(PERSONAL_TOKEN.format(token_id=token_id))
+        )
+
+    def list_personal_tokens(self) -> List[PersonalTokenItem]:
+        resp = self._request("GET", get_global_url(PERSONAL_TOKENS))
+        ta = TypeAdapter(List[PersonalTokenItem])
+        return ta.validate_python(resp)
+
     def _request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
     ):
@@ -357,6 +390,7 @@ class NucliaAuth(BaseNucliaAuth):
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
             kwargs["content"] = json.dumps(data)
+
         resp = self.client.request(
             method,
             path,
@@ -617,7 +651,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             return resp.json()
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
-        elif resp.status_code == 403:
+        elif resp.status_code == 403 or resp.status_code == 401:
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
