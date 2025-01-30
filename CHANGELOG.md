@@ -3,7 +3,7 @@
 ## 4.4.10 (unreleased)
 
 
-- Nothing changed yet.
+- Add AI agents documentation
 
 
 ## 4.4.9 (2025-01-29)
