@@ -41,6 +41,10 @@ class NuaKey(BaseModel):
     def __str__(self):
         return f"{self.client_id} {self.account} {self.account_type:30}"
 
+class PersonalToken(BaseModel):
+    id: str
+    token: str
+    expires: str
 
 class Zone(BaseModel):
     id: str

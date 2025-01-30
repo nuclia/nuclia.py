@@ -1,9 +1,10 @@
 # Changelog
 
-## 4.4.10 (unreleased)
+## 4.5.0 (unreleased)
 
 
 - Add AI agents documentation
+- Support Personal Access Tokens
 
 
 ## 4.4.9 (2025-01-29)

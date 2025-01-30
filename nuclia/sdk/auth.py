@@ -1,4 +1,5 @@
 import base64
+import datetime
 import json
 import webbrowser
 from typing import Any, Dict, List, Optional, Tuple
@@ -13,6 +14,7 @@ from nuclia.config import (
     Account,
     Config,
     KnowledgeBox,
+    PersonalToken,
     User,
     Zone,
     retrieve_account,
@@ -26,7 +28,8 @@ ACCOUNTS = "/api/v1/accounts"
 ZONES = "/api/v1/zones"
 LIST_KBS = "/api/v1/account/{account}/kbs"
 VERIFY_NUA = "/api/authorizer/info"
-
+PERSONAL_TOKENS = "/api/v1/user/pa_tokens"
+PERSONAL_TOKEN = "/api/v1/user/pa_token/{token_id}"
 
 class BaseNucliaAuth:
     _inner_config: Optional[Config] = None
@@ -344,6 +347,29 @@ class NucliaAuth(BaseNucliaAuth):
     def post_login(self):
         self.accounts()
         self.zones()
+
+    def create_personal_token(self, description: str, days: Optional[int] = 90, login: Optional[bool]=False) -> PersonalToken:
+        expiration_date = datetime.datetime.now() + datetime.timedelta(days=days)
+        resp = self._request(
+            "POST",
+            get_global_url(PERSONAL_TOKENS),
+            {"description": description, "expiration_date": expiration_date.isoformat()},
+        )
+        token = PersonalToken.model_validate(resp)
+        if login:
+            self.set_user_token(token.token)
+        return token
+
+    def delete_personal_token(self, token_id: str) -> None:
+        self._request("DELETE", get_global_url(PERSONAL_TOKEN.format(token_id=token_id)))
+
+    def list_personal_tokens(self) -> List[PersonalToken]:
+        resp = self._request("GET", get_global_url(PERSONAL_TOKENS))
+        result: List[PersonalToken] = []
+        if resp:
+            for token in resp:
+                result.append(PersonalToken.model_validate(token))
+        return result
 
     def _request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
