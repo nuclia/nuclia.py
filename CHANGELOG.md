@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.5.0 (unreleased)
+## 4.5.0 (2025-01-30)
 
 
 - Add AI agents documentation
