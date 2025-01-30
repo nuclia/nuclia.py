@@ -9,5 +9,10 @@
     "labelsets",
     "Serviceaccount",
     "tqdm"
-  ]
+  ],
+  "python.testing.pytestArgs": [
+    "nuclia"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }

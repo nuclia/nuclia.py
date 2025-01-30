@@ -22,3 +22,14 @@ def test_auth_nua(testing_nua: str):
     assert client
     assert account_type
     assert account
+
+
+def test_auth_pat():
+    na = NucliaAuth()
+    token = na.create_personal_token(description="sdk test token", days=1, login=True)
+    assert token
+    tokens = na.list_personal_tokens()
+    assert len([t.id for t in tokens if t.id == token.id]) == 1
+    na.delete_personal_token(token_id=token.id)
+    tokens = na.list_personal_tokens()
+    assert len([t.id for t in tokens if t.id == token.id]) == 0
