@@ -24,7 +24,7 @@ def test_auth_nua(testing_nua: str):
     assert account
 
 
-def test_auth_pat():
+def test_auth_pat(testing_config):
     na = NucliaAuth()
     token = na.create_personal_token(description="sdk test token", days=1, login=False)
     assert token
