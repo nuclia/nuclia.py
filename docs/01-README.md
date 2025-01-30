@@ -40,4 +40,5 @@ pip install nuclia --upgrade
 - [Import/export a Knowledge Box](08-import-export.md)
 - [Manage Knowledge Box configuration & labels](09-manage.md)
 - [Query & download activity logs](10-activity-log.md)
-- [Agents: Automate Tasks for Better Search Performance](11-agents.md)
+- [Agents: Automate Tasks for Better Search Performance](11-da-agents.md)
+- [AI Agents](12-ai-agents.md)
