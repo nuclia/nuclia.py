@@ -390,6 +390,7 @@ class NucliaAuth(BaseNucliaAuth):
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
             kwargs["content"] = json.dumps(data)
+
         resp = self.client.request(
             method,
             path,
@@ -650,7 +651,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             return resp.json()
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
-        elif resp.status_code == 403:
+        elif resp.status_code == 403 or resp.status_code == 401:
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
