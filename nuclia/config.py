@@ -1,7 +1,7 @@
 from enum import Enum
 import os
 from typing import List, Optional
-
+from datetime import datetime
 from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
@@ -45,13 +45,13 @@ class NuaKey(BaseModel):
 class PersonalTokenCreate(BaseModel):
     id: str
     token: str
-    expires: str
+    expires: Optional[datetime]
 
 
-class PersonalTokenList(BaseModel):
+class PersonalTokenItem(BaseModel):
     id: str
     description: str
-    expires: str
+    expires: Optional[datetime]
 
 
 class Zone(BaseModel):

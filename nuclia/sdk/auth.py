@@ -16,7 +16,7 @@ from nuclia.config import (
     Config,
     KnowledgeBox,
     PersonalTokenCreate,
-    PersonalTokenList,
+    PersonalTokenItem,
     User,
     Zone,
     retrieve_account,
@@ -373,9 +373,9 @@ class NucliaAuth(BaseNucliaAuth):
             "DELETE", get_global_url(PERSONAL_TOKEN.format(token_id=token_id))
         )
 
-    def list_personal_tokens(self) -> List[PersonalTokenList]:
+    def list_personal_tokens(self) -> List[PersonalTokenItem]:
         resp = self._request("GET", get_global_url(PERSONAL_TOKENS))
-        ta = TypeAdapter(List[PersonalTokenList])
+        ta = TypeAdapter(List[PersonalTokenItem])
         return ta.validate_python(resp)
 
     def _request(
