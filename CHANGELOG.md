@@ -3,7 +3,7 @@
 ## 4.5.1 (unreleased)
 
 
-- Nothing changed yet.
+- Bump nuclia-models dependency.
 
 
 ## 4.5.0 (2025-01-30)
