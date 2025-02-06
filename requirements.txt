@@ -8,7 +8,7 @@ prompt_toolkit
 nucliadb_sdk>=6.2.1.post2864,<7
 nucliadb_models>=6.2.1.post2864,<7
 nucliadb_protos>=6.2.1.post2864,<7
-nuclia-models>=0.24.3
+nuclia-models>=0.25.0
 tqdm
 aiofiles
 backoff
