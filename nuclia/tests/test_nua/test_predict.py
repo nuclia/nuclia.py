@@ -23,7 +23,7 @@ def test_predict_query(testing_config):
     )
     assert query.language == "en"
     assert query.visual_llm is True
-    assert query.max_context == 128000
+    assert query.max_context == 127000
     assert query.entities and query.entities.tokens[0].text == "Ramon"
     assert query.sentence and len(query.sentence.data) == 1024
 
