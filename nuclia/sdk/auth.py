@@ -448,8 +448,8 @@ class NucliaAuth(BaseNucliaAuth):
             except UserTokenExpired:
                 return []
             except ConnectError:
-                print(
-                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone checking account{account}"
+                logger.error(
+                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                 )
                 continue
             if kbs is not None:
@@ -696,7 +696,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 kbs = await self._request("GET", path)
             except UserTokenExpired:
                 return result
-            except ConnectionError:
+            except ConnectError:
                 logger.error(
                     f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                 )
