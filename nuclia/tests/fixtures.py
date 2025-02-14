@@ -2,6 +2,8 @@ import os
 import tempfile
 
 import pytest
+import asyncio
+
 
 from nuclia import BASE_DOMAIN
 from nuclia.config import reset_config_file, set_config_file
@@ -51,3 +53,10 @@ def testing_config(testing_kb, testing_nua, testing_user):
 
     yield
     reset_config_file()
+
+
+@pytest.fixture
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
