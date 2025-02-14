@@ -83,7 +83,7 @@ class NucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
         """
-        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = SearchRequest(query=query, filters=(filters or []), **kwargs)  # type: ignore
         elif isinstance(query, SearchRequest):
