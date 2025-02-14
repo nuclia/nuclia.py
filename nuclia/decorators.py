@@ -50,7 +50,7 @@ def kbs(func):
 
 def kb(func):
     @wraps(func)
-    async def async_wrapper_checkout_kb(*args, **kwargs):
+    async def async_wrapper_checkout(*args, **kwargs):
         if "ndb" in kwargs:
             return await func(*args, **kwargs)
         url = kwargs.get("url")
@@ -77,7 +77,7 @@ def kb(func):
             raise NucliaConnectionError(f"Could not connect to {ndb}")
 
     @wraps(func)
-    def wrapper_checkout_kb(*args, **kwargs):
+    def wrapper_checkout(*args, **kwargs):
         if "ndb" in kwargs:
             return func(*args, **kwargs)
         url = kwargs.get("url")
@@ -103,10 +103,41 @@ def kb(func):
         except ConnectError:
             raise NucliaConnectionError(f"Could not connect to {ndb}")
 
-    if asyncio.iscoroutinefunction(func):
-        return async_wrapper_checkout_kb
+    @wraps(func)
+    async def async_generative_wrapper_checkout(*args, **kwargs):
+        if "ndb" in kwargs:
+            async for value in func(*args, **kwargs):
+                yield value
+        else:
+            url = kwargs.get("url")
+            api_key = kwargs.get("api_key")
+            auth = get_async_auth()
+            if url is None:
+                # Get default KB
+                kbid = auth._config.get_default_kb()
+                if kbid is None:
+                    raise NotDefinedDefault()
+                ndb = await get_async_client(kbid)
+            elif url.find(BASE_DOMAIN) >= 0:
+                region = url.split(".")[0].split("/")[-1]
+                ndb = AsyncNucliaDBClient(
+                    environment=Environment.CLOUD,
+                    url=url,
+                    api_key=api_key,
+                    region=region,
+                )
+            else:
+                ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=url)
+            kwargs["ndb"] = ndb
+            async for value in func(*args, **kwargs):
+                yield value
+
+    if inspect.isasyncgenfunction(func):
+        return async_generative_wrapper_checkout
+    elif asyncio.iscoroutinefunction(func):
+        return async_wrapper_checkout
     else:
-        return wrapper_checkout_kb
+        return wrapper_checkout
 
 
 def nucliadb(func):

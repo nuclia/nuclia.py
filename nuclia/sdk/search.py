@@ -325,7 +325,7 @@ class AsyncNucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
         """
-        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = SearchRequest(query=query, filters=(filters or []), **kwargs)  # type: ignore
         elif isinstance(query, SearchRequest):
@@ -393,7 +393,7 @@ class AsyncNucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
-        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
 
         if isinstance(query, str):
             req = AskRequest(
@@ -479,7 +479,7 @@ class AsyncNucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
-        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
             req = AskRequest(
                 query=query,
@@ -519,7 +519,7 @@ class AsyncNucliaSearch:
 
         See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
-        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
 
         if isinstance(query, str):
             req = AskRequest(
