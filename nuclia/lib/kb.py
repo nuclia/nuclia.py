@@ -244,12 +244,15 @@ class NucliaDBClient(BaseNucliaDBClient):
 
         url = DOWNLOAD_EXPORT_URL.format(export_id=export_id)
         with self.reader_session.stream("GET", url) as response:
-            with open(path, "wb") as file, tqdm(
-                desc="Downloading data",
-                total=export_size,
-                unit="iB",
-                unit_scale=True,
-            ) as pbar:
+            with (
+                open(path, "wb") as file,
+                tqdm(
+                    desc="Downloading data",
+                    total=export_size,
+                    unit="iB",
+                    unit_scale=True,
+                ) as pbar,
+            ):
                 for chunk in response.iter_bytes(chunk_size):
                     pbar.update(len(chunk))
                     file.write(chunk)
