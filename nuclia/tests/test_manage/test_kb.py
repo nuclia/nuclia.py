@@ -44,7 +44,7 @@ def test_add_and_delete_kb(testing_config):
 
 
 @pytest.mark.asyncio
-async def test_async_add_and_delete_kb(testing_config, event_loop):
+async def test_async_add_and_delete_kb(testing_config):
     if IS_PROD:
         # not possible on our prod account
         assert True

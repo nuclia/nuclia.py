@@ -116,7 +116,10 @@ def print_nuas(config: Config):
 
 
 class NucliaAuth(BaseNucliaAuth):
-    client = Client()
+    client: Client
+
+    def __init__(self):
+        self.client = Client()
 
     def show(self) -> None:
         self._show_user()
@@ -468,7 +471,10 @@ class NucliaAuth(BaseNucliaAuth):
 
 
 class AsyncNucliaAuth(BaseNucliaAuth):
-    client = AsyncClient()
+    client: AsyncClient
+
+    def __init__(self):
+        self.client = AsyncClient()
 
     async def show(self):
         await self._show_user()

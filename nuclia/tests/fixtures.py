@@ -2,8 +2,6 @@ import os
 import tempfile
 
 import pytest
-import asyncio
-
 
 from nuclia import BASE_DOMAIN
 from nuclia.config import reset_config_file, set_config_file
@@ -55,8 +53,10 @@ def testing_config(testing_kb, testing_nua, testing_user):
     reset_config_file()
 
 
-@pytest.fixture
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+@pytest.fixture(autouse=True)
+def cleanup_auth():
+    # sdk stores the client on DATA, so when running async tests, that gets tied to a function scope loop
+    # and breaks all consequent tests...
+    from nuclia import data
+
+    data.DATA.async_auth = None
