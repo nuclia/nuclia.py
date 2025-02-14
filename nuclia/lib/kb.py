@@ -231,6 +231,29 @@ class NucliaDBClient(BaseNucliaDBClient):
         handle_http_errors(response)
         return response
 
+    def download_export(self, export_id: str, path: str, chunk_size: int):
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        parent = os.path.dirname(path)
+        if not os.path.exists(parent):
+            os.makedirs(parent)
+
+        status = self.ndb.export_status(kbid=self.kbid, export_id=export_id)
+        export_size = status.total
+
+        url = DOWNLOAD_EXPORT_URL.format(export_id=export_id)
+        with self.reader_session.stream("GET", url) as response:
+            with open(path, "wb") as file, tqdm(
+                desc="Downloading data",
+                total=export_size,
+                unit="iB",
+                unit_scale=True,
+            ) as pbar:
+                for chunk in response.iter_bytes(chunk_size):
+                    pbar.update(len(chunk))
+                    file.write(chunk)
+
     def download(self, uri: str) -> bytes:
         # uri has format
         # /kb/2a00d5b4-cfcc-48eb-85ac-d70bfd38b26d/resource/41d02aac4ade48098b23e38141807738/file/file/download/field
@@ -306,6 +329,17 @@ class NucliaDBClient(BaseNucliaDBClient):
         )
         handle_http_errors(response)
         return int(response.headers.get("Upload-Offset"))
+
+    def summarize(self, request: SummarizeRequest, timeout: int = 1000):
+        if self.url is None or self.writer_session is None:
+            raise Exception("KB not configured")
+        url = f"{self.url}{SUMMARIZE_URL}"
+        assert self.reader_session
+        response = self.reader_session.post(
+            url, json=request.model_dump(), timeout=timeout
+        )
+        handle_http_errors(response)
+        return response
 
     def logs(self, type: LogType, month: str) -> list[list[str]]:
         if self.reader_session is None:
@@ -659,6 +693,195 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         assert self.reader_session
         response = await self.reader_session.post(
             url, json=request.model_dump(), timeout=timeout
+        )
+        handle_http_errors(response)
+        return response
+
+    async def logs(self, type: LogType, month: str) -> list[list[str]]:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        if type != "feedback":
+            url = LEGACY_ACTIVITY_LOG_URL.format(type=type.value, month=month)
+            response: httpx.Response = await self.reader_session.get(url)
+            handle_http_errors(response)
+            return [row for row in csv.reader(response.iter_lines())]
+        else:
+            feedback_url = f"{self.url}{FEEDBACK_LOG_URL.format(month=month)}"
+            feedback_response: httpx.Response = await self.reader_session.get(
+                feedback_url
+            )
+            handle_http_errors(feedback_response)
+            feedbacks = [row for row in csv.reader(feedback_response.iter_lines())]
+            answers = await self.logs(type=LogType.CHAT, month=month)
+            # first row with the columns headers
+            results = [[*feedbacks[0], *answers[0][:-1]]]
+            for feedback in feedbacks[1:]:
+                learning_id = feedback[1]
+                # search for the corresponding question/answer
+                # (the learning id is the same for both question/answer and feedback,
+                # and is the second column in the Q/A csv)
+                matching_answers = [
+                    answer for answer in answers if answer[1] == learning_id
+                ]
+                if len(matching_answers) > 0:
+                    results.append([*feedback, *matching_answers[0][:-1]])
+                else:
+                    results.append(feedback)
+            return results
+
+    async def logs_query(
+        self,
+        type: EventType,
+        query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery],
+    ) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response = await self.reader_session.post(
+            f"{self.url}{ACTIVITY_LOG_QUERY_URL.format(type=type.value)}",
+            json=query.model_dump(mode="json", exclude_unset=True),
+        )
+        handle_http_errors(response)
+        return response
+
+    async def logs_download(
+        self,
+        type: EventType,
+        query: Union[
+            DownloadActivityLogsQuery,
+            DownloadActivityLogsSearchQuery,
+            DownloadActivityLogsChatQuery,
+        ],
+        download_format: DownloadFormat,
+    ):
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+        download_request_url = f"{self.url}{ACTIVITY_LOG_URL.format(type=type.value)}"
+        format_header_value = DOWNLOAD_FORMAT_HEADERS.get(download_format)
+        if format_header_value is None:
+            raise ValueError()
+        response: httpx.Response = await self.reader_session.post(
+            download_request_url,
+            json=query.model_dump(mode="json", exclude_unset=True),
+            headers={"accept": format_header_value},
+        )
+        handle_http_errors(response)
+        return response
+
+    async def get_download_request(
+        self,
+        request_id: str,
+    ):
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+        download_request_url = f"{self.url}{ACTIVITY_LOG_DOWNLOAD_REQUEST_URL.format(request_id=request_id)}"
+        response: httpx.Response = await self.reader_session.get(download_request_url)
+        handle_http_errors(response)
+        return response
+
+    async def remi_query(
+        self,
+        query: RemiQuery,
+    ) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.reader_session.post(
+            f"{self.url}{REMI_QUERY_URL}",
+            json=query.model_dump(mode="json", exclude_unset=True),
+            timeout=10,
+        )
+        handle_http_errors(response)
+        return response
+
+    async def get_remi_event(
+        self,
+        event_id: int,
+    ) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.reader_session.get(
+            f"{self.url}{REMI_EVENT_URL.format(event_id=event_id)}"
+        )
+        handle_http_errors(response)
+        return response
+
+    async def get_remi_scores(
+        self,
+        _from: datetime,
+        to: Optional[datetime],
+        aggregation: Aggregation,
+    ) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+        params = {"from": _from.isoformat(), "aggregation": aggregation.value}
+        if to:
+            params["to"] = to.isoformat()
+        response: httpx.Response = await self.reader_session.get(
+            f"{self.url}{REMI_SCORES_URL}", params=params, timeout=10
+        )
+        handle_http_errors(response)
+        return response
+
+    async def list_tasks(self) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.reader_session.get(
+            f"{self.url}{LIST_TASKS}"
+        )
+        handle_http_errors(response)
+        return response
+
+    async def start_task(self, body: TaskStartKB) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.post(
+            f"{self.url}{START_TASK}",
+            json=body.model_dump(mode="json", exclude_unset=True),
+        )
+        handle_http_errors(response)
+        return response
+
+    async def delete_task(self, task_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.delete(
+            f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
+        )
+        handle_http_errors(response)
+        return response
+
+    async def stop_task(self, task_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.post(
+            f"{self.url}{STOP_TASK.format(task_id=task_id)}",
+        )
+        handle_http_errors(response)
+        return response
+
+    async def get_task(self, task_id: str) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.reader_session.get(
+            f"{self.url}{GET_TASK.format(task_id=task_id)}",
+        )
+        handle_http_errors(response)
+        return response
+
+    async def restart_task(self, task_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.post(
+            f"{self.url}{RESTART_TASK.format(task_id=task_id)}",
         )
         handle_http_errors(response)
         return response
