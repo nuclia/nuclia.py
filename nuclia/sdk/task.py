@@ -121,8 +121,8 @@ class AsyncNucliaTask:
         """
         List tasks
         """
-        ndb: NucliaDBClient = kwargs["ndb"]
-        response = ndb.list_tasks()
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        response = await ndb.list_tasks()
         return TaskList.model_validate(response.json())
 
     @kb
