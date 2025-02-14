@@ -47,6 +47,7 @@ def test_generative(testing_config):
     assert "4" in generated.answer
 
 
+@pytest.mark.asyncio
 async def test_async_generative(testing_config):
     np = AsyncNucliaPredict()
     generated = await np.generate(
@@ -67,6 +68,7 @@ def test_stream_generative(testing_config):
     assert found
 
 
+@pytest.mark.asyncio
 async def test_async_stream_generative(testing_config):
     np = AsyncNucliaPredict()
     async for stream in np.generate_stream(
@@ -111,6 +113,7 @@ SCHEMA = {
 TEXT = """"Many football players have existed. Messi is by far the greatest. Messi was born in Rosario, 24th of June 1987"""
 
 
+@pytest.mark.asyncio
 async def test_nua_parse(testing_config):
     np = AsyncNucliaPredict()
     results = await np.generate(

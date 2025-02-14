@@ -7,6 +7,7 @@ from nuclia_models.events.activity_logs import (
     DownloadActivityLogsQuery,
     DownloadFormat,
 )
+import pytest
 
 
 def test_logs(testing_config):
@@ -51,6 +52,7 @@ def test_activity_logs_download(testing_config):
     assert output.download_url is None
 
 
+@pytest.mark.asyncio
 async def test_logs_async(testing_config):
     if not IS_PROD:
         assert True
@@ -60,6 +62,7 @@ async def test_logs_async(testing_config):
     assert len(logs) == 23
 
 
+@pytest.mark.asyncio
 async def test_activity_logs_query_async(testing_config):
     if not IS_PROD:
         assert True
@@ -76,6 +79,7 @@ async def test_activity_logs_query_async(testing_config):
     assert output.has_more
 
 
+@pytest.mark.asyncio
 async def test_activity_logs_download_async(testing_config):
     if not IS_PROD:
         assert True

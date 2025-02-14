@@ -14,6 +14,7 @@ from nuclia_models.worker.proto import (
     Operation,
     LLMConfig,
 )
+import pytest
 
 
 def test_worker_manager_tasks(testing_config):
@@ -72,6 +73,7 @@ def test_worker_manager_tasks(testing_config):
         nkb.task.delete(task_id=task.id)
 
 
+@pytest.mark.asyncio
 async def test_worker_manager_tasks_async(testing_config):
     if not IS_PROD:
         assert True

@@ -14,6 +14,7 @@ def test_list_kbs(testing_config):
     assert TESTING_KBID in [kb.id for kb in all]
 
 
+@pytest.mark.asyncio
 async def test_async_list_kbs(testing_config):
     kbs = AsyncNucliaKBS()
     all = await kbs.list()
@@ -42,6 +43,7 @@ def test_add_and_delete_kb(testing_config):
         kbs.get(account=TESTING_ACCOUNT_SLUG, slug=NEW_KB_SLUG, zone="europe-1")
 
 
+@pytest.mark.asyncio
 async def test_async_add_and_delete_kb(testing_config):
     if IS_PROD:
         # not possible on our prod account
