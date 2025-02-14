@@ -4,6 +4,7 @@
 
 
 - Bump nuclia-models dependency.
+- Complete async versions of several sdk modules
 
 
 ## 4.5.0 (2025-01-30)

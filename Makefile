@@ -17,4 +17,4 @@ fmt:
 
 test:
 	mypy nuclia
-	pytest nuclia
+	pytest --asyncio-mode=auto nuclia

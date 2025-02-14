@@ -23,11 +23,11 @@ from nuclia.sdk.export_import import (
     NucliaExports,
     NucliaImports,
 )
-from nuclia.sdk.logs import NucliaLogs
-from nuclia.sdk.remi import NucliaRemi
+from nuclia.sdk.logs import NucliaLogs, AsyncNucliaLogs
+from nuclia.sdk.remi import NucliaRemi, AsyncNucliaRemi
 from nuclia.sdk.resource import AsyncNucliaResource, NucliaResource
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
-from nuclia.sdk.task import NucliaTask
+from nuclia.sdk.task import NucliaTask, AsyncNucliaTask
 from nuclia.sdk.upload import AsyncNucliaUpload, NucliaUpload
 
 
@@ -331,6 +331,9 @@ class AsyncNucliaKB:
         self.resource = AsyncNucliaResource()
         self.exports = AsyncNucliaExports()
         self.imports = AsyncNucliaImports()
+        self.logs = AsyncNucliaLogs()
+        self.task = AsyncNucliaTask()
+        self.remi = AsyncNucliaRemi()
 
     @kb
     async def list(self, **kwargs) -> ResourceList:

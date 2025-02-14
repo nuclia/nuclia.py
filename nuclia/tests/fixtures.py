@@ -51,3 +51,12 @@ def testing_config(testing_kb, testing_nua, testing_user):
 
     yield
     reset_config_file()
+
+
+@pytest.fixture(autouse=True)
+def cleanup_auth():
+    # sdk stores the client on DATA, so when running async tests, that gets tied to a function scope loop
+    # and breaks all consequent tests...
+    from nuclia import data
+
+    data.DATA.async_auth = None
