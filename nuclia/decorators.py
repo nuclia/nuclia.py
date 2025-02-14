@@ -6,7 +6,12 @@ from httpx import ConnectError
 import yaml
 
 from nuclia import BASE_DOMAIN
-from nuclia.data import get_async_auth, get_async_client, get_auth, get_client
+from nuclia.data import (
+    get_async_auth,
+    get_async_client,
+    get_auth,
+    get_client,
+)
 from nuclia.exceptions import NotDefinedDefault, NucliaConnectionError
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
@@ -19,7 +24,16 @@ def accounts(func):
         auth.accounts()
         return func(*args, **kwargs)
 
-    return wrapper_checkout_accounts
+    async def async_wrapper_checkout_accounts(*args, **kwargs):
+        auth = get_async_auth()
+        await auth.accounts()
+        result = await func(*args, **kwargs)
+        return result
+
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper_checkout_accounts
+    else:
+        return wrapper_checkout_accounts
 
 
 def kbs(func):
@@ -36,7 +50,7 @@ def kbs(func):
 
 def kb(func):
     @wraps(func)
-    async def async_wrapper_checkout_kb(*args, **kwargs):
+    async def async_wrapper_checkout(*args, **kwargs):
         if "ndb" in kwargs:
             return await func(*args, **kwargs)
         url = kwargs.get("url")
@@ -63,7 +77,34 @@ def kb(func):
             raise NucliaConnectionError(f"Could not connect to {ndb}")
 
     @wraps(func)
-    async def async_generative_wrapper_checkout_kb(*args, **kwargs):
+    def wrapper_checkout(*args, **kwargs):
+        if "ndb" in kwargs:
+            return func(*args, **kwargs)
+        url = kwargs.get("url")
+        api_key = kwargs.get("api_key")
+        auth = get_auth()
+        if url is None:
+            # Get default KB
+            kbid = auth._config.get_default_kb()
+            if kbid is None:
+                raise NotDefinedDefault()
+            ndb = get_client(kbid)
+        elif url.find(BASE_DOMAIN) >= 0:
+            region = url.split(".")[0].split("/")[-1]
+            ndb = NucliaDBClient(
+                environment=Environment.CLOUD, url=url, api_key=api_key, region=region
+            )
+        else:
+            ndb = NucliaDBClient(environment=Environment.OSS, url=url)
+        kwargs["ndb"] = ndb
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except ConnectError:
+            raise NucliaConnectionError(f"Could not connect to {ndb}")
+
+    @wraps(func)
+    async def async_generative_wrapper_checkout(*args, **kwargs):
         if "ndb" in kwargs:
             async for value in func(*args, **kwargs):
                 yield value
@@ -91,39 +132,12 @@ def kb(func):
             async for value in func(*args, **kwargs):
                 yield value
 
-    @wraps(func)
-    def wrapper_checkout_kb(*args, **kwargs):
-        if "ndb" in kwargs:
-            return func(*args, **kwargs)
-        url = kwargs.get("url")
-        api_key = kwargs.get("api_key")
-        auth = get_auth()
-        if url is None:
-            # Get default KB
-            kbid = auth._config.get_default_kb()
-            if kbid is None:
-                raise NotDefinedDefault()
-            ndb = get_client(kbid)
-        elif url.find(BASE_DOMAIN) >= 0:
-            region = url.split(".")[0].split("/")[-1]
-            ndb = NucliaDBClient(
-                environment=Environment.CLOUD, url=url, api_key=api_key, region=region
-            )
-        else:
-            ndb = NucliaDBClient(environment=Environment.OSS, url=url)
-        kwargs["ndb"] = ndb
-        try:
-            result = func(*args, **kwargs)
-            return result
-        except ConnectError:
-            raise NucliaConnectionError(f"Could not connect to {ndb}")
-
-    if inspect.iscoroutinefunction(func):
-        return async_wrapper_checkout_kb
-    elif inspect.isasyncgenfunction(func):
-        return async_generative_wrapper_checkout_kb
+    if inspect.isasyncgenfunction(func):
+        return async_generative_wrapper_checkout
+    elif asyncio.iscoroutinefunction(func):
+        return async_wrapper_checkout
     else:
-        return wrapper_checkout_kb
+        return wrapper_checkout
 
 
 def nucliadb(func):
@@ -230,7 +244,24 @@ def account(func):
             kwargs["account_id"] = account_id
         return func(*args, **kwargs)
 
-    return wrapper
+    async def async_wrapper(*args, **kwargs):
+        account_slug = kwargs.get("account")
+        account_id = kwargs.get("account_id")
+        auth = get_async_auth()
+        if account_id is None and account_slug is None:
+            account_slug = auth._config.get_default_account()
+            if account_slug is None:
+                raise NotDefinedDefault()
+            kwargs["account"] = account_slug
+        if account_id is None:
+            account_id = auth.get_account_id(account_slug)  # type: ignore
+            kwargs["account_id"] = account_id
+        return await func(*args, **kwargs)
+
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+        return wrapper
 
 
 def pretty(func):
@@ -267,4 +298,14 @@ def zone(func):
             kwargs["zone"] = auth._config.get_default_zone()
         return func(*args, **kwargs)
 
-    return wrapper_checkout_zone
+    async def async_wrapper_checkout_zone(*args, **kwargs):
+        zone = kwargs.get("zone")
+        if not zone:
+            auth = get_async_auth()
+            kwargs["zone"] = auth._config.get_default_zone()
+        return await func(*args, **kwargs)
+
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper_checkout_zone
+    else:
+        return wrapper_checkout_zone

@@ -1,5 +1,6 @@
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
 from nucliadb_models.search import AskRequest, CustomPrompt
+import pytest
 
 
 def test_find(testing_config):
@@ -121,6 +122,7 @@ def test_ask_json(testing_config):
     assert "TECHNOLOGY" in results.object["document_type"]
 
 
+@pytest.mark.asyncio
 async def test_ask_json_async(testing_config):
     search = AsyncNucliaSearch()
     results = await search.ask_json(
