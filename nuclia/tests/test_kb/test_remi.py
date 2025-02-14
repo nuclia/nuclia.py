@@ -50,7 +50,7 @@ async def test_remi_query_and_get_event_async(testing_config):
         )
     )
     assert len(remi_query.data) == 10
-    remi_event = nkb.remi.get_event(event_id=remi_query.data[0].id)
+    remi_event = await nkb.remi.get_event(event_id=remi_query.data[0].id)
     assert remi_event.id == remi_query.data[0].id
 
 
