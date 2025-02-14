@@ -28,19 +28,6 @@ jobs:
       - name: Install package
         run: make install
 
-      - name: Set up secret file
-        env:
-          STAGE_TESTING_SERVICE_TOKEN: ${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}
-          STAGE_TESTING_TOKEN: ${{ secrets.STAGE_TESTING_TOKEN }}
-          TEST_EUROPE1_STASHIFY_NUA: ${{ secrets.TEST_EUROPE1_STASHIFY_NUA }}
-        run: |
-          echo $STAGE_TESTING_SERVICE_TOKEN >> secrets.txt
-          echo $STAGE_TESTING_TOKEN >> secrets.txt
-          echo $TEST_EUROPE1_STASHIFY_NUA >> secrets.txt
-
-      - name: Run tmate
-        uses: mxschmitt/action-tmate@v2
-
       - name: Run pre-checks
         run: make lint
 
