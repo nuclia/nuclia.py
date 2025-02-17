@@ -26,7 +26,7 @@ def accounts(func):
 
     async def async_wrapper_checkout_accounts(*args, **kwargs):
         auth = get_async_auth()
-        await auth.accounts()
+        await auth.accounts(cached=False)
         result = await func(*args, **kwargs)
         return result
 

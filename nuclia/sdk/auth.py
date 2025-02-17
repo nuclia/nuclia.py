@@ -23,6 +23,8 @@ from nuclia.config import (
     retrieve_nua,
 )
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
+import asyncio
+from time import time
 
 USER = "/api/v1/user/welcome"
 MEMBER = "/api/v1/user"
@@ -475,6 +477,8 @@ class AsyncNucliaAuth(BaseNucliaAuth):
 
     def __init__(self):
         self.client = AsyncClient()
+        self._cache = {}  # Manual cache storage
+        self._lock = asyncio.Lock()
 
     async def show(self):
         await self._show_user()
@@ -634,6 +638,16 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         await self.accounts()
         await self.zones()
 
+    async def _cached_request(self, method: str, path: str) -> Any:
+        async with self._lock:
+            if path in self._cache:
+                exp, value = self._cache[(path)]
+                if time() <= exp:
+                    return value  # Return cached response
+            response = await self._request(method, path)
+            self._cache[path] = (time() + 60, response)
+            return response
+
     async def _request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
     ):
@@ -642,6 +656,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         kwargs: Dict[str, Any] = {
             "headers": {"Authorization": f"Bearer {self._config.token}"}
         }
+
         if data is not None:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
@@ -662,8 +677,9 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
 
-    async def accounts(self) -> List[Account]:
-        accounts = await self._request("GET", get_global_url(ACCOUNTS))
+    async def accounts(self, cached: bool = True) -> List[Account]:
+        _request = self._cached_request if cached else self._request
+        accounts = await _request("GET", get_global_url(ACCOUNTS))
         result: List[Account] = []
         self._config.accounts = []
         if accounts is None:
@@ -675,8 +691,9 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         self._config.save()
         return result
 
-    async def zones(self) -> List[Zone]:
-        zones = await self._request("GET", get_global_url(ZONES))
+    async def zones(self, cached: bool = True) -> List[Zone]:
+        _request = self._cached_request if cached else self._request
+        zones = await _request("GET", get_global_url(ZONES))
         if self._config.accounts is None:
             self._config.accounts = []
         self._config.zones = []
@@ -690,7 +707,8 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         self._config.save()
         return result
 
-    async def kbs(self, account: str) -> List[KnowledgeBox]:
+    async def kbs(self, account: str, cached: bool = True) -> List[KnowledgeBox]:
+        _request = self._cached_request if cached else self._request
         result: List[KnowledgeBox] = []
         zones = await self.zones()
         for zoneObj in zones:
@@ -699,7 +717,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 continue
             path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
             try:
-                kbs = await self._request("GET", path)
+                kbs = await _request("GET", path)
             except UserTokenExpired:
                 return result
             except ConnectError:
