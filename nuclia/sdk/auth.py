@@ -24,6 +24,7 @@ from nuclia.config import (
 )
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
 import asyncio
+from time import time
 
 USER = "/api/v1/user/welcome"
 MEMBER = "/api/v1/user"
@@ -640,9 +641,11 @@ class AsyncNucliaAuth(BaseNucliaAuth):
     async def _cached_request(self, method: str, path: str) -> Any:
         async with self._lock:
             if path in self._cache:
-                return self._cache[(path)]  # Return cached response
+                exp, value = self._cache[(path)]
+                if time() <= exp:
+                    return value  # Return cached response
             response = await self._request(method, path)
-            self._cache[path] = response
+            self._cache[path] = (time() + 60, response)
             return response
 
     async def _request(
