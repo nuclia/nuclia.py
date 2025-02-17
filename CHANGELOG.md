@@ -3,7 +3,7 @@
 ## 4.5.2 (unreleased)
 
 
-- Nothing changed yet.
+- Cache auth info related requests .
 
 
 ## 4.5.1 (2025-02-14)

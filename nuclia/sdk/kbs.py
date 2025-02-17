@@ -161,7 +161,7 @@ class AsyncNucliaKBS:
             )
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    result.extend(await self._auth.kbs(account_obj.id))
+                    result.extend(await self._auth.kbs(account_obj.id, cached=False))
             self._auth._config.kbs = result
             self._auth._config.save()
 
@@ -178,7 +178,7 @@ class AsyncNucliaKBS:
             )
             if not matching_account:
                 raise ValueError("Account not found")
-            return await self._auth.kbs(matching_account.id)
+            return await self._auth.kbs(matching_account.id, cached=False)
 
     @accounts
     @account
@@ -226,7 +226,7 @@ class AsyncNucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"])
+            kbs = await self._auth.kbs(kwargs["account_id"], cached=False)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -251,7 +251,7 @@ class AsyncNucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"])
+            kbs = await self._auth.kbs(kwargs["account_id"], cached=False)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
