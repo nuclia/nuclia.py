@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.5.2 (unreleased)
+## 4.5.2 (2025-02-17)
 
 
 - Cache auth info related requests .
