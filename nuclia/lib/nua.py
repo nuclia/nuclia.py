@@ -43,6 +43,8 @@ from nuclia.lib.nua_responses import (
     QueryInfo,
     RephraseModel,
     RestrictedIDString,
+    RunAgentsRequest,
+    RunAgentsResponse,
     Sentence,
     Source,
     StoredLearningConfiguration,
@@ -65,6 +67,7 @@ REPHRASE_PREDICT = "/api/v1/predict/rephrase"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
 QUERY_PREDICT = "/api/v1/predict/query"
 REMI_PREDICT = "/api/v1/predict/remi"
+AGENTS_PREDICT = "/api/v1/predict/run-agents"
 UPLOAD_PROCESS = "/api/v1/processing/upload"
 STATUS_PROCESS = "/api/v2/processing/status"
 PUSH_PROCESS = "/api/v2/processing/push"
@@ -307,6 +310,19 @@ class NuaClient:
             endpoint,
             payload=request.model_dump(),
             output=RemiResponse,
+        )
+
+    def run_agent(
+        self,
+        kbid: str,
+        request: RunAgentsRequest,
+    ) -> RunAgentsResponse:
+        endpoint = f"{self.url}{AGENTS_PREDICT}/{kbid}"
+        return self._request(
+            "POST",
+            endpoint,
+            payload=request.model_dump(),
+            output=RunAgentsResponse,
         )
 
     def process_file(self, path: str, kbid: str = "default") -> PushResponseV2:
@@ -616,6 +632,19 @@ class AsyncNuaClient:
             endpoint,
             payload=body,
             output=RephraseModel,
+        )
+
+    async def run_agent(
+        self,
+        kbid: str,
+        request: RunAgentsRequest,
+    ) -> RunAgentsResponse:
+        endpoint = f"{self.url}{AGENTS_PREDICT}/{kbid}"
+        return await self._request(
+            "POST",
+            endpoint,
+            payload=request.model_dump(),
+            output=RunAgentsResponse,
         )
 
     async def remi(self, request: RemiRequest) -> RemiResponse:

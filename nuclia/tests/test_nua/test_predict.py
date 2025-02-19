@@ -1,9 +1,17 @@
 from nuclia_models.predict.generative_responses import TextGenerativeResponse
 
-from nuclia.lib.nua_responses import ChatModel, UserPrompt
+from nuclia.lib.nua_responses import (
+    ChatModel,
+    FieldInfo,
+    NameOperationFilter,
+    OperationType,
+    RunAgentsRequest,
+    UserPrompt,
+)
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 import pytest
 from nuclia_models.predict.remi import RemiRequest
+from nucliadb_protos.resources_pb2 import FieldMetadata
 
 
 def test_predict(testing_config):
@@ -171,3 +179,28 @@ async def test_nua_async_remi(testing_config):
 
     assert results.context_relevance[1] < 2
     assert results.groundedness[1] < 2
+
+
+@pytest.mark.asyncio
+async def test_nua_async_agent(testing_config):
+    np = AsyncNucliaPredict()
+    results = await np.run_agent(
+        kbid="1f094b05-4e45-4ff8-8a58-23cc3947e460",
+        request=RunAgentsRequest(
+            fields=[
+                FieldInfo(
+                    text="You are a good person",
+                    metadata=FieldMetadata(),
+                    field_id="f/body",
+                )
+            ],
+            user_id="user1",
+            filters=[
+                NameOperationFilter(
+                    operation_type=OperationType.label, task_names=["labeler"]
+                )
+            ],
+            enable_webhooks=False,
+        ),
+    )
+    print(results)

@@ -13,6 +13,8 @@ from nuclia.lib.nua_responses import (
     ConfigSchema,
     LearningConfigurationCreation,
     QueryInfo,
+    RunAgentsRequest,
+    RunAgentsResponse,
     Sentence,
     StoredLearningConfiguration,
     SummarizedModel,
@@ -144,6 +146,13 @@ class NucliaPredict:
         )
 
         return nc.generate(body, model)
+
+    @nua
+    def run_agent(
+        self, kbid: str, request: RunAgentsRequest, **kwargs
+    ) -> RunAgentsResponse:
+        nc: NuaClient = kwargs["nc"]
+        return nc.run_agent(kbid, request)
 
     @nua
     def remi(self, request: Optional[RemiRequest] = None, **kwargs) -> RemiResponse:
@@ -282,6 +291,13 @@ class AsyncNucliaPredict:
     ) -> ChatResponse:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.generate_retrieval(question, context, model)
+
+    @nua
+    async def run_agent(
+        self, kbid: str, request: RunAgentsRequest, **kwargs
+    ) -> RunAgentsResponse:
+        nc: AsyncNuaClient = kwargs["nc"]
+        return await nc.run_agent(kbid, request)
 
     @nua
     async def remi(
