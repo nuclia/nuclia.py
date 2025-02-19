@@ -145,7 +145,7 @@ class NucliaSearch:
     def catalog(
         self,
         *,
-        query: Union[str, FindRequest] = "",
+        query: Union[str, CatalogRequest] = "",
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ):
@@ -170,7 +170,7 @@ class NucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or FindRequest")
+            raise Exception("Invalid Query either str or CatalogRequest")
 
         return ndb.ndb.catalog(req, kbid=ndb.kbid)
 
@@ -419,7 +419,7 @@ class AsyncNucliaSearch:
     async def catalog(
         self,
         *,
-        query: Union[str, FindRequest] = "",
+        query: Union[str, CatalogRequest] = "",
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ):
@@ -444,7 +444,7 @@ class AsyncNucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or FindRequest")
+            raise Exception("Invalid Query either str or CatalogRequest")
 
         return await ndb.ndb.catalog(req, kbid=ndb.kbid)
 

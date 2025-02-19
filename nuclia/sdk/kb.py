@@ -391,7 +391,7 @@ class AsyncNucliaKB:
         labels: Optional[List[str]] = None,
         **kwargs,
     ):
-        self.set_labelset(
+        await self.set_labelset(
             labelset=labelset,
             kind=kind,
             multiple=multiple,
