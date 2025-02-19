@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from deprecated import deprecated
 import os
 import tempfile
 import time
@@ -73,7 +74,30 @@ class NucliaKB:
         return ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
 
     @kb
+    @deprecated(version="5.0.0", reason="You should use set_labelset")
     def add_labelset(
+        self,
+        *,
+        labelset: str,
+        kind: LabelSetKind = LabelSetKind.RESOURCES,
+        multiple: bool = True,
+        title: Optional[str] = None,
+        color: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        **kwargs,
+    ):
+        self.set_labelset(
+            labelset=labelset,
+            kind=kind,
+            multiple=multiple,
+            title=title,
+            color=color,
+            labels=labels,
+            **kwargs,
+        )
+
+    @kb
+    def set_labelset(
         self,
         *,
         labelset: str,
@@ -355,7 +379,30 @@ class AsyncNucliaKB:
         return await ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
 
     @kb
+    @deprecated(version="5.0.0", reason="You should use set_labelset")
     async def add_labelset(
+        self,
+        *,
+        labelset: str,
+        kind: LabelSetKind = LabelSetKind.RESOURCES,
+        multiple: bool = True,
+        title: Optional[str] = None,
+        color: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        **kwargs,
+    ):
+        await self.set_labelset(
+            labelset=labelset,
+            kind=kind,
+            multiple=multiple,
+            title=title,
+            color=color,
+            labels=labels,
+            **kwargs,
+        )
+
+    @kb
+    async def set_labelset(
         self,
         *,
         labelset: str,
