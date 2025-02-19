@@ -66,6 +66,12 @@ def test_search(testing_config):
     assert "Lamarr Lesson plan.pdf" in titles
 
 
+def test_catalog(testing_config):
+    search = NucliaSearch()
+    results = search.catalog()
+    assert len(results.resources.keys()) == 2
+
+
 def test_search_object(testing_config):
     search = NucliaSearch()
     results = search.search(query={"query": "Who is hedy Lamarr?"})

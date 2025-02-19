@@ -7,6 +7,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Union
 from nucliadb_models.search import (
     AskRequest,
     AskResponseItem,
+    CatalogRequest,
     Filter,
     FindRequest,
     KnowledgeboxFindResults,
@@ -138,6 +139,40 @@ class NucliaSearch:
             req.features.append(SearchOptions.RELATIONS)
 
         return ndb.ndb.find(req, kbid=ndb.kbid)
+
+    @kb
+    @pretty
+    def catalog(
+        self,
+        *,
+        query: Union[str, CatalogRequest] = "",
+        filters: Optional[Union[List[str], List[Filter]]] = None,
+        **kwargs,
+    ):
+        """
+        Perform a catalog query.
+
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/catalog_post_kb__kbid__catalog_post
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        if isinstance(query, str):
+            req = CatalogRequest(
+                query=query,
+                filters=filters or [],  # type: ignore
+                **kwargs,
+            )
+        elif isinstance(query, CatalogRequest):
+            req = query
+        elif isinstance(query, dict):
+            try:
+                req = CatalogRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
+        else:
+            raise Exception("Invalid Query either str or CatalogRequest")
+
+        return ndb.ndb.catalog(req, kbid=ndb.kbid)
 
     @kb
     def ask(
@@ -378,6 +413,40 @@ class AsyncNucliaSearch:
             req.features.append(SearchOptions.RELATIONS)
 
         return await ndb.ndb.find(req, kbid=ndb.kbid)
+
+    @kb
+    @pretty
+    async def catalog(
+        self,
+        *,
+        query: Union[str, CatalogRequest] = "",
+        filters: Optional[Union[List[str], List[Filter]]] = None,
+        **kwargs,
+    ):
+        """
+        Perform a catalog query.
+
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/catalog_post_kb__kbid__catalog_post
+        """
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        if isinstance(query, str):
+            req = CatalogRequest(
+                query=query,
+                filters=filters or [],  # type: ignore
+                **kwargs,
+            )
+        elif isinstance(query, CatalogRequest):
+            req = query
+        elif isinstance(query, dict):
+            try:
+                req = CatalogRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
+        else:
+            raise Exception("Invalid Query either str or CatalogRequest")
+
+        return await ndb.ndb.catalog(req, kbid=ndb.kbid)
 
     @kb
     async def ask(

@@ -34,12 +34,12 @@ You can list all the labels in a Knowledge Box:
   labelsets = kb.list_labelsets()
   ```
 
-You can create a labelset in a Knowledge Box:
+You can create or modify a labelset in a Knowledge Box:
 
 - CLI:
 
   ```sh
-  nuclia kb add_labelset --labelset="heroes" --labels="['Batman','Catwoman']"
+  nuclia kb set_labelset --labelset="heroes" --labels="['Batman','Catwoman']"
   ```
 
 - SDK:
@@ -47,7 +47,7 @@ You can create a labelset in a Knowledge Box:
   ```python
   from nuclia import sdk
   kb = sdk.NucliaKB()
-  kb.add_labelset(labelset="heroes", labels=["Batman", "Catwoman"])
+  kb.set_labelset(labelset="heroes", labels=["Batman", "Catwoman"])
   ```
 
 You can get a labelset in a Knowledge Box:
