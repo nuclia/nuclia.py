@@ -165,7 +165,10 @@ class NucliaKB:
     ):
         ndb: NucliaDBClient = kwargs["ndb"]
         labelset_obj: LabelSet = ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
+        existing = [x.title for x in labelset_obj.labels]
         for label in labels:
+            if label in existing:
+                continue
             label_obj = Label(title=label, text=text, uri=uri)
             labelset_obj.labels.append(label_obj)
         ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj)
@@ -493,7 +496,10 @@ class AsyncNucliaKB:
         labelset_obj: LabelSet = await ndb.ndb.get_labelset(
             kbid=ndb.kbid, labelset=labelset
         )
+        existing = [x.title for x in labelset_obj.labels]
         for label in labels:
+            if label in existing:
+                continue
             label_obj = Label(title=label, text=text, uri=uri)
             labelset_obj.labels.append(label_obj)
         await ndb.ndb.set_labelset(
