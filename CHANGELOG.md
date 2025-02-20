@@ -5,7 +5,7 @@
 
 - Rename `add_labelset` to `set_labelset`
 - Support `/catalog` endpoint
-
+- Allow to add a list of labels to a labelset
 
 ## 4.5.2 (2025-02-17)
 

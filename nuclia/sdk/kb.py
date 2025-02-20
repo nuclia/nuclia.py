@@ -145,10 +145,29 @@ class NucliaKB:
         uri: Optional[str] = None,
         **kwargs,
     ):
+        self.add_labels(
+            labelset=labelset,
+            labels=[label],
+            text=text,
+            uri=uri,
+            **kwargs,
+        )
+
+    @kb
+    def add_labels(
+        self,
+        *,
+        labelset: str,
+        labels: List[str],
+        text: Optional[str] = None,
+        uri: Optional[str] = None,
+        **kwargs,
+    ):
         ndb: NucliaDBClient = kwargs["ndb"]
         labelset_obj: LabelSet = ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
-        label_obj = Label(title=label, text=text, uri=uri)
-        labelset_obj.labels.append(label_obj)
+        for label in labels:
+            label_obj = Label(title=label, text=text, uri=uri)
+            labelset_obj.labels.append(label_obj)
         ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj)
 
     @kb
@@ -452,12 +471,31 @@ class AsyncNucliaKB:
         uri: Optional[str] = None,
         **kwargs,
     ):
+        await self.add_labels(
+            labelset=labelset,
+            labels=[label],
+            text=text,
+            uri=uri,
+            **kwargs,
+        )
+
+    @kb
+    async def add_labels(
+        self,
+        *,
+        labelset: str,
+        labels: List[str],
+        text: Optional[str] = None,
+        uri: Optional[str] = None,
+        **kwargs,
+    ):
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         labelset_obj: LabelSet = await ndb.ndb.get_labelset(
             kbid=ndb.kbid, labelset=labelset
         )
-        label_obj = Label(title=label, text=text, uri=uri)
-        labelset_obj.labels.append(label_obj)
+        for label in labels:
+            label_obj = Label(title=label, text=text, uri=uri)
+            labelset_obj.labels.append(label_obj)
         await ndb.ndb.set_labelset(
             kbid=ndb.kbid, labelset=labelset, content=labelset_obj
         )
