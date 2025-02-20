@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.6.0 (unreleased)
+## 4.6.0 (2025-02-20)
 
 
 - Rename `add_labelset` to `set_labelset`
