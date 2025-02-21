@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.6.2 (unreleased)
+## 4.6.2 (2025-02-21)
 
 
 - Bump nuclia-models dependency
