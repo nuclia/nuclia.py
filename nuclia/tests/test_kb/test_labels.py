@@ -3,8 +3,12 @@ from nuclia.sdk.kb import NucliaKB
 
 def test_labels(testing_config):
     nkb = NucliaKB()
+    try:
+        nkb.set_labelset(labelset="labelset1")
+    except ValueError:
+        pass
+    nkb.set_labelset(labelset="labelset1", kind="RESOURCES")
     nkb.add_label(labelset="labelset1", label="label1")
-    nkb.set_labelset(labelset="labelset1")
     nkb.add_labels(labelset="labelset1", labels=["label1", "label2"])
     nkb.del_labelset(labelset="labelset2")
     labelset = nkb.get_labelset(labelset="labelset1")
