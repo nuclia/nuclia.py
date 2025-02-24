@@ -141,15 +141,13 @@ class NucliaKB:
         *,
         labelset: str,
         label: str,
-        text: Optional[str] = None,
-        uri: Optional[str] = None,
+        labelset_kind: Optional[LabelSetKind] = None,
         **kwargs,
     ):
         self.add_labels(
             labelset=labelset,
             labels=[label],
-            text=text,
-            uri=uri,
+            labelset_kind=labelset_kind,
             **kwargs,
         )
 
@@ -159,19 +157,40 @@ class NucliaKB:
         *,
         labelset: str,
         labels: List[str],
-        text: Optional[str] = None,
-        uri: Optional[str] = None,
+        labelset_kind: Optional[LabelSetKind] = None,
         **kwargs,
     ):
         ndb: NucliaDBClient = kwargs["ndb"]
-        labelset_obj: LabelSet = ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
-        existing = [x.title for x in labelset_obj.labels]
+        existing = False
+        try:
+            labelset_obj: LabelSet = ndb.ndb.get_labelset(
+                kbid=ndb.kbid, labelset=labelset
+            )
+            existing = True
+        except exceptions.NotFoundError:
+            pass
+        if not existing:
+            if labelset_kind is None:
+                raise ValueError("Labelset kind must be defined for a new labelset")
+            else:
+                labelset_obj = LabelSet(
+                    title=labelset,
+                    color="blue",
+                    labels=[],
+                    kind=[labelset_kind],
+                    multiple=True,
+                )
+        existing_labels = [x.title for x in labelset_obj.labels]
         for label in labels:
-            if label in existing:
+            if label in existing_labels:
                 continue
-            label_obj = Label(title=label, text=text, uri=uri)
+            label_obj = Label(title=label)
             labelset_obj.labels.append(label_obj)
-        ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj)
+        ndb.ndb.set_labelset(
+            kbid=ndb.kbid,
+            labelset=labelset,
+            content=labelset_obj,
+        )
 
     @kb
     def del_label(self, *, labelset: str, label: str, **kwargs):
@@ -470,15 +489,13 @@ class AsyncNucliaKB:
         *,
         labelset: str,
         label: str,
-        text: Optional[str] = None,
-        uri: Optional[str] = None,
+        labelset_kind: Optional[LabelSetKind] = None,
         **kwargs,
     ):
         await self.add_labels(
             labelset=labelset,
             labels=[label],
-            text=text,
-            uri=uri,
+            labelset_kind=labelset_kind,
             **kwargs,
         )
 
@@ -488,22 +505,39 @@ class AsyncNucliaKB:
         *,
         labelset: str,
         labels: List[str],
-        text: Optional[str] = None,
-        uri: Optional[str] = None,
+        labelset_kind: Optional[LabelSetKind] = None,
         **kwargs,
     ):
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        labelset_obj: LabelSet = await ndb.ndb.get_labelset(
-            kbid=ndb.kbid, labelset=labelset
-        )
-        existing = [x.title for x in labelset_obj.labels]
+        existing = False
+        try:
+            labelset_obj: LabelSet = await ndb.ndb.get_labelset(
+                kbid=ndb.kbid, labelset=labelset
+            )
+            existing = True
+        except exceptions.NotFoundError:
+            pass
+        if not existing:
+            if labelset_kind is None:
+                raise ValueError("Labelset kind must be defined for a new labelset")
+            else:
+                labelset_obj = LabelSet(
+                    title=labelset,
+                    color="blue",
+                    labels=[],
+                    kind=[labelset_kind],
+                    multiple=True,
+                )
+        existing_labels = [x.title for x in labelset_obj.labels]
         for label in labels:
-            if label in existing:
+            if label in existing_labels:
                 continue
-            label_obj = Label(title=label, text=text, uri=uri)
+            label_obj = Label(title=label)
             labelset_obj.labels.append(label_obj)
         await ndb.ndb.set_labelset(
-            kbid=ndb.kbid, labelset=labelset, content=labelset_obj
+            kbid=ndb.kbid,
+            labelset=labelset,
+            content=labelset_obj,
         )
 
     @kb
