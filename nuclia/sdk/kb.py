@@ -511,7 +511,7 @@ class AsyncNucliaKB:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         existing = False
         try:
-            labelset_obj: LabelSet = ndb.ndb.get_labelset(
+            labelset_obj: LabelSet = await ndb.ndb.get_labelset(
                 kbid=ndb.kbid, labelset=labelset
             )
             existing = True
