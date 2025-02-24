@@ -2,6 +2,7 @@ from nuclia.sdk.kb import NucliaKB
 
 import pytest
 
+
 def test_labels(testing_config):
     nkb = NucliaKB()
     nkb.set_labelset(labelset="labelset1")
