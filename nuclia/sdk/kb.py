@@ -504,7 +504,7 @@ class AsyncNucliaKB:
         self,
         *,
         labelset: str,
-        label: str,
+        labels: List[str],
         labelset_kind: Optional[LabelSetKind] = None,
         **kwargs,
     ):
