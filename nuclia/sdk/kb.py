@@ -163,7 +163,9 @@ class NucliaKB:
         ndb: NucliaDBClient = kwargs["ndb"]
         existing = False
         try:
-            labelset_obj: LabelSet = ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
+            labelset_obj: LabelSet = ndb.ndb.get_labelset(
+                kbid=ndb.kbid, labelset=labelset
+            )
             # USELESS ONCE THE API DOES NOT RETURN 200 FOR NON-EXISTING LABELSETS
             if len(labelset_obj.kind) != 0:
                 existing = True
@@ -186,7 +188,11 @@ class NucliaKB:
                 continue
             label_obj = Label(title=label)
             labelset_obj.labels.append(label_obj)
-        ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj, )
+        ndb.ndb.set_labelset(
+            kbid=ndb.kbid,
+            labelset=labelset,
+            content=labelset_obj,
+        )
 
     @kb
     def del_label(self, *, labelset: str, label: str, **kwargs):
