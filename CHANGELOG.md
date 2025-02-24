@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.6.3 (unreleased)
+## 4.6.3 (2025-02-24)
 
 
 - Fix `add_labels` so it does not create new labelsets without kind.
