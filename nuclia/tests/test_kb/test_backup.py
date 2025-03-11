@@ -22,7 +22,9 @@ def test_backup(testing_config):
     assert backup.id in backup_ids
 
     new_kb_slug = "".join(random.choices(string.ascii_letters, k=6))
-    new_kb = sdk.NucliaBackup().restore(restore=BackupRestore(slug=new_kb_slug))
+    new_kb = sdk.NucliaBackup().restore(
+        restore=BackupRestore(slug=new_kb_slug), backup_id=backup.id, zone=ZONE
+    )
 
     kbs = NucliaKBS()
     kbs.delete(id=new_kb.id)
