@@ -11,6 +11,7 @@ from nuclia_models.accounts.backups import (
     BackupRestore,
 )
 from pydantic import TypeAdapter, BaseModel
+from uuid import UUID
 
 BACKUPS_ENDPOINT = "/api/v1/account/{account_id}/backups"
 BACKUP_ENDPOINT = "/api/v1/account/{account_id}/backup/{backup_id}"
@@ -75,7 +76,7 @@ class NucliaBackup:
     @zone
     def delete(
         self,
-        id: str,
+        id: Union[str, UUID],
         account_id: Optional[str] = None,
         zone: Optional[str] = None,
         **kwargs,
@@ -86,7 +87,7 @@ class NucliaBackup:
             raise ValueError("account_id is required")
 
         path = get_regional_url(
-            zone, BACKUP_ENDPOINT.format(account_id=account_id, backup_id=id)
+            zone, BACKUP_ENDPOINT.format(account_id=account_id, backup_id=str(id))
         )
         self._auth._request("DELETE", path)
 
@@ -96,7 +97,7 @@ class NucliaBackup:
     def restore(
         self,
         restore: BackupRestore,
-        backup_id: str,
+        backup_id: Union[str, UUID],
         account_id: Optional[str] = None,
         zone: Optional[str] = None,
         **kwargs,
@@ -113,7 +114,8 @@ class NucliaBackup:
             body = restore
 
         path = get_regional_url(
-            zone, RESTORE_ENDPOINT.format(account_id=account_id, backup_id=backup_id)
+            zone,
+            RESTORE_ENDPOINT.format(account_id=account_id, backup_id=str(backup_id)),
         )
         data = self._auth._request(
             "POST", path, body.model_dump(mode="json", exclude_unset=True)
