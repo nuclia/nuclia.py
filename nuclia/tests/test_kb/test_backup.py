@@ -1,4 +1,3 @@
-from nuclia.tests.fixtures import IS_PROD
 from nuclia import sdk
 from nuclia_models.accounts.backups import BackupCreate
 from nuclia.tests.fixtures import TESTING_ACCOUNT_SLUG, TESTING_KBID
@@ -7,10 +6,6 @@ ZONE = "europe-1"
 
 
 def test_create_backup(testing_config):
-    if not IS_PROD:
-        assert True
-        return
-
     sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
 
     backup = sdk.NucliaBackup().create(
@@ -27,10 +22,6 @@ def test_create_backup(testing_config):
 
 
 def test_delete_all_backups(testing_config):
-    if not IS_PROD:
-        assert True
-        return
-
     sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
 
     backups = sdk.NucliaBackup().list(zone=ZONE)
