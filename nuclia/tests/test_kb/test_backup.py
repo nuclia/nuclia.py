@@ -11,6 +11,7 @@ ZONE = "europe-1"
 def test_backup(testing_config):
     sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
 
+    # Create a backup
     backup = sdk.NucliaBackup().create(
         backup=BackupCreate(kb_id=TESTING_KBID),
         zone=ZONE,
@@ -21,6 +22,7 @@ def test_backup(testing_config):
     backup_ids = [b.id for b in backups]
     assert backup.id in backup_ids
 
+    # Restore the KB
     new_kb_slug = "".join(random.choices(string.ascii_letters, k=6))
     new_kb = sdk.NucliaBackup().restore(
         restore=BackupRestore(slug=new_kb_slug, title="SDK test kb (can be deleted)"),
@@ -28,15 +30,21 @@ def test_backup(testing_config):
         zone=ZONE,
     )
 
+    # Delete the restored KB
     kbs = NucliaKBS()
     kbs.delete(id=new_kb.id)
 
-    # sdk.NucliaBackup().delete(id=backup.id, zone=ZONE)
+    # Delete the backup
+    sdk.NucliaBackup().delete(id=backup.id, zone=ZONE)
 
 
-# def test_delete_all_backups(testing_config):
-#     sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
+def test_delete_all_backups(testing_config):
+    sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
+    kbs = NucliaKBS()
 
-#     backups = sdk.NucliaBackup().list(zone=ZONE)
-#     for b in backups:
-#         sdk.NucliaBackup().delete(id=b.id, zone=ZONE)
+    backups = sdk.NucliaBackup().list(zone=ZONE)
+    for b in backups:
+        # Delete backup
+        sdk.NucliaBackup().delete(id=b.id, zone=ZONE)
+        # Delete KB
+        kbs.delete(id=b.kb_data.id)
