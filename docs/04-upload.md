@@ -159,3 +159,94 @@ Then, you can upload it with:
   upload = sdk.NucliaUpload()
   upload.conversation(path=FILE)
   ```
+
+## Upload a custom knowledge graph
+
+Create a custom knowledge graph:
+
+- CLI:
+
+  ```bash
+  nuclia kb add_graph --slug=SLUG --graph=JSON_ENCODED_GRAPH
+  ```
+
+- SDK:
+  ```python
+  from nuclia import sdk
+  kb = sdk.NucliaKB()
+  kb.add_graph(slug=SLUG, graph=[
+     {
+         "source": {"group": "People", "value": "Alice"},
+         "destination": {"group": "People", "value": "Bob"},
+         "label": "is friend of",
+     },
+     {
+         "source": {"group": "People", "value": "Alice"},
+         "destination": {"group": "City", "value": "Toulouse"},
+         "label": "lives in",
+     },
+     {
+         "source": {"group": "People", "value": "Bob"},
+         "destination": {"group": "Food", "value": "Cheese"},
+         "label": "eat",
+     },
+  ])
+  ```
+
+Get a graph:
+
+- CLI:
+
+  ```bash
+  nuclia kb get_graph --slug=SLUG
+  ```
+
+- SDK:
+  ```python
+  from nuclia import sdk
+  kb = sdk.NucliaKB()
+  graph = kb.get_graph(slug=SLUG)
+  ```
+
+Delete a graph:
+
+- CLI:
+
+  ```bash
+  nuclia kb delete_graph --slug=SLUG
+  ```
+
+- SDK:
+  ```python
+  from nuclia import sdk
+  kb = sdk.NucliaKB()
+  kb.delete_graph(slug=SLUG)
+  ```
+
+Update a graph:
+
+```python
+from nuclia import sdk
+kb = sdk.NucliaKB()
+kb.update_graph(slug="graph1", graph=[
+    {
+        "source": {"group": "People", "value": "Alice"},
+        "destination": {"group": "People", "value": "Victor"},
+        "label": "is friend of",
+    }
+])
+```
+
+Overrides a graph:
+
+```python
+from nuclia import sdk
+kb = sdk.NucliaKB()
+kb.update_graph(slug="graph1", overrides=True, graph=[
+    {
+        "source": {"group": "People", "value": "Alice"},
+        "destination": {"group": "People", "value": "Victor"},
+        "label": "is friend of",
+    }
+])
+```
