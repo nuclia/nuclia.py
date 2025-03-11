@@ -126,7 +126,7 @@ First, you need to provide a JSON file containing the conversation messages foll
 [
   {
     "who": "ORIGIN_UUID",
-    "destination": ["DESTINATION_UUID"],
+    "to": ["DESTINATION_UUID"],
     "ident": "UNIQUE_IDENTIFIER",
     "timestamp": "MESSAGE_DATETIME",
     "content": {
@@ -167,7 +167,7 @@ Create a custom knowledge graph:
 - CLI:
 
   ```bash
-  nuclia kb add_graph --slug=SLUG --graph=GRAPH
+  nuclia kb add_graph --slug=SLUG --graph=JSON_ENCODED_GRAPH
   ```
 
 - SDK:
