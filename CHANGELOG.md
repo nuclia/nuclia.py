@@ -1,9 +1,9 @@
 # Changelog
 
-## 4.6.5 (unreleased)
+## 4.7.0 (unreleased)
 
 
-- Nothing changed yet.
+- Support for custom graph.
 
 
 ## 4.6.4 (2025-03-04)

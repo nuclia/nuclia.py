@@ -4,7 +4,7 @@ from deprecated import deprecated
 import os
 import tempfile
 import time
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from nucliadb_models import Notification
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
@@ -15,6 +15,7 @@ from nucliadb_sdk import exceptions
 from nuclia.data import get_async_auth, get_async_client, get_auth, get_client
 from nuclia.decorators import kb
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.lib.models import GraphRelation, get_relation
 from nuclia.lib.nua_responses import SummarizedModel
 from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
@@ -199,6 +200,65 @@ class NucliaKB:
         label_to_delete = next(x for x in labelset_obj.labels if x.title == label)
         labelset_obj.labels.remove(label_to_delete)
         ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj)
+
+    @kb
+    def get_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        res = self.resource.get(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, show=["basic", "relations"]
+        )
+        return res.usermetadata.relations
+
+    @kb
+    def add_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        kw = {
+            "ndb": kwargs["ndb"],
+            "usermetadata": {
+                "relations": [
+                    get_relation(relation).to_relation() for relation in graph
+                ]
+            },
+        }
+        if slug:
+            kw["slug"] = slug
+        self.resource.create(**kw)
+
+    @kb
+    def update_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        override: Optional[bool] = False,
+        **kwargs,
+    ):
+        new_relations = [get_relation(relation).to_relation() for relation in graph]
+        if not override:
+            relations = self.get_graph(uid=uid, slug=slug, **kwargs)
+            relations.extend(new_relations)
+        else:
+            relations = new_relations
+        self.resource.update(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, usermetadata={"relations": relations}
+        )
+
+    @kb
+    def delete_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
     def set_configuration(
@@ -551,6 +611,65 @@ class AsyncNucliaKB:
         await ndb.ndb.set_labelset(
             kbid=ndb.kbid, labelset=labelset, content=labelset_obj
         )
+
+    @kb
+    async def get_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        res = await self.resource.get(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, show=["basic", "relations"]
+        )
+        return res.usermetadata.relations
+
+    @kb
+    async def add_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        kw = {
+            "ndb": kwargs["ndb"],
+            "usermetadata": {
+                "relations": [
+                    get_relation(relation).to_relation() for relation in graph
+                ]
+            },
+        }
+        if slug:
+            kw["slug"] = slug
+        await self.resource.create(**kw)
+
+    @kb
+    async def update_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        override: Optional[bool] = False,
+        **kwargs,
+    ):
+        new_relations = [get_relation(relation).to_relation() for relation in graph]
+        if not override:
+            relations = await self.get_graph(uid=uid, slug=slug, **kwargs)
+            relations.extend(new_relations)
+        else:
+            relations = new_relations
+        await self.resource.update(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, usermetadata={"relations": relations}
+        )
+
+    @kb
+    async def delete_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        await self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
     async def set_configuration(
