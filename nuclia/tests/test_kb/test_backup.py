@@ -1,6 +1,6 @@
 from nuclia import sdk
 from nuclia_models.accounts.backups import BackupCreate
-from nuclia.tests.fixtures import TESTING_ACCOUNT_SLUG, TESTING_KBID
+from nuclia.tests.fixtures import TESTING_KBID
 
 ZONE = "europe-1"
 
