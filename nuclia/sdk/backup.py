@@ -177,7 +177,7 @@ class AsyncNucliaBackup:
     @zone
     async def delete(
         self,
-        id: str,
+        id: Union[str, UUID],
         account_id: Optional[str] = None,
         zone: Optional[str] = None,
         **kwargs,
@@ -188,7 +188,7 @@ class AsyncNucliaBackup:
             raise ValueError("account_id is required")
 
         path = get_regional_url(
-            zone, BACKUP_ENDPOINT.format(account_id=account_id, backup_id=id)
+            zone, BACKUP_ENDPOINT.format(account_id=account_id, backup_id=str(id))
         )
         await self._auth._request("DELETE", path)
 
@@ -198,7 +198,7 @@ class AsyncNucliaBackup:
     async def restore(
         self,
         restore: BackupRestore,
-        backup_id: str,
+        backup_id: Union[str, UUID],
         account_id: Optional[str] = None,
         zone: Optional[str] = None,
         **kwargs,
@@ -215,7 +215,8 @@ class AsyncNucliaBackup:
             body = restore
 
         path = get_regional_url(
-            zone, RESTORE_ENDPOINT.format(account_id=account_id, backup_id=backup_id)
+            zone,
+            RESTORE_ENDPOINT.format(account_id=account_id, backup_id=str(backup_id)),
         )
         data = await self._auth._request(
             "POST", path, body.model_dump(mode="json", exclude_unset=True)

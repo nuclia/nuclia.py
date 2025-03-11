@@ -23,7 +23,9 @@ def test_backup(testing_config):
 
     new_kb_slug = "".join(random.choices(string.ascii_letters, k=6))
     new_kb = sdk.NucliaBackup().restore(
-        restore=BackupRestore(slug=new_kb_slug), backup_id=backup.id, zone=ZONE
+        restore=BackupRestore(slug=new_kb_slug, title="SDK test kb (can be deleted)"),
+        backup_id=backup.id,
+        zone=ZONE,
     )
 
     kbs = NucliaKBS()
