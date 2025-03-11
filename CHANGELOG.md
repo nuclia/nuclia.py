@@ -1,9 +1,15 @@
 # Changelog
 
-## 4.6.5 (unreleased)
+## 4.7.1 (unreleased)
 
 
 - Add knowledgebox backup
+
+
+## 4.7.0 (2025-03-11)
+
+
+- Support for custom graph.
 
 
 ## 4.6.4 (2025-03-04)
