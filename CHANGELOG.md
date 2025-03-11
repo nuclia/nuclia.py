@@ -3,7 +3,7 @@
 ## 4.6.5 (unreleased)
 
 
-- Nothing changed yet.
+- Add knowledgebox backup
 
 
 ## 4.6.4 (2025-03-04)
