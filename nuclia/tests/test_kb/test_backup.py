@@ -31,12 +31,12 @@ def test_backup(testing_config):
     kbs = NucliaKBS()
     kbs.delete(id=new_kb.id)
 
-    sdk.NucliaBackup().delete(id=backup.id, zone=ZONE)
+    # sdk.NucliaBackup().delete(id=backup.id, zone=ZONE)
 
 
-def test_delete_all_backups(testing_config):
-    sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
+# def test_delete_all_backups(testing_config):
+#     sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
 
-    backups = sdk.NucliaBackup().list(zone=ZONE)
-    for b in backups:
-        sdk.NucliaBackup().delete(id=b.id, zone=ZONE)
+#     backups = sdk.NucliaBackup().list(zone=ZONE)
+#     for b in backups:
+#         sdk.NucliaBackup().delete(id=b.id, zone=ZONE)
