@@ -48,7 +48,7 @@ def test_delete_all_backups(testing_config):
         # Delete backup
         sdk.NucliaBackup().delete(id=b.id, zone=ZONE)
         # Delete KB
-        kbs.delete(id=b.kb_data.id, zone=ZONE)
+        # kbs.delete(id=b.kb_data.id, zone=ZONE)
 
 
 @pytest.mark.asyncio
