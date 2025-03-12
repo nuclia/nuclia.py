@@ -24,9 +24,9 @@ def test_backup(testing_config):
     assert backup.id in backup_ids
 
     # Restore the KB
-    new_kb_slug = "".join(random.choices(string.ascii_letters, k=6))
+    new_kb_slug = "BackupTestSDK" + "".join(random.choices(string.ascii_letters, k=4))
     new_kb = sdk.NucliaBackup().restore(
-        restore=BackupRestore(slug=new_kb_slug, title="SDK test kb (can be deleted)"),
+        restore=BackupRestore(slug=new_kb_slug, title="Test SDK KB (can be deleted)"),
         backup_id=backup.id,
         zone=ZONE,
     )
@@ -41,14 +41,11 @@ def test_backup(testing_config):
 
 def test_delete_all_backups(testing_config):
     sdk.NucliaAccounts().default(TESTING_ACCOUNT_SLUG)
-    kbs = NucliaKBS()
 
     backups = sdk.NucliaBackup().list(zone=ZONE)
     for b in backups:
         # Delete backup
         sdk.NucliaBackup().delete(id=b.id, zone=ZONE)
-        # Delete KB
-        # kbs.delete(id=b.kb_data.id, zone=ZONE)
 
 
 @pytest.mark.asyncio
