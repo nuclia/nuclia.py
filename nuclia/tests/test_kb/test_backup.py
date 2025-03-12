@@ -33,7 +33,7 @@ def test_backup(testing_config):
 
     # Delete the restored KB
     kbs = NucliaKBS()
-    kbs.delete(id=new_kb.id)
+    kbs.delete(id=new_kb.id, zone=ZONE)
 
     # Delete the backup
     sdk.NucliaBackup().delete(id=backup.id, zone=ZONE)
@@ -64,7 +64,7 @@ async def test_backup_async(testing_config):
     assert backup.id in backup_ids
 
     # Restore the KB
-    new_kb_slug = "".join(random.choices(string.ascii_letters, k=6))
+    new_kb_slug = "BackupTestSDK" + "".join(random.choices(string.ascii_letters, k=4))
     new_kb = await sdk.AsyncNucliaBackup().restore(
         restore=BackupRestore(slug=new_kb_slug, title="SDK test kb (can be deleted)"),
         backup_id=backup.id,
@@ -73,7 +73,7 @@ async def test_backup_async(testing_config):
 
     # Delete the restored KB
     kbs = AsyncNucliaKBS()
-    await kbs.delete(id=new_kb.id)
+    await kbs.delete(id=new_kb.id, zone=ZONE)
 
     # Delete the backup
     await sdk.AsyncNucliaBackup().delete(id=backup.id, zone=ZONE)
