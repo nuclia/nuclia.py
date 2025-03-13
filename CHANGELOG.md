@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.7.1 (unreleased)
+## 4.8.0 (2025-03-13)
 
 
 - Add knowledgebox backup
