@@ -3,7 +3,6 @@ from nuclia_models.accounts.backups import BackupCreate, BackupRestore
 from nuclia.tests.fixtures import TESTING_ACCOUNT_SLUG, TESTING_KBID
 import random
 import string
-from nuclia.sdk.kbs import NucliaKBS, AsyncNucliaKBS
 import pytest
 
 ZONE = "europe-1"
