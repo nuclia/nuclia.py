@@ -11,6 +11,7 @@ from nuclia.lib.utils import serialize
 from nuclia.sdk.accounts import NucliaAccounts
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
+from nuclia.sdk.backup import NucliaBackup
 from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
 from nuclia.sdk.zones import NucliaZones
@@ -25,6 +26,7 @@ class NucliaCLI(object):
         self.kbs = self.knowledgeboxes = NucliaKBS()
         self.kb = self.knowledgebox = NucliaKB()
         self.nua = NucliaNUA()
+        self.backup = NucliaBackup()
 
     def version(self):
         """Print the version of the CLI"""

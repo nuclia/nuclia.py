@@ -19,6 +19,7 @@ Here’s a step-by-step guide to integrate a crewAI agent with a Nuclia-hosted L
 
 ```python
 from crewai import Agent
+import litellm
 from nuclia.lib.nua_chat import NucliaNuaChat
 
 # Replace with your Nuclia Key
