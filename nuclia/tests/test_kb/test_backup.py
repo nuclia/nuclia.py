@@ -25,15 +25,22 @@ def test_backup(testing_config):
 
     # Restore the KB
     new_kb_slug = "BackupTestSDK" + "".join(random.choices(string.ascii_letters, k=4))
-    new_kb = sdk.NucliaBackup().restore(
-        restore=BackupRestore(slug=new_kb_slug, title="Test SDK KB (can be deleted)"),
-        backup_id=backup.id,
-        zone=ZONE,
-    )
+    with pytest.raises(Exception) as exc_info:
+        _ = sdk.NucliaBackup().restore(
+            restore=BackupRestore(
+                slug=new_kb_slug, title="Test SDK KB (can be deleted)"
+            ),
+            backup_id=backup.id,
+            zone=ZONE,
+        )
 
-    # Delete the restored KB
-    kbs = NucliaKBS()
-    kbs.delete(id=new_kb.id, zone=ZONE)
+    # We don't want to wait till backup is ready to not slow down the test pipeline.
+    # We already have a test for this on E2E repo
+    expected_message = {
+        "status": 409,
+        "message": '{"detail":"Backup is still in progress. Please wait until it is completed."}',
+    }
+    assert exc_info.value.args[0] == expected_message
 
     # Delete the backup
     sdk.NucliaBackup().delete(id=backup.id, zone=ZONE)
@@ -65,15 +72,22 @@ async def test_backup_async(testing_config):
 
     # Restore the KB
     new_kb_slug = "BackupTestSDK" + "".join(random.choices(string.ascii_letters, k=4))
-    new_kb = await sdk.AsyncNucliaBackup().restore(
-        restore=BackupRestore(slug=new_kb_slug, title="SDK test kb (can be deleted)"),
-        backup_id=backup.id,
-        zone=ZONE,
-    )
+    with pytest.raises(Exception) as exc_info:
+        _ = await sdk.NucliaBackup().restore(
+            restore=BackupRestore(
+                slug=new_kb_slug, title="Test SDK KB (can be deleted)"
+            ),
+            backup_id=backup.id,
+            zone=ZONE,
+        )
 
-    # Delete the restored KB
-    kbs = AsyncNucliaKBS()
-    await kbs.delete(id=new_kb.id, zone=ZONE)
+    # We don't want to wait till backup is ready to not slow down the test pipeline.
+    # We already have a test for this on E2E repo
+    expected_message = {
+        "status": 409,
+        "message": '{"detail":"Backup is still in progress. Please wait until it is completed."}',
+    }
+    assert exc_info.value.args[0] == expected_message
 
     # Delete the backup
     await sdk.AsyncNucliaBackup().delete(id=backup.id, zone=ZONE)
