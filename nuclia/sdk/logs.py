@@ -293,7 +293,7 @@ class AsyncNucliaLogs:
                 download_request = DownloadRequestOutput.model_validate(response.json())  # type: ignore
                 if download_request.download_url is not None:
                     break
-                asyncio.sleep(5)
+                await asyncio.sleep(5)
             return download_request
 
     @kb
