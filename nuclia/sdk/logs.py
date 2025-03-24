@@ -19,6 +19,8 @@ from typing import Union
 from time import monotonic, sleep
 from nuclia.sdk.logger import logger
 
+import asyncio
+
 WAIT_FOR_DOWNLOAD_TIMEOUT = 120
 
 
@@ -291,7 +293,7 @@ class AsyncNucliaLogs:
                 download_request = DownloadRequestOutput.model_validate(response.json())  # type: ignore
                 if download_request.download_url is not None:
                     break
-                sleep(5)
+                asyncio.sleep(5)
             return download_request
 
     @kb
