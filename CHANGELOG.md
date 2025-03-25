@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.8.2 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 4.8.1 (2025-03-25)
 
 
