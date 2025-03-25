@@ -3,7 +3,7 @@
 ## 4.8.1 (unreleased)
 
 
-- Nothing changed yet.
+- Fix: use asyncio.sleep on async methods
 
 
 ## 4.8.0 (2025-03-13)
