@@ -3,6 +3,7 @@
 ## 4.8.2 (unreleased)
 
 
+- Accept full URLs for TUS upload
 - Include custom User-Agent in requests
 
 
