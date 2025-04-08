@@ -2,8 +2,10 @@ import json
 from typing import Union
 
 import httpx
+import importlib.metadata
 import requests
 from tabulate import tabulate
+from typing import Optional
 
 from nuclia.exceptions import (
     RateLimitError,
@@ -16,6 +18,8 @@ from nucliadb_models.search import SyncAskResponse
 from nuclia.lib.models import ActivityLogsOutput
 from nuclia_models.worker.tasks import TaskDefinition, TaskList
 from nucliadb_models.resource import KnowledgeBoxList
+
+USER_AGENT = f"nuclia.py/{importlib.metadata.version('nuclia')}"
 
 
 def handle_http_errors(response: Union[httpx.Response, requests.models.Response]):
@@ -137,3 +141,19 @@ def serialize(obj):
         obj = obj.model_dump(exclude_unset=True)
 
     return obj
+
+
+def build_httpx_client(
+    headers: dict[str, str] = {}, base_url: Optional[str] = None
+) -> httpx.Client:
+    return httpx.Client(
+        headers={"User-Agent": USER_AGENT, **headers}, base_url=(base_url or "")
+    )
+
+
+def build_httpx_async_client(
+    headers: dict[str, str] = {}, base_url: Optional[str] = None
+) -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        headers={"User-Agent": USER_AGENT, **headers}, base_url=(base_url or "")
+    )

@@ -27,6 +27,7 @@ from nuclia_models.worker.tasks import TaskStartKB
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 from datetime import datetime
+from nuclia.lib.utils import build_httpx_client, build_httpx_async_client
 
 RESOURCE_PATH = "/resource/{rid}"
 RESOURCE_PATH_BY_SLUG = "/slug/{slug}"
@@ -196,13 +197,13 @@ class NucliaDBClient(BaseNucliaDBClient):
         )
 
         if url is not None:
-            self.reader_session = httpx.Client(
+            self.reader_session = build_httpx_client(
                 headers=self.reader_headers,
                 base_url=url,  # type: ignore
             )
             self.stream_session = requests.Session()
             self.stream_session.headers.update(self.reader_headers)
-            self.writer_session = httpx.Client(
+            self.writer_session = build_httpx_client(
                 headers=self.writer_headers,
                 base_url=url,  # type: ignore
             )
@@ -560,11 +561,11 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         )
 
         if url is not None:
-            self.reader_session = httpx.AsyncClient(
+            self.reader_session = build_httpx_async_client(
                 headers=self.reader_headers,
                 base_url=url,  # type: ignore
             )
-            self.writer_session = httpx.AsyncClient(
+            self.writer_session = build_httpx_async_client(
                 headers=self.writer_headers,
                 base_url=url,  # type: ignore
             )
