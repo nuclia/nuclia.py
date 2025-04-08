@@ -3,7 +3,7 @@
 ## 4.8.2 (unreleased)
 
 
-- Nothing changed yet.
+- Include custom User-Agent in requests
 
 
 ## 4.8.1 (2025-03-25)
@@ -27,7 +27,7 @@
 ## 4.6.4 (2025-03-04)
 
 
-- Bump nuclia-models dependency 
+- Bump nuclia-models dependency
 
 
 ## 4.6.3 (2025-02-24)
@@ -238,7 +238,7 @@
 ## 4.2.2 (2024-09-19)
 
 
-- Optionally override already existing resources when copying 
+- Optionally override already existing resources when copying
 
 
 ## 4.2.1 (2024-09-16)

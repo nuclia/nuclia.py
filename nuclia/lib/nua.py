@@ -13,7 +13,6 @@ from typing import (
 
 import aiofiles
 from deprecated import deprecated
-from httpx import AsyncClient, Client
 from nucliadb_protos.writer_pb2 import BrokerMessage
 from pydantic import BaseModel
 
@@ -55,6 +54,7 @@ from nuclia_models.predict.remi import RemiRequest, RemiResponse
 import os
 from tqdm import tqdm
 import asyncio
+from nuclia.lib.utils import build_httpx_client, build_httpx_async_client
 
 MB = 1024 * 1024
 CHUNK_SIZE = 10 * MB
@@ -108,8 +108,10 @@ class NuaClient:
 
         self.stream_headers = self.headers.copy()
         self.stream_headers["Accept"] = "application/x-ndjson"
-        self.client = Client(headers=self.headers, base_url=self.url)
-        self.stream_client = Client(headers=self.stream_headers, base_url=self.url)
+        self.client = build_httpx_client(headers=self.headers, base_url=self.url)
+        self.stream_client = build_httpx_client(
+            headers=self.stream_headers, base_url=self.url
+        )
 
     def _request(
         self,
@@ -405,8 +407,10 @@ class AsyncNuaClient:
         self.stream_headers = self.headers.copy()
         self.stream_headers["Accept"] = "application/x-ndjson"
 
-        self.client = AsyncClient(headers=self.headers, base_url=self.url)
-        self.stream_client = AsyncClient(headers=self.stream_headers, base_url=self.url)
+        self.client = build_httpx_async_client(headers=self.headers, base_url=self.url)
+        self.stream_client = build_httpx_async_client(
+            headers=self.stream_headers, base_url=self.url
+        )
 
     async def _request(
         self,
