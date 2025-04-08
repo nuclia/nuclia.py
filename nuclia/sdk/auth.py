@@ -25,6 +25,7 @@ from nuclia.config import (
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
 import asyncio
 from time import time
+from nuclia.lib.utils import build_httpx_client, build_httpx_async_client
 
 USER = "/api/v1/user/welcome"
 MEMBER = "/api/v1/user"
@@ -121,7 +122,7 @@ class NucliaAuth(BaseNucliaAuth):
     client: Client
 
     def __init__(self):
-        self.client = Client()
+        self.client = build_httpx_client()
 
     def show(self) -> None:
         self._show_user()
@@ -476,7 +477,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
     client: AsyncClient
 
     def __init__(self):
-        self.client = AsyncClient()
+        self.client = build_httpx_async_client()
         self._cache = {}  # Manual cache storage
         self._lock = asyncio.Lock()
 

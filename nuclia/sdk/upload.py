@@ -12,7 +12,6 @@ from uuid import uuid4
 import aiofiles
 import backoff
 import requests
-from httpx import AsyncClient
 from nucliadb_models.text import TextFormat
 from nucliadb_sdk import exceptions
 from tqdm import tqdm
@@ -25,6 +24,7 @@ from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import RESOURCE_ATTRIBUTES, AsyncNucliaResource, NucliaResource
+from nuclia.lib.utils import build_httpx_async_client
 
 MB = 1024 * 1024
 CHUNK_SIZE = 5 * MB
@@ -575,7 +575,7 @@ class AsyncNucliaUpload:
     ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        client = AsyncClient()
+        client = build_httpx_async_client()
         async with client.stream("GET", origin, follow_redirects=True) as r:
             filename = origin.split(os.sep)[-1]
             size_str = r.headers.get("Content-Length")
