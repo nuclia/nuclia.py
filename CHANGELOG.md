@@ -4,6 +4,7 @@
 
 
 - Accept full URLs for TUS upload
+- Include custom User-Agent in requests
 
 
 ## 4.8.1 (2025-03-25)
