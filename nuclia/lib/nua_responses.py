@@ -202,7 +202,8 @@ class Format(int, Enum):
     HTML = 1
     MARKDOWN = 2
     RST = 3
-    JSON = 4
+    KEEP_MARKDOWN = 4
+    JSON = 5
 
 
 class ProcessingMessageContent(BaseModel):

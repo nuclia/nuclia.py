@@ -191,7 +191,7 @@ async def test_nua_async_agent(testing_config):
                 FieldInfo(
                     text="You are a good person",
                     metadata=FieldMetadata(),
-                    field_id="f/body",
+                    field_id="123/f/body",
                 )
             ],
             user_id="user1",
