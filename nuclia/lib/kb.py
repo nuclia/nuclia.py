@@ -27,6 +27,7 @@ from nuclia_models.worker.tasks import TaskStartKB
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_errors
 from datetime import datetime
+from nuclia.lib.utils import build_httpx_client, build_httpx_async_client, USER_AGENT
 
 RESOURCE_PATH = "/resource/{rid}"
 RESOURCE_PATH_BY_SLUG = "/slug/{slug}"
@@ -115,7 +116,7 @@ class BaseNucliaDBClient:
         else:
             self.region = Region(region)
 
-        self.headers = {}
+        self.headers = {"User-Agent": USER_AGENT}
         if user_token is not None:
             self.headers["Authorization"] = f"Bearer {user_token}"
         self.headers["X-SYNCHRONOUS"] = "True"
@@ -196,13 +197,15 @@ class NucliaDBClient(BaseNucliaDBClient):
         )
 
         if url is not None:
-            self.reader_session = httpx.Client(
+            self.reader_session = build_httpx_client(
                 headers=self.reader_headers,
                 base_url=url,  # type: ignore
             )
             self.stream_session = requests.Session()
-            self.stream_session.headers.update(self.reader_headers)
-            self.writer_session = httpx.Client(
+            self.stream_session.headers.update(
+                {"User-Agent": USER_AGENT, **self.reader_headers}
+            )
+            self.writer_session = build_httpx_client(
                 headers=self.writer_headers,
                 base_url=url,  # type: ignore
             )
@@ -325,10 +328,13 @@ class NucliaDBClient(BaseNucliaDBClient):
         headers = {
             "upload-offset": str(offset),
         }
-        # upload url has all path, we should remove /kb/kbid/
-        upload_url = "/" + "/".join(upload_url.split("/")[3:])
+        url = httpx.URL(upload_url)
+        if url.is_relative_url:
+            # Relative path starting with /kb/..., we remove /kb/kbid (the base_url of the session includes it)
+            url = httpx.URL("/".join(url.path.split("/")[3:]))
+
         response: httpx.Response = self.writer_session.patch(
-            upload_url, headers=headers, content=data
+            url, headers=headers, content=data
         )
         handle_http_errors(response)
         return int(response.headers.get("Upload-Offset"))
@@ -560,11 +566,11 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         )
 
         if url is not None:
-            self.reader_session = httpx.AsyncClient(
+            self.reader_session = build_httpx_async_client(
                 headers=self.reader_headers,
                 base_url=url,  # type: ignore
             )
-            self.writer_session = httpx.AsyncClient(
+            self.writer_session = build_httpx_async_client(
                 headers=self.writer_headers,
                 base_url=url,  # type: ignore
             )
@@ -681,11 +687,12 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         headers = {
             "upload-offset": str(offset),
         }
-        # upload url has all path, we should remove /kb/kbid/
-        upload_url = "/" + "/".join(upload_url.split("/")[3:])
-        response = await self.writer_session.patch(
-            upload_url, headers=headers, content=data
-        )
+        url = httpx.URL(upload_url)
+        if url.is_relative_url:
+            # Relative path starting with /kb/..., we remove /kb/kbid (the base_url of the session includes it)
+            url = httpx.URL("/".join(url.path.split("/")[3:]))
+
+        response = await self.writer_session.patch(url, headers=headers, content=data)
         handle_http_errors(response)
         return int(response.headers.get("Upload-Offset"))
 

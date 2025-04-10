@@ -1,10 +1,60 @@
 # Changelog
 
-## 4.5.3 (unreleased)
+## 4.8.2 (unreleased)
 
 
-- Nothing changed yet.
+- Accept full URLs for TUS upload
+- Include custom User-Agent in requests
 
+
+## 4.8.1 (2025-03-25)
+
+
+- Fix: use asyncio.sleep on async methods
+
+
+## 4.8.0 (2025-03-13)
+
+
+- Add knowledgebox backup
+
+
+## 4.7.0 (2025-03-11)
+
+
+- Support for custom graph.
+
+
+## 4.6.4 (2025-03-04)
+
+
+- Bump nuclia-models dependency
+
+
+## 4.6.3 (2025-02-24)
+
+
+- Fix `add_labels` so it does not create new labelsets without kind.
+
+
+## 4.6.2 (2025-02-21)
+
+
+- Bump nuclia-models dependency
+
+
+## 4.6.1 (2025-02-20)
+
+
+- Bump nuclia-models dependency
+
+
+## 4.6.0 (2025-02-20)
+
+
+- Rename `add_labelset` to `set_labelset`
+- Support `/catalog` endpoint
+- Allow to add a list of labels to a labelset
 
 ## 4.5.2 (2025-02-17)
 
@@ -189,7 +239,7 @@
 ## 4.2.2 (2024-09-19)
 
 
-- Optionally override already existing resources when copying 
+- Optionally override already existing resources when copying
 
 
 ## 4.2.1 (2024-09-16)

@@ -1,9 +1,10 @@
 import asyncio
 from datetime import datetime
+from deprecated import deprecated
 import os
 import tempfile
 import time
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from nucliadb_models import Notification
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
@@ -14,6 +15,7 @@ from nucliadb_sdk import exceptions
 from nuclia.data import get_async_auth, get_async_client, get_auth, get_client
 from nuclia.decorators import kb
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.lib.models import GraphRelation, get_relation
 from nuclia.lib.nua_responses import SummarizedModel
 from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
@@ -73,7 +75,30 @@ class NucliaKB:
         return ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
 
     @kb
+    @deprecated(version="5.0.0", reason="You should use set_labelset")
     def add_labelset(
+        self,
+        *,
+        labelset: str,
+        kind: LabelSetKind = LabelSetKind.RESOURCES,
+        multiple: bool = True,
+        title: Optional[str] = None,
+        color: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        **kwargs,
+    ):
+        self.set_labelset(
+            labelset=labelset,
+            kind=kind,
+            multiple=multiple,
+            title=title,
+            color=color,
+            labels=labels,
+            **kwargs,
+        )
+
+    @kb
+    def set_labelset(
         self,
         *,
         labelset: str,
@@ -117,15 +142,56 @@ class NucliaKB:
         *,
         labelset: str,
         label: str,
-        text: Optional[str] = None,
-        uri: Optional[str] = None,
+        labelset_kind: Optional[LabelSetKind] = None,
+        **kwargs,
+    ):
+        self.add_labels(
+            labelset=labelset,
+            labels=[label],
+            labelset_kind=labelset_kind,
+            **kwargs,
+        )
+
+    @kb
+    def add_labels(
+        self,
+        *,
+        labelset: str,
+        labels: List[str],
+        labelset_kind: Optional[LabelSetKind] = None,
         **kwargs,
     ):
         ndb: NucliaDBClient = kwargs["ndb"]
-        labelset_obj: LabelSet = ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
-        label_obj = Label(title=label, text=text, uri=uri)
-        labelset_obj.labels.append(label_obj)
-        ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj)
+        existing = False
+        try:
+            labelset_obj: LabelSet = ndb.ndb.get_labelset(
+                kbid=ndb.kbid, labelset=labelset
+            )
+            existing = True
+        except exceptions.NotFoundError:
+            pass
+        if not existing:
+            if labelset_kind is None:
+                raise ValueError("Labelset kind must be defined for a new labelset")
+            else:
+                labelset_obj = LabelSet(
+                    title=labelset,
+                    color="blue",
+                    labels=[],
+                    kind=[labelset_kind],
+                    multiple=True,
+                )
+        existing_labels = [x.title for x in labelset_obj.labels]
+        for label in labels:
+            if label in existing_labels:
+                continue
+            label_obj = Label(title=label)
+            labelset_obj.labels.append(label_obj)
+        ndb.ndb.set_labelset(
+            kbid=ndb.kbid,
+            labelset=labelset,
+            content=labelset_obj,
+        )
 
     @kb
     def del_label(self, *, labelset: str, label: str, **kwargs):
@@ -134,6 +200,65 @@ class NucliaKB:
         label_to_delete = next(x for x in labelset_obj.labels if x.title == label)
         labelset_obj.labels.remove(label_to_delete)
         ndb.ndb.set_labelset(kbid=ndb.kbid, labelset=labelset, content=labelset_obj)
+
+    @kb
+    def get_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        res = self.resource.get(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, show=["basic", "relations"]
+        )
+        return res.usermetadata.relations
+
+    @kb
+    def add_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        kw = {
+            "ndb": kwargs["ndb"],
+            "usermetadata": {
+                "relations": [
+                    get_relation(relation).to_relation() for relation in graph
+                ]
+            },
+        }
+        if slug:
+            kw["slug"] = slug
+        self.resource.create(**kw)
+
+    @kb
+    def update_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        override: Optional[bool] = False,
+        **kwargs,
+    ):
+        new_relations = [get_relation(relation).to_relation() for relation in graph]
+        if not override:
+            relations = self.get_graph(uid=uid, slug=slug, **kwargs)
+            relations.extend(new_relations)
+        else:
+            relations = new_relations
+        self.resource.update(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, usermetadata={"relations": relations}
+        )
+
+    @kb
+    def delete_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
     def set_configuration(
@@ -355,7 +480,30 @@ class AsyncNucliaKB:
         return await ndb.ndb.get_labelset(kbid=ndb.kbid, labelset=labelset)
 
     @kb
+    @deprecated(version="5.0.0", reason="You should use set_labelset")
     async def add_labelset(
+        self,
+        *,
+        labelset: str,
+        kind: LabelSetKind = LabelSetKind.RESOURCES,
+        multiple: bool = True,
+        title: Optional[str] = None,
+        color: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        **kwargs,
+    ):
+        await self.set_labelset(
+            labelset=labelset,
+            kind=kind,
+            multiple=multiple,
+            title=title,
+            color=color,
+            labels=labels,
+            **kwargs,
+        )
+
+    @kb
+    async def set_labelset(
         self,
         *,
         labelset: str,
@@ -401,18 +549,55 @@ class AsyncNucliaKB:
         *,
         labelset: str,
         label: str,
-        text: Optional[str] = None,
-        uri: Optional[str] = None,
+        labelset_kind: Optional[LabelSetKind] = None,
+        **kwargs,
+    ):
+        await self.add_labels(
+            labelset=labelset,
+            labels=[label],
+            labelset_kind=labelset_kind,
+            **kwargs,
+        )
+
+    @kb
+    async def add_labels(
+        self,
+        *,
+        labelset: str,
+        labels: List[str],
+        labelset_kind: Optional[LabelSetKind] = None,
         **kwargs,
     ):
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        labelset_obj: LabelSet = await ndb.ndb.get_labelset(
-            kbid=ndb.kbid, labelset=labelset
-        )
-        label_obj = Label(title=label, text=text, uri=uri)
-        labelset_obj.labels.append(label_obj)
+        existing = False
+        try:
+            labelset_obj: LabelSet = await ndb.ndb.get_labelset(
+                kbid=ndb.kbid, labelset=labelset
+            )
+            existing = True
+        except exceptions.NotFoundError:
+            pass
+        if not existing:
+            if labelset_kind is None:
+                raise ValueError("Labelset kind must be defined for a new labelset")
+            else:
+                labelset_obj = LabelSet(
+                    title=labelset,
+                    color="blue",
+                    labels=[],
+                    kind=[labelset_kind],
+                    multiple=True,
+                )
+        existing_labels = [x.title for x in labelset_obj.labels]
+        for label in labels:
+            if label in existing_labels:
+                continue
+            label_obj = Label(title=label)
+            labelset_obj.labels.append(label_obj)
         await ndb.ndb.set_labelset(
-            kbid=ndb.kbid, labelset=labelset, content=labelset_obj
+            kbid=ndb.kbid,
+            labelset=labelset,
+            content=labelset_obj,
         )
 
     @kb
@@ -426,6 +611,65 @@ class AsyncNucliaKB:
         await ndb.ndb.set_labelset(
             kbid=ndb.kbid, labelset=labelset, content=labelset_obj
         )
+
+    @kb
+    async def get_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        res = await self.resource.get(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, show=["basic", "relations"]
+        )
+        return res.usermetadata.relations
+
+    @kb
+    async def add_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        kw = {
+            "ndb": kwargs["ndb"],
+            "usermetadata": {
+                "relations": [
+                    get_relation(relation).to_relation() for relation in graph
+                ]
+            },
+        }
+        if slug:
+            kw["slug"] = slug
+        await self.resource.create(**kw)
+
+    @kb
+    async def update_graph(
+        self,
+        graph: List[Union[GraphRelation, dict]],
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        override: Optional[bool] = False,
+        **kwargs,
+    ):
+        new_relations = [get_relation(relation).to_relation() for relation in graph]
+        if not override:
+            relations = await self.get_graph(uid=uid, slug=slug, **kwargs)
+            relations.extend(new_relations)
+        else:
+            relations = new_relations
+        await self.resource.update(
+            ndb=kwargs["ndb"], rid=uid, slug=slug, usermetadata={"relations": relations}
+        )
+
+    @kb
+    async def delete_graph(
+        self,
+        uid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ):
+        await self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
     async def set_configuration(
