@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.8.2 (unreleased)
+## 4.8.2 (2025-04-22)
 
 
 - Accept full URLs for TUS upload
