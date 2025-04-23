@@ -114,6 +114,8 @@ class BaseNucliaDBClient:
         if environment == Environment.OSS:
             self.region = "on-prem"
         else:
+            if region is None:
+                raise ValueError("region is required for cloud environment")
             self.region = region
 
         self.headers = {"User-Agent": USER_AGENT}
