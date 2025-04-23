@@ -10,7 +10,7 @@ import httpx
 import requests
 from nucliadb_models.search import AskRequest, SummarizeRequest
 from nuclia_models.common.utils import Aggregation
-from nucliadb_sdk import NucliaDB, NucliaDBAsync, Region
+from nucliadb_sdk import NucliaDB, NucliaDBAsync
 from tqdm import tqdm
 from nuclia_models.events.activity_logs import (  # type: ignore
     ActivityLogsQuery,
@@ -95,7 +95,7 @@ class BaseNucliaDBClient:
     base_url: str
     api_key: Optional[str]
     url: Optional[str] = None
-    region: Region
+    region: str
     headers: Dict[str, str]
 
     reader_headers: Dict[str, str]
@@ -112,9 +112,9 @@ class BaseNucliaDBClient:
         base_url: Optional[str] = None,
     ):
         if environment == Environment.OSS:
-            self.region = Region.ON_PREM
+            self.region = "on-prem"
         else:
-            self.region = Region(region)
+            self.region = region
 
         self.headers = {"User-Agent": USER_AGENT}
         if user_token is not None:
