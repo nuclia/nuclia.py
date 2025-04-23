@@ -3,7 +3,7 @@
 ## 4.8.3 (unreleased)
 
 
-- Nothing changed yet.
+- Do not use enum for the region value
 
 
 ## 4.8.2 (2025-04-22)
