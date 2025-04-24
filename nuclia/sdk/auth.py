@@ -409,9 +409,6 @@ class NucliaAuth(BaseNucliaAuth):
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
         elif resp.status_code == 403 or resp.status_code == 401:
-            import ipdb
-
-            ipdb.set_trace()
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
