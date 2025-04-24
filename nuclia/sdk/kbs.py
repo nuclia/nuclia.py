@@ -153,7 +153,7 @@ class AsyncNucliaKBS:
     @accounts
     async def list(self, account: Optional[str] = None):
         if account is None:
-            result = []
+            result = []  # trigger
             accounts = (
                 self._auth._config.accounts
                 if self._auth._config.accounts is not None
