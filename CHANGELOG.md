@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.8.3 (unreleased)
+## 4.8.3 (2025-04-24)
 
 
 - Do not use enum for the region value
