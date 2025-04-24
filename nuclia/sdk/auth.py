@@ -409,6 +409,9 @@ class NucliaAuth(BaseNucliaAuth):
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
         elif resp.status_code == 403 or resp.status_code == 401:
+            import ipdb
+
+            ipdb.set_trace()
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
@@ -729,6 +732,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             if kbs is not None:
                 for kb in kbs:
                     url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
+                    print(url)
                     kb_obj = KnowledgeBox(
                         url=url,
                         id=kb["id"],
