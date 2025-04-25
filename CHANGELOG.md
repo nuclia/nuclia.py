@@ -3,7 +3,7 @@
 ## 4.8.4 (unreleased)
 
 
-- Nothing changed yet.
+- Fix typing
 
 
 ## 4.8.3 (2025-04-24)

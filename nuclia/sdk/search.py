@@ -15,7 +15,7 @@ from nucliadb_models.search import (
     RagStrategies,
     RagImagesStrategies,
     Relations,
-    SearchOptions,
+    FindOptions,
     SearchRequest,
     SyncAskResponse,
     ChatModel,
@@ -136,7 +136,7 @@ class NucliaSearch:
             raise Exception("Invalid Query either str or FindRequest")
 
         if relations:
-            req.features.append(SearchOptions.RELATIONS)
+            req.features.append(FindOptions.RELATIONS)
 
         return ndb.ndb.find(req, kbid=ndb.kbid)
 
@@ -410,7 +410,7 @@ class AsyncNucliaSearch:
             raise Exception("Invalid Query either str or FindRequest")
 
         if relations:
-            req.features.append(SearchOptions.RELATIONS)
+            req.features.append(FindOptions.RELATIONS)
 
         return await ndb.ndb.find(req, kbid=ndb.kbid)
 
