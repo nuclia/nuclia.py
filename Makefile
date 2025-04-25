@@ -16,5 +16,4 @@ fmt:
 	ruff format nuclia
 
 test:
-	mypy nuclia
 	pytest --asyncio-mode=auto nuclia

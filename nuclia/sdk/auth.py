@@ -717,6 +717,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             if not zoneSlug:
                 continue
             path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
+            print(path)
             try:
                 kbs = await _request("GET", path)
             except UserTokenExpired:
