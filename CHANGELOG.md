@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.8.4 (unreleased)
+## 4.8.4 (2025-04-25)
 
 
 - Fix typing
