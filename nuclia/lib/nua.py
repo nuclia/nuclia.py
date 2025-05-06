@@ -9,11 +9,11 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    TYPE_CHECKING,
 )
 
 import aiofiles
 from deprecated import deprecated
-from nucliadb_protos.writer_pb2 import BrokerMessage
 from pydantic import BaseModel
 
 from nuclia import REGIONAL
@@ -55,6 +55,9 @@ import os
 from tqdm import tqdm
 import asyncio
 from nuclia.lib.utils import build_httpx_client, build_httpx_async_client
+
+if TYPE_CHECKING:
+    from nucliadb_protos.writer_pb2 import BrokerMessage
 
 MB = 1024 * 1024
 CHUNK_SIZE = 10 * MB
@@ -360,7 +363,15 @@ class NuaClient:
 
     def wait_for_processing(
         self, response: PushResponseV2, timeout: int = 30
-    ) -> Optional[BrokerMessage]:
+    ) -> Optional["BrokerMessage"]:
+        try:
+            from nucliadb_protos.writer_pb2 import BrokerMessage
+        except ImportError:
+            raise ImportError(
+                "The 'nucliadb_protos' library is required to use this functionality. "
+                "Install it with: pip install nuclia[protos]"
+            )
+
         resp = self.processing_id_status(response.processing_id)
         count = timeout
         while resp.completed is False and resp.failed is False and count > 0:
@@ -717,7 +728,15 @@ class AsyncNuaClient:
 
     async def wait_for_processing(
         self, response: PushResponseV2, timeout: int = 30
-    ) -> Optional[BrokerMessage]:
+    ) -> Optional["BrokerMessage"]:
+        try:
+            from nucliadb_protos.writer_pb2 import BrokerMessage
+        except ImportError:
+            raise ImportError(
+                "The 'nucliadb_protos' library is required to use this functionality. "
+                "Install it with: pip install nuclia[protos]"
+            )
+
         status = await self.processing_id_status(response.processing_id)
         count = timeout
         while status.completed is False and status.failed is False and count > 0:
