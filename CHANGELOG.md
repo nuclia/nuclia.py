@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.8.5 (unreleased)
+## 4.8.5 (2025-05-06)
 
 
 - Make nucliadb_protos dependency optional
