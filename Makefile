@@ -3,8 +3,7 @@ install:
 	pip install -r code-requirements.txt
 	pip install -r test-requirements.txt
 	pip install -r requirements.txt
-	pip install litellm
-	pip install -e .
+	pip install -e .[protos,litellm]
 
 lint:
 	ruff check nuclia

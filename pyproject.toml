@@ -25,7 +25,6 @@ dependencies = [
     "prompt_toolkit",
     "nucliadb_sdk>=6.4,<7",
     "nucliadb_models>=6.4,<7",
-    "nucliadb_protos>=6.4,<7",
     "nuclia-models>=0.32.0",
     "tqdm",
     "aiofiles",
@@ -36,6 +35,7 @@ dependencies = [
 
 [project.optional-dependencies]
 litellm = ["litellm"]
+protos = ["nucliadb_protos>=6.4,<7"]
 
 [project.scripts]
 nuclia = "nuclia.cli.run:run"
