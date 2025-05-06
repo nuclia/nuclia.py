@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from nucliadb_protos.writer_pb2 import BrokerMessage
+if TYPE_CHECKING:
+    from nucliadb_protos.writer_pb2 import BrokerMessage
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua
@@ -18,7 +19,7 @@ class NucliaProcessing:
     @nua
     def process_file(
         self, path: str, kbid: str = "default", timeout: int = 300, **kwargs
-    ) -> Optional[BrokerMessage]:
+    ) -> Optional["BrokerMessage"]:
         nc: NuaClient = kwargs["nc"]
         response = nc.process_file(path, kbid)
         payload = nc.wait_for_processing(response, timeout=timeout)
@@ -27,7 +28,7 @@ class NucliaProcessing:
     @nua
     def process_link(
         self, url: str, kbid: Optional[str] = None, timeout: int = 300, **kwargs
-    ) -> Optional[BrokerMessage]:
+    ) -> Optional["BrokerMessage"]:
         nc: NuaClient = kwargs["nc"]
         response = nc.process_link(url, kbid)
         payload = nc.wait_for_processing(response, timeout=timeout)
@@ -48,7 +49,7 @@ class AsyncNucliaProcessing:
     @nua
     async def process_file(
         self, path: str, kbid: Optional[str] = None, timeout: int = 300, **kwargs
-    ) -> Optional[BrokerMessage]:
+    ) -> Optional["BrokerMessage"]:
         nc: AsyncNuaClient = kwargs["nc"]
         response = await nc.process_file(path, kbid)
         payload = await nc.wait_for_processing(response, timeout=timeout)
@@ -57,7 +58,7 @@ class AsyncNucliaProcessing:
     @nua
     async def process_link(
         self, url: str, kbid: Optional[str] = None, timeout: int = 300, **kwargs
-    ) -> Optional[BrokerMessage]:
+    ) -> Optional["BrokerMessage"]:
         nc: AsyncNuaClient = kwargs["nc"]
         response = await nc.process_link(url, kbid)
         payload = await nc.wait_for_processing(response, timeout=timeout)

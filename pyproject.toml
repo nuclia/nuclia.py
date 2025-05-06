@@ -1,0 +1,56 @@
+[project]
+name = "nuclia"
+dynamic = ["version"]
+license = "MIT"
+description = "Nuclia Python SDK"
+readme = "README.md"
+authors = [{ name = "Nuclia", email = "info@nuclia.com" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3 :: Only",
+]
+requires-python = ">=3.9, <4"
+dependencies = [
+    "fire",
+    "pydantic>=2.0.0",
+    "pyyaml>=5.4",
+    "requests",
+    "httpx",
+    "httpcore>=1.0.0",
+    "prompt_toolkit",
+    "nucliadb_sdk>=6.4,<7",
+    "nucliadb_models>=6.4,<7",
+    "nuclia-models>=0.32.0",
+    "tqdm",
+    "aiofiles",
+    "backoff",
+    "deprecated",
+    "tabulate",
+]
+
+[project.optional-dependencies]
+litellm = ["litellm"]
+protos = ["nucliadb_protos>=6.4,<7"]
+
+[project.scripts]
+nuclia = "nuclia.cli.run:run"
+
+[project.urls]
+Homepage = "https://nuclia.com"
+Repository = "https://github.com/nuclia/nuclia.py"
+Slack = "https://join.slack.com/t/nuclia-community/shared_invite/zt-2ldfznncw-LW6GJjOicdEA18kgI~95Xw"
+
+[build-system]
+requires = ["setuptools >= 40.9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
