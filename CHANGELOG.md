@@ -1,9 +1,9 @@
 # Changelog
 
-## 4.8.6 (unreleased)
+## 4.8.7 (unreleased)
 
 
-- Nothing changed yet.
+- Fix `nuclia version`
 
 
 ## 4.8.5 (2025-05-06)
