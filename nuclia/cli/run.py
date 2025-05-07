@@ -1,6 +1,6 @@
 import logging
 import sys
-from pathlib import Path
+from importlib.metadata import version
 
 import fire  # type: ignore
 from nucliadb_sdk import exceptions
@@ -9,12 +9,13 @@ from nuclia.data import get_auth
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
 from nuclia.lib.utils import serialize
 from nuclia.sdk.accounts import NucliaAccounts
+from nuclia.sdk.backup import NucliaBackup
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
-from nuclia.sdk.backup import NucliaBackup
 from nuclia.sdk.logger import logger
 from nuclia.sdk.nua import NucliaNUA
 from nuclia.sdk.zones import NucliaZones
+
 from .utils import CustomFormatter
 
 
@@ -30,9 +31,7 @@ class NucliaCLI(object):
 
     def version(self):
         """Print the version of the CLI"""
-        _dir = Path(__file__).resolve().parent.parent.parent
-        VERSION = _dir.joinpath("VERSION").open().read().strip()
-        return VERSION
+        return version("nuclia")
 
 
 def run():
