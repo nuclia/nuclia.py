@@ -27,7 +27,6 @@ from nuclia_models.predict.generative_responses import (
     MetaGenerativeResponse,
     StatusGenerativeResponse,
     ToolsGenerativeResponse,
-    RerankGenerativeResponse,
 )
 from nuclia.lib.nua_responses import (
     ChatModel,
