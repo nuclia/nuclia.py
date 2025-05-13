@@ -3,7 +3,7 @@
 ## 4.8.6 (unreleased)
 
 
-- Nothing changed yet.
+- ChatModel response
 
 
 ## 4.8.5 (2025-05-06)
