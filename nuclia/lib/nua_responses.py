@@ -72,6 +72,14 @@ class Image(BaseModel):
     b64encoded: str
 
 
+class Tool(BaseModel):
+    name: str
+    description: str
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Schema of the tool"
+    )
+
+
 class ChatModel(BaseModel):
     question: str
     retrieval: bool = True
@@ -81,7 +89,7 @@ class ChatModel(BaseModel):
     context: List[Message] = []
     query_context: Union[List[str], Dict[str, str]] = {}
     query_context_order: Dict[str, int] = {}
-    truncate: Optional[bool] = False
+    truncate: Optional[bool] = True
     user_prompt: Optional[UserPrompt] = None
     citations: Optional[bool] = False
     citation_threshold: Optional[float] = Field(
@@ -102,6 +110,9 @@ class ChatModel(BaseModel):
         default=False,
         description="Whether to reorder the query context based on a reranker. This option will also make it so the first response will contain the scores given for each context piece.",
     )
+    tools: List[Tool] = Field(
+        default_factory=list, description="List of tools to choose"
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
@@ -109,6 +120,10 @@ class ChatModel(BaseModel):
             raise ValueError("Can not setup markdown and JSON Schema at the same time")
         if self.citations is True and self.json_schema is not None:
             raise ValueError("Can not setup citations and JSON Schema at the same time")
+        if self.citations is True and self.tools is not None:
+            raise ValueError("Can not setup citations and Tools at the same time")
+        if self.tools is True and self.json_schema is not None:
+            raise ValueError("Can not setup tools and JSON Schema at the same time")
         return self
 
 
