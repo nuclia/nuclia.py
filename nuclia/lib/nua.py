@@ -26,6 +26,8 @@ from nuclia_models.predict.generative_responses import (
     CitationsGenerativeResponse,
     MetaGenerativeResponse,
     StatusGenerativeResponse,
+    ToolsGenerativeResponse,
+    RerankGenerativeResponse,
 )
 from nuclia.lib.nua_responses import (
     ChatModel,
@@ -233,6 +235,8 @@ class NuaClient:
                 result.citations = chunk.chunk.citations
             elif isinstance(chunk.chunk, StatusGenerativeResponse):
                 result.code = chunk.chunk.code
+            elif isinstance(chunk.chunk, ToolsGenerativeResponse):
+                result.tools = chunk.chunk.tools
         return result
 
     def generate_stream(
@@ -564,6 +568,9 @@ class AsyncNuaClient:
                 result.citations = chunk.chunk.citations
             elif isinstance(chunk.chunk, StatusGenerativeResponse):
                 result.code = chunk.chunk.code
+            elif isinstance(chunk.chunk, ToolsGenerativeResponse):
+                result.tools = chunk.chunk.tools
+
         return result
 
     async def generate_stream(
