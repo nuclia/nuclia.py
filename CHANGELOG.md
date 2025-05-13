@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.8.6 (unreleased)
+## 4.8.6 (2025-05-13)
 
 
 - ChatModel response
