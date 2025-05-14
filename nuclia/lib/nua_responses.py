@@ -120,10 +120,10 @@ class ChatModel(BaseModel):
             raise ValueError("Can not setup markdown and JSON Schema at the same time")
         if self.citations is True and self.json_schema is not None:
             raise ValueError("Can not setup citations and JSON Schema at the same time")
-        if self.citations is True and self.tools is not None:
+        if self.citations is True and len(self.tools) > 0:
             raise ValueError("Can not setup citations and Tools at the same time")
-        if self.tools is True and self.json_schema is not None:
-            raise ValueError("Can not setup tools and JSON Schema at the same time")
+        if len(self.tools) > 0 and self.json_schema is not None:
+            raise ValueError("Can not setup Tools and JSON Schema at the same time")
         return self
 
 

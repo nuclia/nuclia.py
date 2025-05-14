@@ -5,6 +5,7 @@
 
 
 - Fix `nuclia version`
+- Fix for Tool validation in ChatModel
 
 
 ## 4.8.7 (2025-05-13)
