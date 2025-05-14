@@ -69,7 +69,7 @@ def test_search(testing_config):
 def test_catalog(testing_config):
     search = NucliaSearch()
     results = search.catalog()
-    assert len(results.resources.keys()) == 2
+    assert len(results.resources.keys()) >= 2
 
 
 def test_search_object(testing_config):

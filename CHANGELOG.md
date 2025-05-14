@@ -6,7 +6,7 @@
 
 - Fix `nuclia version`
 - Fix for Tool validation in ChatModel
-
+- Fix streaming trying to validate error payload as GenerativeChunk
 
 ## 4.8.7 (2025-05-13)
 
