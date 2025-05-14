@@ -1,9 +1,22 @@
 # Changelog
 
-## 4.8.7 (unreleased)
+
+## 4.8.8 (unreleased)
 
 
 - Fix `nuclia version`
+
+
+## 4.8.7 (2025-05-13)
+
+
+- Tools output on response
+
+
+## 4.8.6 (2025-05-13)
+
+
+- ChatModel response
 
 
 ## 4.8.5 (2025-05-06)
