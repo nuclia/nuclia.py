@@ -56,6 +56,8 @@ import os
 from tqdm import tqdm
 import asyncio
 from nuclia.lib.utils import build_httpx_client, build_httpx_async_client
+from pydantic import ValidationError
+
 
 if TYPE_CHECKING:
     from nucliadb_protos.writer_pb2 import BrokerMessage
@@ -147,8 +149,17 @@ class NuaClient:
             json=payload,
             timeout=timeout,
         ) as response:
+            if response.status_code >= 400:
+                # Read the full error body and raise an appropriate exception
+                error_content = response.content
+                raise RuntimeError(
+                    f"Stream request failed with status {response.status_code}: {error_content.decode('utf-8')}"
+                )
             for json_body in response.iter_lines():
-                yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                try:
+                    yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                except ValidationError as e:
+                    raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
 
     def add_config_predict(self, kbid: str, config: LearningConfigurationCreation):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
@@ -456,8 +467,18 @@ class AsyncNuaClient:
             json=payload,
             timeout=timeout,
         ) as response:
+            if response.status_code >= 400:
+                # Read the full error body and raise an appropriate exception
+                error_content = await response.aread()
+                raise RuntimeError(
+                    f"Stream request failed with status {response.status_code}: {error_content.decode('utf-8')}"
+                )
+
             async for json_body in response.aiter_lines():
-                yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                try:
+                    yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                except ValidationError as e:
+                    raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
 
     async def add_config_predict(
         self, kbid: str, config: LearningConfigurationCreation
