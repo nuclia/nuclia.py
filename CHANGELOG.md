@@ -3,6 +3,7 @@
 
 ## 4.8.8 (unreleased)
 
+
 - Fix `nuclia version`
 - Fix for Tool validation in ChatModel
 
