@@ -22,13 +22,13 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
-          cache: "pip"
+          python-version: "3.9.20"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Install package
-        run: |-
-          pip install -r requirements.txt
-          pip install -e .
+        run: uv sync --no-editable --all-extras
 
       - name: Test
         run: nuclia kb list --url="https://europe-1.nuclia.cloud/api/v1/kb/eb720a59-f879-4b23-a995-605f91c874f4" --api_key="${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}"
