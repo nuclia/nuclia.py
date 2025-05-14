@@ -3,7 +3,7 @@
 ## 4.8.8 (unreleased)
 
 
-- Nothing changed yet.
+- Fix for Tool validation in ChatModel
 
 
 ## 4.8.7 (2025-05-13)
