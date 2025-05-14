@@ -1,12 +1,12 @@
 lint:
-	ruff check nuclia
-	ruff format --check nuclia
-	mypy nuclia
+	uv run ruff check nuclia
+	uv run ruff format --check nuclia
+	uv run mypy nuclia
 
 fmt:
-	ruff check --fix nuclia
-	ruff format nuclia
+	uv run ruff check --fix nuclia
+	uv run ruff format nuclia
 
 test:
-	mypy nuclia
-	pytest --asyncio-mode=auto nuclia
+	uv run mypy nuclia
+	uv run pytest --asyncio-mode=auto nuclia
