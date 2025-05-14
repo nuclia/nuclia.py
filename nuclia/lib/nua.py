@@ -149,17 +149,19 @@ class NuaClient:
             json=payload,
             timeout=timeout,
         ) as response:
-            if response.status_code >= 400:
+            if response.headers.get("content-type") == "application/x-ndjson":
+                for json_body in response.iter_lines():
+                    try:
+                        yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                    except ValidationError as e:
+                        raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
+
+            else:
                 # Read the full error body and raise an appropriate exception
                 error_content = response.content
                 raise RuntimeError(
                     f"Stream request failed with status {response.status_code}: {error_content.decode('utf-8')}"
                 )
-            for json_body in response.iter_lines():
-                try:
-                    yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
-                except ValidationError as e:
-                    raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
 
     def add_config_predict(self, kbid: str, config: LearningConfigurationCreation):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
@@ -467,18 +469,19 @@ class AsyncNuaClient:
             json=payload,
             timeout=timeout,
         ) as response:
-            if response.status_code >= 400:
+            if response.headers.get("content-type") == "application/x-ndjson":
+                async for json_body in response.aiter_lines():
+                    try:
+                        yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                    except ValidationError as e:
+                        raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
+
+            else:
                 # Read the full error body and raise an appropriate exception
                 error_content = await response.aread()
                 raise RuntimeError(
                     f"Stream request failed with status {response.status_code}: {error_content.decode('utf-8')}"
                 )
-
-            async for json_body in response.aiter_lines():
-                try:
-                    yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
-                except ValidationError as e:
-                    raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
 
     async def add_config_predict(
         self, kbid: str, config: LearningConfigurationCreation
