@@ -1,7 +1,7 @@
 [project]
 name = "nuclia"
 dynamic = ["version"]
-license = "MIT"
+license = { text = "MIT" }
 description = "Nuclia Python SDK"
 readme = "README.md"
 authors = [{ name = "Nuclia", email = "info@nuclia.com" }]
