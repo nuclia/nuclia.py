@@ -33,7 +33,6 @@ jobs:
       - name: Install package
         run: |
           uv sync --no-editable --all-extras
-          source .venv/bin/activate
 
       - name: Run pre-checks
         run: |
