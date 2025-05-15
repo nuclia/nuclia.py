@@ -4,7 +4,7 @@
 ## 4.8.9 (unreleased)
 
 
-- Nothing changed yet.
+- Better http error handling
 
 
 ## 4.8.8 (2025-05-14)
