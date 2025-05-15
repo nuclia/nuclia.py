@@ -25,12 +25,30 @@ dependencies = [
     "prompt_toolkit",
     "nucliadb_sdk>=6.4,<7",
     "nucliadb_models>=6.4,<7",
-    "nuclia-models>=0.38.1",
+    "nuclia-models>=0.39.0",
     "tqdm",
     "aiofiles",
     "backoff",
     "deprecated",
     "tabulate",
+]
+
+[dependency-groups]
+dev = [
+    # Linting
+    "mypy",
+    "ruff",
+    # Testing
+    "pytest==7.4.0",
+    "types-PyYAML==6.0.12.11",
+    "types-requests==2.31.0.2",
+    "types-tqdm==4.66.0.2",
+    "pytest-asyncio==0.21.1",
+    "pytest_lazy_fixtures==1.0.1",
+    "pytest_docker_fixtures[pg]",
+    "types-aiofiles",
+    "types-Deprecated",
+    "types-tabulate",
 ]
 
 [project.optional-dependencies]
