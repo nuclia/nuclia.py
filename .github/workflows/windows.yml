@@ -31,4 +31,6 @@ jobs:
         run: uv sync --no-editable --all-extras
 
       - name: Test
-        run: nuclia kb list --url="https://europe-1.nuclia.cloud/api/v1/kb/eb720a59-f879-4b23-a995-605f91c874f4" --api_key="${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}"
+        run: |
+          source .venv/bin/activate
+          nuclia kb list --url="https://europe-1.nuclia.cloud/api/v1/kb/eb720a59-f879-4b23-a995-605f91c874f4" --api_key="${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}"
