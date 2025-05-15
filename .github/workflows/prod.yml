@@ -31,7 +31,9 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install package
-        run: uv sync --no-editable --all-extras
+        run: |
+          uv sync --no-editable --all-extras
+          source .venv/bin/activate
 
       - name: Run pre-checks
         run: make lint
