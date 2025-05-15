@@ -25,7 +25,7 @@ from nuclia_models.events.activity_logs import (  # type: ignore
 from nuclia_models.events.remi import RemiQuery
 from nuclia_models.worker.tasks import TaskStartKB
 from nuclia.exceptions import RateLimitError
-from nuclia.lib.utils import handle_http_errors
+from nuclia.lib.utils import handle_http_sync_errors, handle_http_async_errors
 from datetime import datetime
 from nuclia.lib.utils import build_httpx_client, build_httpx_async_client, USER_AGENT
 
@@ -220,7 +220,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
         url = f"{self.url}{NOTIFICATIONS}"
         response = self.stream_session.get(url, stream=True, timeout=3660)
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def ask(self, request: AskRequest, timeout: int = 1000):
@@ -233,7 +233,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             stream=True,
             timeout=timeout,
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def download_export(self, export_id: str, path: str, chunk_size: int):
@@ -276,7 +276,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         new_uri = "/".join(uri_parts[3:])
         url = DOWNLOAD_URL.format(uri=new_uri)
         response: httpx.Response = self.reader_session.get(url)
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response.content
 
     @backoff.on_exception(
@@ -320,7 +320,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             headers["x-extract-strategy"] = extract_strategy
 
         response: httpx.Response = self.writer_session.post(url, headers=headers)
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response.headers.get("Location")
 
     def patch_tus_upload(self, upload_url: str, data: bytes, offset: int) -> int:
@@ -338,7 +338,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.writer_session.patch(
             url, headers=headers, content=data
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return int(response.headers.get("Upload-Offset"))
 
     def summarize(self, request: SummarizeRequest, timeout: int = 1000):
@@ -349,7 +349,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response = self.reader_session.post(
             url, json=request.model_dump(), timeout=timeout
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def logs(self, type: LogType, month: str) -> list[list[str]]:
@@ -359,12 +359,12 @@ class NucliaDBClient(BaseNucliaDBClient):
         if type != "feedback":
             url = LEGACY_ACTIVITY_LOG_URL.format(type=type.value, month=month)
             response: httpx.Response = self.reader_session.get(url)
-            handle_http_errors(response)
+            handle_http_sync_errors(response)
             return [row for row in csv.reader(response.iter_lines())]
         else:
             feedback_url = f"{self.url}{FEEDBACK_LOG_URL.format(month=month)}"
             feedback_response: httpx.Response = self.reader_session.get(feedback_url)
-            handle_http_errors(feedback_response)
+            handle_http_sync_errors(feedback_response)
             feedbacks = [row for row in csv.reader(feedback_response.iter_lines())]
             answers = self.logs(type=LogType.CHAT, month=month)
             # first row with the columns headers
@@ -396,7 +396,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             json=query.model_dump(mode="json", exclude_unset=True),
             stream=True,
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def logs_download(
@@ -420,7 +420,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             json=query.model_dump(mode="json", exclude_unset=True),
             headers={"accept": format_header_value},
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def get_download_request(
@@ -431,7 +431,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
         download_request_url = f"{self.url}{ACTIVITY_LOG_DOWNLOAD_REQUEST_URL.format(request_id=request_id)}"
         response: httpx.Response = self.reader_session.get(download_request_url)
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def remi_query(
@@ -446,7 +446,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             json=query.model_dump(mode="json", exclude_unset=True),
             timeout=10,
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def get_remi_event(
@@ -459,7 +459,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.reader_session.get(
             f"{self.url}{REMI_EVENT_URL.format(event_id=event_id)}"
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def get_remi_scores(
@@ -476,7 +476,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.reader_session.get(
             f"{self.url}{REMI_SCORES_URL}", params=params, timeout=10
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def list_tasks(self) -> httpx.Response:
@@ -484,7 +484,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
 
         response: httpx.Response = self.reader_session.get(f"{self.url}{LIST_TASKS}")
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def start_task(self, body: TaskStartKB) -> httpx.Response:
@@ -495,7 +495,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             f"{self.url}{START_TASK}",
             json=body.model_dump(mode="json", exclude_unset=True),
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def delete_task(self, task_id: str) -> httpx.Response:
@@ -505,7 +505,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.writer_session.delete(
             f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def stop_task(self, task_id: str) -> httpx.Response:
@@ -515,7 +515,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.writer_session.post(
             f"{self.url}{STOP_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def get_task(self, task_id: str) -> httpx.Response:
@@ -525,7 +525,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.reader_session.get(
             f"{self.url}{GET_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
     def restart_task(self, task_id: str) -> httpx.Response:
@@ -535,7 +535,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.writer_session.post(
             f"{self.url}{RESTART_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        handle_http_sync_errors(response)
         return response
 
 
@@ -583,7 +583,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         url = f"{self.url}{NOTIFICATIONS}"
         req = self.reader_session.build_request("GET", url, timeout=3660)
         response = await self.reader_session.send(req, stream=True)
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def ask(self, request: AskRequest, timeout: int = 1000):
@@ -594,7 +594,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             "POST", url, json=request.model_dump(), timeout=timeout
         )
         response = await self.reader_session.send(req, stream=True)
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def download_export(self, export_id: str, path: str, chunk_size: int):
@@ -635,7 +635,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         new_uri = "/".join(uri_parts[3:])
         url = DOWNLOAD_URL.format(uri=new_uri)
         response = await self.reader_session.get(url)
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response.content
 
     @backoff.on_exception(
@@ -679,7 +679,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             headers["x-extract-strategy"] = extract_strategy
 
         response = await self.writer_session.post(url, headers=headers)
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response.headers.get("Location")
 
     async def patch_tus_upload(self, upload_url: str, data: bytes, offset: int) -> int:
@@ -695,7 +695,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             url = httpx.URL("/".join(url.path.split("/")[3:]))
 
         response = await self.writer_session.patch(url, headers=headers, content=data)
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return int(response.headers.get("Upload-Offset"))
 
     async def summarize(self, request: SummarizeRequest, timeout: int = 1000):
@@ -706,7 +706,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response = await self.reader_session.post(
             url, json=request.model_dump(), timeout=timeout
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def logs(self, type: LogType, month: str) -> list[list[str]]:
@@ -716,14 +716,14 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         if type != "feedback":
             url = LEGACY_ACTIVITY_LOG_URL.format(type=type.value, month=month)
             response: httpx.Response = await self.reader_session.get(url)
-            handle_http_errors(response)
+            await handle_http_async_errors(response)
             return [row for row in csv.reader(response.iter_lines())]
         else:
             feedback_url = f"{self.url}{FEEDBACK_LOG_URL.format(month=month)}"
             feedback_response: httpx.Response = await self.reader_session.get(
                 feedback_url
             )
-            handle_http_errors(feedback_response)
+            await handle_http_async_errors(feedback_response)
             feedbacks = [row for row in csv.reader(feedback_response.iter_lines())]
             answers = await self.logs(type=LogType.CHAT, month=month)
             # first row with the columns headers
@@ -754,7 +754,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             f"{self.url}{ACTIVITY_LOG_QUERY_URL.format(type=type.value)}",
             json=query.model_dump(mode="json", exclude_unset=True),
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def logs_download(
@@ -778,7 +778,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             json=query.model_dump(mode="json", exclude_unset=True),
             headers={"accept": format_header_value},
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def get_download_request(
@@ -789,7 +789,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             raise Exception("KB not configured")
         download_request_url = f"{self.url}{ACTIVITY_LOG_DOWNLOAD_REQUEST_URL.format(request_id=request_id)}"
         response: httpx.Response = await self.reader_session.get(download_request_url)
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def remi_query(
@@ -804,7 +804,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             json=query.model_dump(mode="json", exclude_unset=True),
             timeout=10,
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def get_remi_event(
@@ -817,7 +817,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = await self.reader_session.get(
             f"{self.url}{REMI_EVENT_URL.format(event_id=event_id)}"
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def get_remi_scores(
@@ -834,7 +834,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = await self.reader_session.get(
             f"{self.url}{REMI_SCORES_URL}", params=params, timeout=10
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def list_tasks(self) -> httpx.Response:
@@ -844,7 +844,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = await self.reader_session.get(
             f"{self.url}{LIST_TASKS}"
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def start_task(self, body: TaskStartKB) -> httpx.Response:
@@ -855,7 +855,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             f"{self.url}{START_TASK}",
             json=body.model_dump(mode="json", exclude_unset=True),
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def delete_task(self, task_id: str) -> httpx.Response:
@@ -865,7 +865,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = await self.writer_session.delete(
             f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def stop_task(self, task_id: str) -> httpx.Response:
@@ -875,7 +875,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = await self.writer_session.post(
             f"{self.url}{STOP_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def get_task(self, task_id: str) -> httpx.Response:
@@ -885,7 +885,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = await self.reader_session.get(
             f"{self.url}{GET_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response
 
     async def restart_task(self, task_id: str) -> httpx.Response:
@@ -895,5 +895,5 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = await self.writer_session.post(
             f"{self.url}{RESTART_TASK.format(task_id=task_id)}",
         )
-        handle_http_errors(response)
+        await handle_http_async_errors(response)
         return response

@@ -1,9 +1,9 @@
 import json
-from typing import Union
 
 import httpx
 import importlib.metadata
 import requests
+from httpx import Response as HttpxResponse, HTTPStatusError
 from tabulate import tabulate
 from typing import Optional
 
@@ -18,24 +18,67 @@ from nucliadb_models.search import SyncAskResponse
 from nuclia.lib.models import ActivityLogsOutput
 from nuclia_models.worker.tasks import TaskDefinition, TaskList
 from nucliadb_models.resource import KnowledgeBoxList
+from requests import Response as RequestsResponse, HTTPError as RequestsHTTPError
+
 
 USER_AGENT = f"nuclia.py/{importlib.metadata.version('nuclia')}"
 
 
-def handle_http_errors(response: Union[httpx.Response, requests.models.Response]):
-    if (
-        response.status_code == 403
-        and "Hydra token is either unexistent or revoked" in response.text
-    ):
+def handle_http_sync_errors(response):
+    try:
+        content = response.text
+    except (httpx.ResponseNotRead, requests.exceptions.RequestException):
+        content = "<streaming content not read>"
+    except Exception as e:
+        content = f"<error decoding content: {e}>"
+
+    _raise_for_status(response.status_code, content, response=response)
+
+
+async def handle_http_async_errors(response: httpx.Response):
+    try:
+        if not response.is_closed and not response.is_stream_consumed:
+            await response.aread()
+    except Exception as e:
+        content = f"<failed to read stream: {e}>"
+        _raise_for_status(
+            response.status_code, content, response=response, request=response.request
+        )
+        return  # Defensive
+    try:
+        content = response.text
+    except httpx.ResponseNotRead:
+        content = "<streaming content not read>"
+    except Exception as e:
+        content = f"<error decoding content: {e}>"
+
+    _raise_for_status(
+        response.status_code, content, response=response, request=response.request
+    )
+
+
+def _raise_for_status(status_code: int, content: str, response=None, request=None):
+    if status_code == 403 and "Hydra token is either unexistent or revoked" in content:
         raise UserTokenExpired()
-    elif response.status_code == 429:
-        raise RateLimitError(f"Rate limited: {response.text}")
-    elif response.status_code == 409:
-        raise DuplicateError(f"Duplicate resource: {response.text}")
-    elif response.status_code == 422:
-        raise InvalidPayload(f"Invalid payload: {response.text}")
-    elif response.status_code >= 400:
-        raise httpx.HTTPError(f"Status code {response.status_code}: {response.text}")
+    elif status_code == 429:
+        raise RateLimitError(f"Rate limited: {content}")
+    elif status_code == 409:
+        raise DuplicateError(f"Duplicate resource: {content}")
+    elif status_code == 422:
+        raise InvalidPayload(f"Invalid payload: {content}")
+    elif status_code >= 400:
+        if isinstance(response, HttpxResponse):
+            raise HTTPStatusError(
+                f"Status code {status_code}: {content}",
+                request=request,
+                response=response,
+            )
+        elif isinstance(response, RequestsResponse):
+            raise RequestsHTTPError(
+                f"Status code {status_code}: {content}", response=response
+            )
+        else:
+            raise Exception(f"Status code {status_code}: {content}")
 
 
 def serialize(obj):
