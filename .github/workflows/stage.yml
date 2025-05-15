@@ -31,12 +31,13 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install package
-        run: |
-          uv sync --no-editable --all-extras
-          source .venv/bin/activate
+        run: uv sync --no-editable --all-extras
+          
 
       - name: Run pre-checks
-        run: make lint
+        run: |
+          source .venv/bin/activate
+          make lint
 
       - name: Test
         run: BASE_NUCLIA_DOMAIN="stashify.cloud" GA_TESTING_SERVICE_TOKEN="${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.STAGE_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.TEST_EUROPE1_STASHIFY_NUA }}" make test
