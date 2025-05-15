@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.8.9 (unreleased)
+## 4.8.9 (2025-05-15)
 
 
 - Better http error handling
