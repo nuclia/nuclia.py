@@ -49,6 +49,8 @@ dev = [
     "types-aiofiles",
     "types-Deprecated",
     "types-tabulate",
+    # Pypi manual release
+    "zest.releaser"
 ]
 
 [project.optional-dependencies]
