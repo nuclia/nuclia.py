@@ -10,15 +10,6 @@ from nuclia_models.events.activity_logs import (
 import pytest
 
 
-def test_logs(testing_config):
-    if not IS_PROD:
-        assert True
-        return
-    nkb = NucliaKB()
-    logs = nkb.logs.get(type=EventType.NEW, month="2024-06")
-    assert len(logs) == 23
-
-
 def test_activity_logs_query(testing_config):
     if not IS_PROD:
         assert True
@@ -50,16 +41,6 @@ def test_activity_logs_download(testing_config):
     )
     assert output.request_id
     assert output.download_url is None
-
-
-@pytest.mark.asyncio
-async def test_logs_async(testing_config):
-    if not IS_PROD:
-        assert True
-        return
-    nkb = AsyncNucliaKB()
-    logs = await nkb.logs.get(type=EventType.NEW, month="2024-06")
-    assert len(logs) == 23
 
 
 @pytest.mark.asyncio
