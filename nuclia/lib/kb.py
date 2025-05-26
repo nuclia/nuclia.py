@@ -15,10 +15,10 @@ from tqdm import tqdm
 from nuclia_models.events.activity_logs import (  # type: ignore
     ActivityLogsQuery,
     ActivityLogsSearchQuery,
-    ActivityLogsChatQuery,
+    ActivityLogsAskQuery,
     DownloadActivityLogsQuery,
     DownloadActivityLogsSearchQuery,
-    DownloadActivityLogsChatQuery,
+    DownloadActivityLogsAskQuery,
     EventType,
     DownloadFormat,
 )
@@ -46,11 +46,9 @@ DOWNLOAD_EXPORT_URL = "/export/{export_id}"
 DOWNLOAD_URL = "/{uri}"
 TUS_UPLOAD_RESOURCE_URL = "/resource/{rid}/file/{field}/tusupload"
 TUS_UPLOAD_URL = "/tusupload"
-LEGACY_ACTIVITY_LOG_URL = "/activity/download?type={type}&month={month}"
 ACTIVITY_LOG_URL = "/activity/{type}/query/download"
 ACTIVITY_LOG_DOWNLOAD_REQUEST_URL = "/activity/download_request/{request_id}"
 ACTIVITY_LOG_QUERY_URL = "/activity/{type}/query"
-FEEDBACK_LOG_URL = "/feedback/{month}"
 NOTIFICATIONS = "/notifications"
 REMI_QUERY_URL = "/remi/query"
 REMI_EVENT_URL = "/remi/events/{event_id}"
@@ -71,23 +69,6 @@ DOWNLOAD_FORMAT_HEADERS = {
 class Environment(str, Enum):
     CLOUD = "CLOUD"
     OSS = "OSS"
-
-
-class LogType(str, Enum):
-    # Nucliadb
-    VISITED = "visited"
-    MODIFIED = "modified"
-    DELETED = "deleted"
-    NEW = "new"
-    SEARCH = "search"
-    SUGGEST = "suggest"
-    INDEXED = "indexed"
-    CHAT = "chat"
-    # Tasks
-    STARTED = "started"
-    STOPPED = "stopped"
-    # Processor
-    PROCESSED = "processed"
 
 
 class BaseNucliaDBClient:
@@ -352,41 +333,10 @@ class NucliaDBClient(BaseNucliaDBClient):
         handle_http_sync_errors(response)
         return response
 
-    def logs(self, type: LogType, month: str) -> list[list[str]]:
-        if self.reader_session is None:
-            raise Exception("KB not configured")
-
-        if type != "feedback":
-            url = LEGACY_ACTIVITY_LOG_URL.format(type=type.value, month=month)
-            response: httpx.Response = self.reader_session.get(url)
-            handle_http_sync_errors(response)
-            return [row for row in csv.reader(response.iter_lines())]
-        else:
-            feedback_url = f"{self.url}{FEEDBACK_LOG_URL.format(month=month)}"
-            feedback_response: httpx.Response = self.reader_session.get(feedback_url)
-            handle_http_sync_errors(feedback_response)
-            feedbacks = [row for row in csv.reader(feedback_response.iter_lines())]
-            answers = self.logs(type=LogType.CHAT, month=month)
-            # first row with the columns headers
-            results = [[*feedbacks[0], *answers[0][:-1]]]
-            for feedback in feedbacks[1:]:
-                learning_id = feedback[1]
-                # search for the corresponding question/answer
-                # (the learning id is the same for both question/answer and feedback,
-                # and is the second column in the Q/A csv)
-                matching_answers = [
-                    answer for answer in answers if answer[1] == learning_id
-                ]
-                if len(matching_answers) > 0:
-                    results.append([*feedback, *matching_answers[0][:-1]])
-                else:
-                    results.append(feedback)
-            return results
-
     def logs_query(
         self,
         type: EventType,
-        query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery],
+        query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsAskQuery],
     ) -> requests.Response:
         if self.stream_session is None:
             raise Exception("KB not configured")
@@ -405,7 +355,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         query: Union[
             DownloadActivityLogsQuery,
             DownloadActivityLogsSearchQuery,
-            DownloadActivityLogsChatQuery,
+            DownloadActivityLogsAskQuery,
         ],
         download_format: DownloadFormat,
     ):
@@ -709,43 +659,10 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         await handle_http_async_errors(response)
         return response
 
-    async def logs(self, type: LogType, month: str) -> list[list[str]]:
-        if self.reader_session is None:
-            raise Exception("KB not configured")
-
-        if type != "feedback":
-            url = LEGACY_ACTIVITY_LOG_URL.format(type=type.value, month=month)
-            response: httpx.Response = await self.reader_session.get(url)
-            await handle_http_async_errors(response)
-            return [row for row in csv.reader(response.iter_lines())]
-        else:
-            feedback_url = f"{self.url}{FEEDBACK_LOG_URL.format(month=month)}"
-            feedback_response: httpx.Response = await self.reader_session.get(
-                feedback_url
-            )
-            await handle_http_async_errors(feedback_response)
-            feedbacks = [row for row in csv.reader(feedback_response.iter_lines())]
-            answers = await self.logs(type=LogType.CHAT, month=month)
-            # first row with the columns headers
-            results = [[*feedbacks[0], *answers[0][:-1]]]
-            for feedback in feedbacks[1:]:
-                learning_id = feedback[1]
-                # search for the corresponding question/answer
-                # (the learning id is the same for both question/answer and feedback,
-                # and is the second column in the Q/A csv)
-                matching_answers = [
-                    answer for answer in answers if answer[1] == learning_id
-                ]
-                if len(matching_answers) > 0:
-                    results.append([*feedback, *matching_answers[0][:-1]])
-                else:
-                    results.append(feedback)
-            return results
-
     async def logs_query(
         self,
         type: EventType,
-        query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsChatQuery],
+        query: Union[ActivityLogsQuery, ActivityLogsSearchQuery, ActivityLogsAskQuery],
     ) -> httpx.Response:
         if self.reader_session is None:
             raise Exception("KB not configured")
@@ -763,7 +680,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         query: Union[
             DownloadActivityLogsQuery,
             DownloadActivityLogsSearchQuery,
-            DownloadActivityLogsChatQuery,
+            DownloadActivityLogsAskQuery,
         ],
         download_format: DownloadFormat,
     ):
