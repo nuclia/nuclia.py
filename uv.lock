@@ -1361,7 +1361,7 @@ requires-dist = [
     { name = "httpcore", specifier = ">=1.0.0" },
     { name = "httpx" },
     { name = "litellm", marker = "extra == 'litellm'" },
-    { name = "nuclia-models", specifier = ">=0.39.0" },
+    { name = "nuclia-models", specifier = ">=0.41.1" },
     { name = "nucliadb-models", specifier = ">=6.4,<7" },
     { name = "nucliadb-protos", marker = "extra == 'protos'", specifier = ">=6.4,<7" },
     { name = "nucliadb-sdk", specifier = ">=6.4,<7" },
@@ -1392,14 +1392,14 @@ dev = [
 
 [[package]]
 name = "nuclia-models"
-version = "0.39.0"
+version = "0.41.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", extra = ["email"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/4b/6a16695368159b9fc2455f5867693c8473e65f02216deffd4f571f7740f8/nuclia_models-0.39.0.tar.gz", hash = "sha256:e1e85b24dc1b3c8fd644f283f0eb7f8a0da259c53011da15afeb82830e7a4b85", size = 16549 }
+sdist = { url = "https://files.pythonhosted.org/packages/90/fb/fa638f4732d4dbd2308ec5c2d7684133a51e24607b85d9fc39b264430a15/nuclia_models-0.41.1.tar.gz", hash = "sha256:726cc7974bcffd2329fc3fbd17e14b0b7f79bfcd5f88131764d94b931fe9c873", size = 21608 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/80/cf79489807235e902a912fdf3a315e98621cfb40831153863bba2c7cdeda/nuclia_models-0.39.0-py3-none-any.whl", hash = "sha256:d47f3be5950e9376018dc3bf48ee228560a032effd59f448cde22e79a298278f", size = 20531 },
+    { url = "https://files.pythonhosted.org/packages/0c/38/fdfd9c05377bca3955790a367b73e1fbfeef0054a43f855a38fbd79d753a/nuclia_models-0.41.1-py3-none-any.whl", hash = "sha256:25ca89d1c688ad0351e0f9f8b8b3e6a92109bc4505757453570e08cf6ee3db82", size = 25677 },
 ]
 
 [[package]]
