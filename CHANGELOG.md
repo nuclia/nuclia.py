@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.8.10 (unreleased)
+## 4.8.10 (2025-05-28)
 
 
 - Activity logs: Add event type `ASK` and deprecate `CHAT`
