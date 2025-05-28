@@ -35,7 +35,7 @@ See the examples for more information
 
 #### Event-Specific Fields
 - `SEARCH` events: Common fields + `question`, `resources_count`, `filter`, `learning_id`
-- `CHAT` events: Common fields + Search fields + `rephrased_question`, `answer`, `retrieved_context`, `chat_history`, `feedback_good`, `feedback_comment`, `model`, `rag_strategies_names`, `rag_strategies`, `status`, `time_to_first_char`
+- `ASK` events: Common fields + Search fields + `rephrased_question`, `answer`, `retrieved_context`, `chat_history`, `feedback_good`, `feedback_comment`, `model`, `rag_strategies_names`, `rag_strategies`, `status`, `time_to_first_char`
 
 
 ### Query Examples
@@ -43,7 +43,7 @@ See the examples for more information
 #### CLI Example
 
 ```bash
-nuclia kb logs query --type=CHAT --query='{
+nuclia kb logs query --type=ASK --query='{
   "year_month": "2024-10",
   "show": ["id", "date", "question", "answer", "feedback_good"],
   "filters": {
@@ -58,11 +58,10 @@ nuclia kb logs query --type=CHAT --query='{
 
 ```python
 from nuclia import sdk
-from nuclia.lib.kb import LogType
-from nuclia_models.events.activity_logs import ActivityLogsChatQuery, Pagination
+from nuclia_models.events.activity_logs import ActivityLogsAskQuery, EventType, Pagination
 
 kb = sdk.NucliaKB()
-query = ActivityLogsChatQuery(
+query = ActivityLogsAskQuery(
     year_month="2024-10",
     show=["id", "date", "question", "answer"],
     filters={
@@ -71,7 +70,7 @@ query = ActivityLogsChatQuery(
     },
     pagination=Pagination(limit=10)
 )
-kb.logs.query(type=LogType.CHAT, query=query)
+kb.logs.query(type=EventType.ASK, query=query)
 ```
 ### Special Field: `audit_metadata`
 The `audit_metadata` field is a customizable dictionary. Use the `key` operator to target specific keys within the dictionary.
@@ -103,7 +102,7 @@ The `audit_metadata` field is a customizable dictionary. Use the `key` operator 
 Request download and wait until the download url is generated
 
 ```bash
->>> nuclia kb logs download --wait --type=CHAT --format=NDJSON --query='{
+>>> nuclia kb logs download --wait --type=ASK --format=NDJSON --query='{
   "year_month": "2024-10",
   "show": ["id", "date", "question", "answer", "feedback_good"],
   "filters": {
@@ -119,7 +118,7 @@ download_url=https://your-download-url
 
 Request download and ask to be notified
 ```bash
->>> nuclia kb logs download --type=CHAT --format=NDJSON --query='{
+>>> nuclia kb logs download --type=ASK --format=NDJSON --query='{
   "year_month": "2024-10",
   "show": ["id", "date", "question", "answer", "feedback_good"],
   "filters": {
@@ -136,7 +135,7 @@ download_url=null
 ```
 Request download and poll for the status
 ```bash
->>> nuclia kb logs download --type=CHAT --format=NDJSON --query='{
+>>> nuclia kb logs download --type=ASK --format=NDJSON --query='{
   "year_month": "2024-10",
   "show": ["id", "date", "question", "answer", "feedback_good"],
   "filters": {
@@ -159,11 +158,10 @@ download_url=https://your-download-url
 
 ```python
 from nuclia import sdk
-from nuclia.lib.kb import LogType
-from nuclia_models.events.activity_logs import DownloadActivityLogsChatQuery
+from nuclia_models.events.activity_logs import DownloadActivityLogsAskQuery, EventType
 
 kb = sdk.NucliaKB()
-query = DownloadActivityLogsChatQuery(
+query = DownloadActivityLogsAskQuery(
     year_month="2024-10",
     show=["id", "date", "question", "answer"],
     filters={
@@ -171,7 +169,7 @@ query = DownloadActivityLogsChatQuery(
         "feedback_good": {"eq": True}
     },
 )
-request = kb.logs.download(type=LogType.CHAT, query=query, wait=True)
+request = kb.logs.download(type=EventType.ASK, query=query, wait=True)
 return request.download_url
 ```
 
@@ -182,7 +180,7 @@ The REMi module provides tools to monitor the quality of your RAG pipeline to ge
 
 ## REMi Query
 
-Use `remi query` to retrieve a list of chat activity logs that match specified criteria for REMi scores.
+Use `remi query` to retrieve a list of ask activity logs that match specified criteria for REMi scores.
 
 ### Basic Query
 
@@ -284,7 +282,7 @@ kb.remi.query(
 
 ### REMi Get
 
-Use `remi get_event` to fetch detailed information for a specific chat activity log. This command is useful for retrieving full context and score details of an entry obtained from a previous REMi query.
+Use `remi get_event` to fetch detailed information for a specific ask activity log. This command is useful for retrieving full context and score details of an entry obtained from a previous REMi query.
 
 #### CLI Example
 ```bash

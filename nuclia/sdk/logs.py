@@ -1,11 +1,11 @@
 from nuclia.decorators import kb
-from nuclia.lib.kb import LogType, NucliaDBClient, AsyncNucliaDBClient
+from nuclia.lib.kb import NucliaDBClient, AsyncNucliaDBClient
 from nuclia_models.events.activity_logs import (  # type: ignore
     ActivityLogsQuery,
-    ActivityLogsChatQuery,
+    ActivityLogsAskQuery,
     ActivityLogsSearchQuery,
     DownloadActivityLogsQuery,
-    DownloadActivityLogsChatQuery,
+    DownloadActivityLogsAskQuery,
     DownloadActivityLogsSearchQuery,
     DownloadFormat,
     EventType,
@@ -26,23 +26,6 @@ WAIT_FOR_DOWNLOAD_TIMEOUT = 120
 
 class NucliaLogs:
     @kb
-    def get(
-        self, *args, type: Union[LogType, str], month: str, **kwargs
-    ) -> list[list[str]]:
-        """
-        Download activity logs.
-
-        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, STARTED, STOPPED, PROCESSED
-        :param month: YYYY-MM
-        """
-        if isinstance(type, str):
-            type = LogType[type.upper()]
-
-        ndb: NucliaDBClient = kwargs["ndb"]
-        resp = ndb.logs(type=type, month=month)
-        return resp
-
-    @kb
     def query(
         self,
         *args,
@@ -51,25 +34,25 @@ class NucliaLogs:
             dict,
             ActivityLogsQuery,
             ActivityLogsSearchQuery,
-            ActivityLogsChatQuery,
+            ActivityLogsAskQuery,
         ],
         **kwargs,
     ) -> ActivityLogsOutput:
         """
         Query activity logs.
 
-        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, STARTED, STOPPED, PROCESSED
+        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, ASK, STARTED, STOPPED, PROCESSED
         :param query: ActivityLogsQuery
         """
         _type = EventType[type.upper()] if isinstance(type, str) else type
         _query: Union[
             ActivityLogsQuery,
             ActivityLogsSearchQuery,
-            ActivityLogsChatQuery,
+            ActivityLogsAskQuery,
         ]
         if isinstance(query, dict):
-            if _type is EventType.CHAT:
-                _query = ActivityLogsChatQuery.model_validate(query)
+            if _type in (EventType.ASK, EventType.CHAT):  # TODO: deprecate chat event
+                _query = ActivityLogsAskQuery.model_validate(query)
             elif type is EventType.SEARCH:
                 _query = ActivityLogsSearchQuery.model_validate(query)
             else:
@@ -95,7 +78,7 @@ class NucliaLogs:
             dict,
             DownloadActivityLogsQuery,
             DownloadActivityLogsSearchQuery,
-            DownloadActivityLogsChatQuery,
+            DownloadActivityLogsAskQuery,
         ],
         download_format: Union[DownloadFormat, str],
         wait: bool = False,
@@ -104,8 +87,8 @@ class NucliaLogs:
         """
         Download activity logs.
 
-        :param type: SEARCH, CHAT, VISITED, MODIFIED, DELETED, NEW, STARTED, STOPPED, PROCESSED
-        :param type: NDJSON, CSV
+        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, ASK, STARTED, STOPPED, PROCESSED
+        :param download_format: NDJSON, CSV
         :param query: DownloadActivityLogsQuery
         """
         _type = EventType[type.upper()] if isinstance(type, str) else type
@@ -119,11 +102,11 @@ class NucliaLogs:
             dict,
             DownloadActivityLogsQuery,
             DownloadActivityLogsSearchQuery,
-            DownloadActivityLogsChatQuery,
+            DownloadActivityLogsAskQuery,
         ]
         if isinstance(query, dict):
-            if _type is EventType.CHAT:
-                _query = DownloadActivityLogsChatQuery.model_validate(query)
+            if _type in (EventType.ASK, EventType.CHAT):  # TODO: deprecate chat event
+                _query = DownloadActivityLogsAskQuery.model_validate(query)
             elif type is EventType.SEARCH:
                 _query = DownloadActivityLogsSearchQuery.model_validate(query)
             else:
@@ -169,23 +152,6 @@ class NucliaLogs:
 
 class AsyncNucliaLogs:
     @kb
-    async def get(
-        self, *args, type: Union[LogType, str], month: str, **kwargs
-    ) -> list[list[str]]:
-        """
-        Download activity logs.
-
-        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, STARTED, STOPPED, PROCESSED
-        :param month: YYYY-MM
-        """
-        if isinstance(type, str):
-            type = LogType[type.upper()]
-
-        ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        resp = await ndb.logs(type=type, month=month)
-        return resp
-
-    @kb
     async def query(
         self,
         *args,
@@ -194,25 +160,25 @@ class AsyncNucliaLogs:
             dict,
             ActivityLogsQuery,
             ActivityLogsSearchQuery,
-            ActivityLogsChatQuery,
+            ActivityLogsAskQuery,
         ],
         **kwargs,
     ) -> ActivityLogsOutput:
         """
         Query activity logs.
 
-        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, STARTED, STOPPED, PROCESSED
+        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, ASK, STARTED, STOPPED, PROCESSED
         :param query: ActivityLogsQuery
         """
         _type = EventType[type.upper()] if isinstance(type, str) else type
         _query: Union[
             ActivityLogsQuery,
             ActivityLogsSearchQuery,
-            ActivityLogsChatQuery,
+            ActivityLogsAskQuery,
         ]
         if isinstance(query, dict):
-            if _type is EventType.CHAT:
-                _query = ActivityLogsChatQuery.model_validate(query)
+            if _type in (EventType.ASK, EventType.CHAT):  # TODO: deprecate chat event
+                _query = ActivityLogsAskQuery.model_validate(query)
             elif type is EventType.SEARCH:
                 _query = ActivityLogsSearchQuery.model_validate(query)
             else:
@@ -238,7 +204,7 @@ class AsyncNucliaLogs:
             dict,
             DownloadActivityLogsQuery,
             DownloadActivityLogsSearchQuery,
-            DownloadActivityLogsChatQuery,
+            DownloadActivityLogsAskQuery,
         ],
         download_format: Union[DownloadFormat, str],
         wait: bool = False,
@@ -247,8 +213,8 @@ class AsyncNucliaLogs:
         """
         Download activity logs.
 
-        :param type: SEARCH, CHAT, VISITED, MODIFIED, DELETED, NEW, STARTED, STOPPED, PROCESSED
-        :param type: NDJSON, CSV
+        :param type: VISITED, MODIFIED, DELETED, NEW, SEARCH, SUGGEST, INDEXED, CHAT, ASK, STARTED, STOPPED, PROCESSED
+        :param download_format: NDJSON, CSV
         :param query: DownloadActivityLogsQuery
         """
         _type = EventType[type.upper()] if isinstance(type, str) else type
@@ -262,11 +228,11 @@ class AsyncNucliaLogs:
             dict,
             DownloadActivityLogsQuery,
             DownloadActivityLogsSearchQuery,
-            DownloadActivityLogsChatQuery,
+            DownloadActivityLogsAskQuery,
         ]
         if isinstance(query, dict):
-            if _type is EventType.CHAT:
-                _query = DownloadActivityLogsChatQuery.model_validate(query)
+            if _type in (EventType.ASK, EventType.CHAT):  # TODO: deprecate chat event
+                _query = DownloadActivityLogsAskQuery.model_validate(query)
             elif type is EventType.SEARCH:
                 _query = DownloadActivityLogsSearchQuery.model_validate(query)
             else:
