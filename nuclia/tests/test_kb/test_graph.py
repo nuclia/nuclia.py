@@ -40,6 +40,10 @@ def test_graph(testing_config):
     )
     relations = nkb.get_graph(slug="graph1")
     assert len(relations) == 4
+
+    paths = nkb.search.graph({"query": {"prop": "source", "value": "Alice"}})
+    assert len(paths.paths) == 2
+
     nkb.delete_graph(slug="graph1")
     try:
         sleep(0.5)

@@ -139,3 +139,33 @@ In these cases, you can just pass your query as a dictionnary in the `query` par
   search.find(query={"query": "My search", "filters": ["/icon/application/pdf", "/classification.labels/region/Asia"]})
   search.ask(query={"query": "My search","top_k": 5})
   ```
+
+## Graph queries
+
+The Python SDK allows graph queries supported by the `/graph` endpoint. Although
+a bit cumbersome, the knowledge graph can be queried as in this example:
+
+- CLI:
+
+  ```bash
+  nuclia kb search graph --query='{"query": {"prop": "path", "source": {"value": "Rust"}, "destination": {"value": "Python"}}}'
+  ```
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  search = sdk.NucliaSearch()
+  search.graph(
+      query={
+          "query": {
+              "prop": "path",
+              "source": {"value": "Rust"},
+              "destination": {"value": "Python"}
+          }
+      }
+  )
+  ```
+
+For more information about graph querying, please refer to [Nuclia's graph
+doc](https://docs.nuclia.dev/docs/rag/advanced/graph) or the [API reference](https://docs.nuclia.dev/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post)
