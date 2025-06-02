@@ -4,8 +4,15 @@ from nucliadb_sdk.v2.exceptions import NotFoundError
 from time import sleep
 
 
-def test_graph(testing_config):
+def test_graph(testing_config, cleanup_graph_resource):
     nkb = NucliaKB()
+
+    # ensure KB is clean
+    try:
+        nkb.delete_graph(slug="graph1")
+    except NotFoundError:
+        pass
+
     nkb.add_graph(
         slug="graph1",
         graph=[
