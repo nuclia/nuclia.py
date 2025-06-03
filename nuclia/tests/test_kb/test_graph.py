@@ -4,7 +4,7 @@ from nucliadb_sdk.v2.exceptions import NotFoundError
 from time import sleep
 
 
-def test_graph(testing_config, cleanup_graph_resource):
+def test_graph(testing_config):
     nkb = NucliaKB()
 
     # ensure KB is clean
