@@ -4,7 +4,7 @@
 ## 4.8.11 (unreleased)
 
 
-- Nothing changed yet.
+- Add search graph method
 
 
 ## 4.8.10 (2025-05-28)
