@@ -6,6 +6,13 @@ from time import sleep
 
 def test_graph(testing_config):
     nkb = NucliaKB()
+
+    # ensure KB is clean
+    try:
+        nkb.delete_graph(slug="graph1")
+    except NotFoundError:
+        pass
+
     nkb.add_graph(
         slug="graph1",
         graph=[
@@ -28,6 +35,25 @@ def test_graph(testing_config):
     )
     relations = nkb.get_graph(slug="graph1")
     assert len(relations) == 3
+
+    # XXX: sometimes, nucliadb needs some more time to index the graph. We retry
+    # some times and fail if that keeps hapenning
+    RETRIES = 5
+    DELAY = 0.5
+    for _ in range(RETRIES):
+        paths = nkb.search.graph(
+            query={"query": {"prop": "path", "source": {"value": "Alice"}}}
+        )
+        try:
+            assert len(paths.paths) == 2
+        except AssertionError:
+            # wait for a bit before retrying
+            print("Graph was not indexed yet, waiting a bit...")
+            sleep(DELAY)
+        else:
+            break
+    assert len(paths.paths) == 2
+
     nkb.update_graph(
         slug="graph1",
         graph=[
@@ -40,6 +66,20 @@ def test_graph(testing_config):
     )
     relations = nkb.get_graph(slug="graph1")
     assert len(relations) == 4
+
+    for _ in range(RETRIES):
+        paths = nkb.search.graph(
+            query={"query": {"prop": "path", "source": {"value": "Victor"}}}
+        )
+        try:
+            assert len(paths.paths) == 1
+        except AssertionError:
+            print("Graph was not indexed yet, waiting a bit...")
+            sleep(DELAY)
+        else:
+            break
+    assert len(paths.paths) == 1
+
     nkb.delete_graph(slug="graph1")
     try:
         sleep(0.5)

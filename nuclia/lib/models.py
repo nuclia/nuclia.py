@@ -48,7 +48,7 @@ class GraphRelation(BaseModel):
     destination: GraphEntity
 
     def to_relation(self) -> Relation:
-        return Relation.parse_obj(
+        return Relation.model_validate(
             {
                 "from": self.source.to_dict(),
                 "to": self.destination.to_dict(),
@@ -60,6 +60,6 @@ class GraphRelation(BaseModel):
 
 def get_relation(relation: Union[GraphRelation, dict]) -> GraphRelation:
     if isinstance(relation, dict):
-        return GraphRelation.parse_obj(relation)
+        return GraphRelation.model_validate(relation)
     else:
         return relation
