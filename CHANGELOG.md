@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.8.11 (unreleased)
+## 4.9.0 (2025-06-05)
 
 
 - Add search graph method
