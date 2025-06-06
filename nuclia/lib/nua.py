@@ -212,6 +212,7 @@ class NuaClient:
     def query_predict(
         self,
         text: str,
+        extra_headers: dict[str, str],
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
@@ -223,7 +224,9 @@ class NuaClient:
             endpoint += f"&token_model={token_model}"
         if generative_model:
             endpoint += f"&generative_model={generative_model}"
-        return self._request("GET", endpoint, output=QueryInfo)
+        return self._request(
+            "GET", endpoint, output=QueryInfo, extra_headers=extra_headers
+        )
 
     def generate(
         self,
@@ -345,12 +348,13 @@ class NuaClient:
     def remi(
         self,
         request: RemiRequest,
-        # TODO
+        extra_headers: dict[str, str],
     ) -> RemiResponse:
         endpoint = f"{self.url}{REMI_PREDICT}"
         return self._request(
             "POST",
             endpoint,
+            extra_headers=extra_headers,
             payload=request.model_dump(),
             output=RemiResponse,
         )
@@ -564,10 +568,10 @@ class AsyncNuaClient:
     async def query_predict(
         self,
         text: str,
+        extra_headers: dict[str, str],
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
-        # TODO
     ) -> QueryInfo:
         endpoint = f"{self.url}{QUERY_PREDICT}?text={text}"
         if semantic_model:
@@ -576,7 +580,9 @@ class AsyncNuaClient:
             endpoint += f"&token_model={token_model}"
         if generative_model:
             endpoint += f"&generative_model={generative_model}"
-        return await self._request("GET", endpoint, output=QueryInfo)
+        return await self._request(
+            "GET", endpoint, output=QueryInfo, extra_headers=extra_headers
+        )
 
     @deprecated(version="2.1.0", reason="You should use generate function")
     async def generate_predict(
@@ -712,13 +718,18 @@ class AsyncNuaClient:
             output=RephraseModel,
         )
 
-    async def remi(self, request: RemiRequest) -> RemiResponse:
+    async def remi(
+        self,
+        request: RemiRequest,
+        extra_headers: dict[str, str],
+    ) -> RemiResponse:
         endpoint = f"{self.url}{REMI_PREDICT}"
         return await self._request(
             "POST",
             endpoint,
             payload=request.model_dump(),
             output=RemiResponse,
+            extra_headers=extra_headers,
         )
 
     async def generate_retrieval(

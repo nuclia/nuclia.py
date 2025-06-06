@@ -61,6 +61,7 @@ class NucliaPredict:
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
+        show_consumption: bool = False,
         **kwargs,
     ) -> QueryInfo:
         nc: NuaClient = kwargs["nc"]
@@ -69,11 +70,16 @@ class NucliaPredict:
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
     @nua
     def generate(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> GenerativeFullResponse:
         nc: NuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -86,7 +92,11 @@ class NucliaPredict:
         else:
             body = text
 
-        return nc.generate(body, model)
+        return nc.generate(
+            body,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def generate_stream(
@@ -162,7 +172,12 @@ class NucliaPredict:
         return nc.generate(body, model)
 
     @nua
-    def remi(self, request: Optional[RemiRequest] = None, **kwargs) -> RemiResponse:
+    def remi(
+        self,
+        request: Optional[RemiRequest] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> RemiResponse:
         """
         Perform a REMi evaluation over a RAG experience
 
@@ -176,7 +191,9 @@ class NucliaPredict:
         if request is None:
             request = RemiRequest(**kwargs)
         nc: NuaClient = kwargs["nc"]
-        return nc.remi(request)
+        return nc.remi(
+            request, extra_headers={"show_consumption": str(show_consumption).lower()}
+        )
 
 
 class AsyncNucliaPredict:
@@ -218,7 +235,11 @@ class AsyncNucliaPredict:
 
     @nua
     async def generate(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> GenerativeFullResponse:
         nc: AsyncNuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -230,7 +251,11 @@ class AsyncNucliaPredict:
             )
         else:
             body = text
-        return await nc.generate(body, model)
+        return await nc.generate(
+            body,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def generate_stream(
@@ -270,6 +295,7 @@ class AsyncNucliaPredict:
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
+        show_consumption: bool = False,
         **kwargs,
     ) -> QueryInfo:
         nc: AsyncNuaClient = kwargs["nc"]
@@ -278,6 +304,7 @@ class AsyncNucliaPredict:
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -317,7 +344,10 @@ class AsyncNucliaPredict:
 
     @nua
     async def remi(
-        self, request: Optional[RemiRequest] = None, **kwargs
+        self,
+        request: Optional[RemiRequest] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> RemiResponse:
         """
         Perform a REMi evaluation over a RAG experience
@@ -330,4 +360,7 @@ class AsyncNucliaPredict:
             request = RemiRequest(**kwargs)
 
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.remi(request)
+        return await nc.remi(
+            request,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
