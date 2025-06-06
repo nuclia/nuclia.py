@@ -90,7 +90,11 @@ class NucliaPredict:
 
     @nua
     def generate_stream(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> Iterator[GenerativeChunk]:
         nc: NuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -103,7 +107,11 @@ class NucliaPredict:
         else:
             body = text
 
-        for chunk in nc.generate_stream(body, model):
+        for chunk in nc.generate_stream(
+            body,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        ):
             yield chunk
 
     @nua
@@ -113,10 +121,18 @@ class NucliaPredict:
 
     @nua
     def summarize(
-        self, texts: dict[str, str], model: Optional[str] = None, **kwargs
+        self,
+        texts: dict[str, str],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> SummarizedModel:
         nc: NuaClient = kwargs["nc"]
-        return nc.summarize(texts, model)
+        return nc.summarize(
+            texts,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def rephrase(
@@ -218,7 +234,11 @@ class AsyncNucliaPredict:
 
     @nua
     async def generate_stream(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> AsyncIterator[GenerativeChunk]:
         nc: AsyncNuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -231,7 +251,11 @@ class AsyncNucliaPredict:
         else:
             body = text
 
-        async for chunk in nc.generate_stream(body, model):
+        async for chunk in nc.generate_stream(
+            body,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        ):
             yield chunk
 
     @nua
@@ -258,10 +282,18 @@ class AsyncNucliaPredict:
 
     @nua
     async def summarize(
-        self, texts: dict[str, str], model: Optional[str] = None, **kwargs
+        self,
+        texts: dict[str, str],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> SummarizedModel:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.summarize(texts, model)
+        return await nc.summarize(
+            texts,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def rephrase(

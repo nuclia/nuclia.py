@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from nuclia import REGIONAL
 from nuclia.exceptions import NuaAPIException
+from nuclia_models.common.consumption import ConsumptionGenerative
 from nuclia_models.predict.generative_responses import (
     GenerativeChunk,
     GenerativeFullResponse,
@@ -124,10 +125,13 @@ class NuaClient:
         method: str,
         url: str,
         output: Type[ConvertType],
+        extra_headers: dict[str, str],
         payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> ConvertType:
-        resp = self.client.request(method, url, json=payload, timeout=timeout)
+        resp = self.client.request(
+            method, url, json=payload, timeout=timeout, headers=extra_headers
+        )
         if resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
         try:
@@ -140,6 +144,7 @@ class NuaClient:
         self,
         method: str,
         url: str,
+        extra_headers: dict[str, str],
         payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> Iterator[GenerativeChunk]:
@@ -148,8 +153,9 @@ class NuaClient:
             url,
             json=payload,
             timeout=timeout,
+            headers=extra_headers,
         ) as response:
-            if response.headers.get("content-type") == "application/x-ndjson":
+            if response.headers.get("transfer-encoding") == "chunked":
                 for json_body in response.iter_lines():
                     try:
                         yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
@@ -220,7 +226,11 @@ class NuaClient:
         return self._request("GET", endpoint, output=QueryInfo)
 
     def generate(
-        self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
+        self,
+        body: ChatModel,
+        extra_headers: dict[str, str],
+        model: Optional[str] = None,
+        timeout: int = 300,
     ) -> GenerativeFullResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
@@ -232,6 +242,7 @@ class NuaClient:
             endpoint,
             payload=body.model_dump(),
             timeout=timeout,
+            extra_headers=extra_headers,
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
@@ -249,10 +260,17 @@ class NuaClient:
                 result.code = chunk.chunk.code
             elif isinstance(chunk.chunk, ToolsGenerativeResponse):
                 result.tools = chunk.chunk.tools
+            elif isinstance(chunk.chunk, ConsumptionGenerative):
+                result.consumption.normalized_tokens = chunk.chunk.normalized_tokens
+                result.consumption.customer_key_tokens = chunk.chunk.customer_key_tokens
         return result
 
     def generate_stream(
-        self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
+        self,
+        body: ChatModel,
+        extra_headers: dict[str, str],
+        model: Optional[str] = None,
+        timeout: int = 300,
     ) -> Iterator[GenerativeChunk]:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
@@ -263,11 +281,16 @@ class NuaClient:
             endpoint,
             payload=body.model_dump(),
             timeout=timeout,
+            extra_headers=extra_headers,
         ):
             yield gr
 
     def summarize(
-        self, documents: dict[str, str], model: Optional[str] = None, timeout: int = 300
+        self,
+        documents: dict[str, str],
+        extra_headers: dict[str, str],
+        model: Optional[str] = None,
+        timeout: int = 300,
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
         if model:
@@ -285,6 +308,7 @@ class NuaClient:
             payload=body.model_dump(),
             output=SummarizedModel,
             timeout=timeout,
+            extra_headers=extra_headers,
         )
 
     def rephrase(
@@ -321,6 +345,7 @@ class NuaClient:
     def remi(
         self,
         request: RemiRequest,
+        # TODO
     ) -> RemiResponse:
         endpoint = f"{self.url}{REMI_PREDICT}"
         return self._request(
@@ -444,10 +469,13 @@ class AsyncNuaClient:
         method: str,
         url: str,
         output: Type[ConvertType],
+        extra_headers: dict[str, str],
         payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> ConvertType:
-        resp = await self.client.request(method, url, json=payload, timeout=timeout)
+        resp = await self.client.request(
+            method, url, json=payload, timeout=timeout, headers=extra_headers
+        )
         if resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
         try:
@@ -460,6 +488,7 @@ class AsyncNuaClient:
         self,
         method: str,
         url: str,
+        extra_headers: dict[str, str],
         payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> AsyncIterator[GenerativeChunk]:
@@ -468,8 +497,9 @@ class AsyncNuaClient:
             url,
             json=payload,
             timeout=timeout,
+            headers=extra_headers,
         ) as response:
-            if response.headers.get("content-type") == "application/x-ndjson":
+            if response.headers.get("transfer-encoding") == "chunked":
                 async for json_body in response.aiter_lines():
                     try:
                         yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
@@ -537,6 +567,7 @@ class AsyncNuaClient:
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
+        # TODO
     ) -> QueryInfo:
         endpoint = f"{self.url}{QUERY_PREDICT}?text={text}"
         if semantic_model:
@@ -564,7 +595,11 @@ class AsyncNuaClient:
         )
 
     async def generate(
-        self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
+        self,
+        body: ChatModel,
+        extra_headers: dict[str, str],
+        model: Optional[str] = None,
+        timeout: int = 300,
     ) -> GenerativeFullResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
@@ -576,6 +611,7 @@ class AsyncNuaClient:
             endpoint,
             payload=body.model_dump(),
             timeout=timeout,
+            extra_headers=extra_headers,
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
@@ -593,11 +629,18 @@ class AsyncNuaClient:
                 result.code = chunk.chunk.code
             elif isinstance(chunk.chunk, ToolsGenerativeResponse):
                 result.tools = chunk.chunk.tools
+            elif isinstance(chunk.chunk, ConsumptionGenerative):
+                result.consumption.normalized_tokens = chunk.chunk.normalized_tokens
+                result.consumption.customer_key_tokens = chunk.chunk.customer_key_tokens
 
         return result
 
     async def generate_stream(
-        self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
+        self,
+        body: ChatModel,
+        extra_headers: dict[str, str],
+        model: Optional[str] = None,
+        timeout: int = 300,
     ) -> AsyncIterator[GenerativeChunk]:
         endpoint = f"{self.url}{CHAT_PREDICT}"
         if model:
@@ -608,11 +651,16 @@ class AsyncNuaClient:
             endpoint,
             payload=body.model_dump(),
             timeout=timeout,
+            extra_headers=extra_headers,
         ):
             yield gr
 
     async def summarize(
-        self, documents: dict[str, str], model: Optional[str] = None, timeout: int = 300
+        self,
+        documents: dict[str, str],
+        extra_headers: dict[str, str],
+        model: Optional[str] = None,
+        timeout: int = 300,
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
         if model:
@@ -630,6 +678,7 @@ class AsyncNuaClient:
             payload=body.model_dump(),
             output=SummarizedModel,
             timeout=timeout,
+            extra_headers=extra_headers,
         )
 
     async def rephrase(
