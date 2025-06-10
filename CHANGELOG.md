@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 4.9.2 (unreleased)
+
+
+- Nothing changed yet.
+
+
 ## 4.9.1 (2025-06-10)
 
 
