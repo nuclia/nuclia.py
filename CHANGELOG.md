@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.1 (unreleased)
+## 4.9.1 (2025-06-10)
 
 
 - Learning Config proper schema with vectorsets
