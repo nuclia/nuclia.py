@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Any, Dict, List, Optional, Union, cast
 
 import pydantic
@@ -486,17 +486,37 @@ class ChatResponse(BaseModel):
         return ChatResponse(answer=obj.decode())
 
 
+class SimilarityFunction(IntEnum):
+    # Keep this in sync with SimilarityFunction in config.proto
+    # It's an IntEnum to match the protobuf definition
+    DOT = 0
+    COSINE = 1
+
+
+class SemanticConfig(BaseModel):
+    # Keep this in sync with SemanticConfig in config.proto
+    similarity: SimilarityFunction
+    size: int
+    threshold: float
+    max_tokens: Optional[int] = None
+    matryoshka_dims: list[int] = []
+    external: bool = False
+
+
 class StoredLearningConfiguration(BaseModel):
     resource_labelers_models: Optional[List[str]] = None
     paragraph_labelers_models: Optional[List[str]] = None
     intent_models: Optional[List[str]] = None
 
+    default_semantic_model: Optional[str] = None
+    semantic_models: Optional[list[str]] = Field(default_factory=list[str])
+    semantic_model_configs: dict[str, SemanticConfig] = {}
     semantic_model: str
     anonymization_model: str
     generative_model: str
     ner_model: str
     relation_model: str
-    visual_labeling: str
+    visual_labeling: Optional[str] = None
 
     user_keys: Optional[UserLearningKeys] = None
     user_prompts: Optional[UserPrompts] = None

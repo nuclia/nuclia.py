@@ -4,7 +4,7 @@
 ## 4.9.1 (unreleased)
 
 
-- Nothing changed yet.
+- Learning Config proper schema with vectorsets
 
 
 ## 4.9.0 (2025-06-05)
