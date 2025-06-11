@@ -1,7 +1,6 @@
 from nuclia.sdk.kb import NucliaKB
 
 
-
 def test_extract_strategies(testing_config):
     nkb = NucliaKB()
     # preventive clean up
