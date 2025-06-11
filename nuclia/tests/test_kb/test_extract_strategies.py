@@ -11,6 +11,6 @@ def test_extract_strategies(testing_config):
     nkb.extract_strategies.add(config={"name": "strategy1", "vllm_config": {}})
     all = nkb.extract_strategies.list()
     assert len(all.keys()) == 1
-    nkb.extract_strategies.delete(all.keys()[0])
+    nkb.extract_strategies.delete(list(all.keys())[0])
     all = nkb.extract_strategies.list()
     assert len(all.keys()) == 0
