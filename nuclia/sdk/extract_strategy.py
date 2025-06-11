@@ -4,7 +4,6 @@ from nuclia.exceptions import InvalidPayload
 from nuclia.lib.kb import NucliaDBClient, AsyncNucliaDBClient
 from nuclia.sdk.auth import NucliaAuth, AsyncNucliaAuth
 from nuclia_models.config.proto import ExtractConfig
-from typing import Union
 
 
 class NucliaExtractStrategy:

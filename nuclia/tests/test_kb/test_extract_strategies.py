@@ -1,6 +1,5 @@
 from nuclia.sdk.kb import NucliaKB
 
-import pytest
 
 
 def test_extract_strategies(testing_config):
