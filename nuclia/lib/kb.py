@@ -23,6 +23,7 @@ from nuclia_models.events.activity_logs import (  # type: ignore
 )
 from nuclia_models.events.remi import RemiQuery
 from nuclia_models.worker.tasks import TaskStartKB
+from nuclia_models.config.proto import ExtractConfig
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.utils import handle_http_sync_errors, handle_http_async_errors
 from datetime import datetime
@@ -58,6 +59,8 @@ STOP_TASK = "/task/{task_id}/stop"
 DELETE_TASK = "/task/{task_id}"
 GET_TASK = "/task/{task_id}/inspect"
 RESTART_TASK = "/task/{task_id}/restart"
+EXTRACT_STRATEGIES = "/extract_strategies"
+DELETE_EXTRACT_STRATEGY = "/extract_strategies/strategy/{id}"
 
 DOWNLOAD_FORMAT_HEADERS = {
     DownloadFormat.CSV: "text/csv",
@@ -487,6 +490,37 @@ class NucliaDBClient(BaseNucliaDBClient):
         handle_http_sync_errors(response)
         return response
 
+    def list_extract_strategies(self) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.reader_session.get(
+            f"{self.url}{EXTRACT_STRATEGIES}"
+        )
+        handle_http_sync_errors(response)
+        return response
+
+    def add_extract_strategy(self, config: ExtractConfig) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.post(
+            f"{self.url}{EXTRACT_STRATEGIES}",
+            json=config.model_dump(mode="json", exclude_unset=True),
+        )
+        handle_http_sync_errors(response)
+        return response
+
+    def delete_extract_strategy(self, strategy_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.delete(
+            f"{self.url}{DELETE_EXTRACT_STRATEGY.format(id=strategy_id)}",
+        )
+        handle_http_sync_errors(response)
+        return response
+
 
 class AsyncNucliaDBClient(BaseNucliaDBClient):
     reader_session: Optional[httpx.AsyncClient] = None
@@ -810,6 +844,37 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
 
         response: httpx.Response = await self.writer_session.post(
             f"{self.url}{RESTART_TASK.format(task_id=task_id)}",
+        )
+        await handle_http_async_errors(response)
+        return response
+
+    async def list_extract_strategies(self) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.reader_session.get(
+            f"{self.url}{EXTRACT_STRATEGIES}"
+        )
+        await handle_http_async_errors(response)
+        return response
+
+    async def add_extract_strategy(self, config: ExtractConfig) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.post(
+            f"{self.url}{EXTRACT_STRATEGIES}",
+            json=config.model_dump(mode="json", exclude_unset=True),
+        )
+        await handle_http_async_errors(response)
+        return response
+
+    async def delete_extract_strategy(self, strategy_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.delete(
+            f"{self.url}{DELETE_EXTRACT_STRATEGY.format(id=strategy_id)}",
         )
         await handle_http_async_errors(response)
         return response
