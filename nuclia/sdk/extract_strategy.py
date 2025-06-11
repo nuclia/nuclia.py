@@ -56,7 +56,7 @@ class NucliaExtractStrategy:
             pass
 
 
-class AsyncNucliaTask:
+class AsyncNucliaExtractStrategy:
     @property
     def _auth(self) -> AsyncNucliaAuth:
         auth = get_async_auth()
