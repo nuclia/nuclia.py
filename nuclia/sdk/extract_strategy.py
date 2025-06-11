@@ -4,6 +4,7 @@ from nuclia.exceptions import InvalidPayload
 from nuclia.lib.kb import NucliaDBClient, AsyncNucliaDBClient
 from nuclia.sdk.auth import NucliaAuth, AsyncNucliaAuth
 from nuclia_models.config.proto import ExtractConfig
+from typing import Dict
 
 
 class NucliaExtractStrategy:
@@ -14,7 +15,7 @@ class NucliaExtractStrategy:
 
     @kb
     @pretty
-    def list(self, *args, **kwargs) -> ExtractConfig:
+    def list(self, *args, **kwargs) -> Dict[str, ExtractConfig]:
         """
         List extract strategies
         """
@@ -28,7 +29,7 @@ class NucliaExtractStrategy:
         *args,
         config: ExtractConfig,
         **kwargs,
-    ):
+    ) -> str:
         """
         Add extract strategy
 
@@ -63,7 +64,7 @@ class AsyncNucliaExtractStrategy:
 
     @kb
     @pretty
-    async def list(self, *args, **kwargs) -> ExtractConfig:
+    async def list(self, *args, **kwargs) -> Dict[str, ExtractConfig]:
         """
         List extract strategies
         """
@@ -77,7 +78,7 @@ class AsyncNucliaExtractStrategy:
         *args,
         config: ExtractConfig,
         **kwargs,
-    ):
+    ) -> str:
         """
         Add extract strategy
 
