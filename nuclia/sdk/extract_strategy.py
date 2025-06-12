@@ -1,6 +1,5 @@
 from nuclia.data import get_auth, get_async_auth
 from nuclia.decorators import kb, pretty
-from nuclia.exceptions import InvalidPayload
 from nuclia.lib.kb import NucliaDBClient, AsyncNucliaDBClient
 from nuclia.sdk.auth import NucliaAuth, AsyncNucliaAuth
 from nuclia_models.config.proto import ExtractConfig
@@ -50,10 +49,7 @@ class NucliaExtractStrategy:
         :param id: ID of the strategy to delete
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        try:
-            _ = ndb.delete_extract_strategy(strategy_id=id)
-        except InvalidPayload:
-            pass
+        ndb.delete_extract_strategy(strategy_id=id)
 
 
 class AsyncNucliaExtractStrategy:
@@ -99,7 +95,4 @@ class AsyncNucliaExtractStrategy:
         :param id: ID of the strategy to delete
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        try:
-            _ = await ndb.delete_extract_strategy(strategy_id=id)
-        except InvalidPayload:
-            pass
+        await ndb.delete_extract_strategy(strategy_id=id)
