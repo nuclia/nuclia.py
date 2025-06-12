@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.2 (unreleased)
+## 4.9.2 (2025-06-12)
 
 
 - Support extract strategies
