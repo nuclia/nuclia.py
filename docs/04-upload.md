@@ -250,3 +250,43 @@ kb.update_graph(slug="graph1", overrides=True, graph=[
     }
 ])
 ```
+
+## Use extract strategies
+
+Extract strategies allow you to perform specific processing at ingestion time. It can be useful to handle complex tables extraction, or to support unusual layouts.
+
+### Manage extract strategies
+
+CLI:
+
+```bash
+nuclia kb extract_strategies add --config='{"name":"strategy1","vllm_config":{}}'
+nuclia kb extract_strategies list
+nuclia kb extract_strategies delete --id=1361c0c7-918a-4a7f-b44b-ba37437619fb
+```
+
+SDK:
+
+```python
+from nuclia import sdk
+extract_strategies = sdk.NucliaKB().extract_strategies
+print(extract_strategies.list())
+id = extract_strategies.add(config={"name": "strategy1", "vllm_config": {}})
+extract_strategies.delete(id=id)
+```
+
+### Use extract strategies
+
+CLI:
+
+```bash
+nuclia kb upload file --path=FILE_PATH --extract_strategy=1361c0c7-918a-4a7f-b44b-ba37437619fb
+```
+
+SDK:
+
+```python
+from nuclia import sdk
+upload = sdk.NucliaUpload()
+upload.file(path=FILE_PATH, extract_strategy="1361c0c7-918a-4a7f-b44b-ba37437619fb")
+```
