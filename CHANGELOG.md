@@ -4,7 +4,7 @@
 ## 4.9.3 (unreleased)
 
 
-- Nothing changed yet.
+- Add rerank funcion
 
 
 ## 4.9.2 (2025-06-12)
