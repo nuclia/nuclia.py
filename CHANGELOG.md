@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.3 (unreleased)
+## 4.9.3 (2025-06-16)
 
 
 - Add rerank funcion
