@@ -49,8 +49,8 @@ def testing_config(testing_kb, testing_nua, testing_user):
         nuclia_auth._config.set_default_kb(TESTING_KBID)
         nuclia_auth._config.set_default_nua(client_id)
 
-    yield
-    reset_config_file()
+        yield
+        reset_config_file()
 
 
 @pytest.fixture(autouse=True)

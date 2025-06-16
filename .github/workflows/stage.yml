@@ -32,7 +32,6 @@ jobs:
 
       - name: Install package
         run: uv sync --no-editable --all-extras
-          
 
       - name: Run pre-checks
         run: |

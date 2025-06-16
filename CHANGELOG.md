@@ -1,10 +1,28 @@
 # Changelog
 
 
-## 4.8.11 (unreleased)
+## 4.9.3 (unreleased)
 
 
 - Nothing changed yet.
+
+
+## 4.9.2 (2025-06-12)
+
+
+- Support extract strategies
+
+
+## 4.9.1 (2025-06-10)
+
+
+- Learning Config proper schema with vectorsets
+
+
+## 4.9.0 (2025-06-05)
+
+
+- Add search graph method
 
 
 ## 4.8.10 (2025-05-28)

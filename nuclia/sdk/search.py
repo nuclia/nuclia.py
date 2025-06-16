@@ -20,6 +20,8 @@ from nucliadb_models.search import (
     SyncAskResponse,
     ChatModel,
 )
+from nucliadb_models.graph.requests import GraphSearchRequest
+from nucliadb_models.graph.responses import GraphSearchResponse
 from pydantic import ValidationError
 
 from nuclia.data import get_async_auth, get_auth
@@ -330,6 +332,33 @@ class NucliaSearch:
             if ask_response.metadata.tokens is not None:
                 result.tokens = ask_response.metadata.tokens.model_dump()
         return result
+
+    @kb
+    def graph(
+        self,
+        *,
+        query: Union[dict, GraphSearchRequest],
+        **kwargs,
+    ) -> GraphSearchResponse:
+        """
+        Perform a graph path query.
+
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+
+        if isinstance(query, GraphSearchRequest):
+            req = query
+        elif isinstance(query, dict):
+            try:
+                req = GraphSearchRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
+        else:
+            raise Exception(f"Invalid query: '{query}'")
+
+        return ndb.ndb.graph_search(req, kbid=ndb.kbid)
 
 
 class AsyncNucliaSearch:
@@ -659,3 +688,30 @@ class AsyncNucliaSearch:
             else:  # pragma: no cover
                 warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
+
+    @kb
+    async def graph(
+        self,
+        *,
+        query: Union[dict, GraphSearchRequest],
+        **kwargs,
+    ) -> GraphSearchResponse:
+        """
+        Perform a graph path query.
+
+        See https://docs.nuclia.dev/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post
+        """
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+
+        if isinstance(query, GraphSearchRequest):
+            req = query
+        elif isinstance(query, dict):
+            try:
+                req = GraphSearchRequest.model_validate(query)
+            except ValidationError:
+                logger.exception("Error validating query")
+                raise
+        else:
+            raise Exception(f"Invalid query: '{query}'")
+
+        return await ndb.ndb.graph_search(req, kbid=ndb.kbid)
