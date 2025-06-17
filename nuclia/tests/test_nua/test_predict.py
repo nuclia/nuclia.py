@@ -32,7 +32,8 @@ def test_predict_query(testing_config):
     assert query.visual_llm is True
     assert query.entities and query.entities.tokens[0].text == "Ramon"
     assert query.sentence and len(query.sentence.data) == 1024
-    assert query.consumption is not None
+    assert query.entities.consumption is not None
+    assert query.sentence.consumption is not None
 
 
 def test_rag(testing_config):

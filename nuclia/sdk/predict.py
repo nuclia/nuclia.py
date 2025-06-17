@@ -60,7 +60,11 @@ class NucliaPredict:
         **kwargs,
     ) -> Sentence:
         nc: NuaClient = kwargs["nc"]
-        return nc.sentence_predict(text, model)
+        return nc.sentence_predict(
+            text,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def query(
@@ -177,7 +181,12 @@ class NucliaPredict:
 
     @nua
     def rag(
-        self, question: str, context: list[str], model: Optional[str] = None, **kwargs
+        self,
+        question: str,
+        context: list[str],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> GenerativeFullResponse:
         nc: NuaClient = kwargs["nc"]
         body = ChatModel(
@@ -187,7 +196,11 @@ class NucliaPredict:
             query_context=context,
         )
 
-        return nc.generate(body, model)
+        return nc.generate(
+            body,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def remi(
