@@ -1,4 +1,7 @@
-from nuclia_models.predict.generative_responses import TextGenerativeResponse
+from nuclia_models.predict.generative_responses import (
+    TextGenerativeResponse,
+    ConsumptionGenerative,
+)
 
 from nuclia.lib.nua_responses import ChatModel, RerankModel, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
@@ -8,9 +11,12 @@ from nuclia_models.predict.remi import RemiRequest
 
 def test_predict(testing_config):
     np = NucliaPredict()
-    embed = np.sentence(text="This is my text", model="multilingual-2024-05-06")
+    embed = np.sentence(
+        text="This is my text", model="multilingual-2024-05-06", show_consumption=True
+    )
     assert embed.time > 0
     assert len(embed.data) == 1024
+    assert embed.consumption is not None
 
 
 def test_predict_query(testing_config):
@@ -20,11 +26,13 @@ def test_predict_query(testing_config):
         semantic_model="multilingual-2024-05-06",
         token_model="multilingual",
         generative_model="chatgpt-azure-4o-mini",
+        show_consumption=True,
     )
     assert query.language == "en"
     assert query.visual_llm is True
     assert query.entities and query.entities.tokens[0].text == "Ramon"
     assert query.sentence and len(query.sentence.data) == 1024
+    assert query.consumption is not None
 
 
 def test_rag(testing_config):
@@ -36,14 +44,17 @@ def test_rag(testing_config):
             "Eudald Camprubí is CEO at the same company as Ramon Navarro",
         ],
         model="chatgpt-azure-4o-mini",
+        show_consumption=True,
     )
     assert "Eudald" in generated.answer
+    assert generated.consumption is not None
 
 
 def test_generative(testing_config):
     np = NucliaPredict()
     generated = np.generate(text="How much is 2 + 2?", model="chatgpt-azure-4o-mini")
     assert "4" in generated.answer
+    assert generated.consumption is None
 
 
 @pytest.mark.asyncio
@@ -87,13 +98,18 @@ def test_stream_generative(testing_config):
 @pytest.mark.asyncio
 async def test_async_stream_generative(testing_config):
     np = AsyncNucliaPredict()
+    consumption_found = False
+    found = False
     async for stream in np.generate_stream(
-        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini"
+        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini", show_consumption=True
     ):
         if isinstance(stream.chunk, TextGenerativeResponse) and stream.chunk.text:
             if "4" in stream.chunk.text:
                 found = True
+        elif isinstance(stream.chunk, ConsumptionGenerative):
+            consumption_found = True
     assert found
+    assert consumption_found
 
 
 SCHEMA = {
@@ -165,6 +181,8 @@ def test_nua_remi(testing_config):
     assert results.context_relevance[1] < 2
     assert results.groundedness[1] < 2
 
+    assert results.consumption is None
+
 
 @pytest.mark.asyncio
 async def test_nua_async_remi(testing_config):
@@ -178,7 +196,8 @@ async def test_nua_async_remi(testing_config):
                 "Paris is the capital of France.",
                 "Berlin is the capital of Germany.",
             ],
-        )
+        ),
+        show_consumption=True,
     )
     assert results.answer_relevance.score >= 4
 
@@ -187,6 +206,8 @@ async def test_nua_async_remi(testing_config):
 
     assert results.context_relevance[1] < 2
     assert results.groundedness[1] < 2
+
+    assert results.consumption is not None
 
 
 def test_nua_rerank(testing_config):
@@ -202,6 +223,7 @@ def test_nua_rerank(testing_config):
         )
     )
     assert results.context_scores["1"] > results.context_scores["2"]
+    assert results.consumption is None
 
 
 @pytest.mark.asyncio

@@ -52,6 +52,7 @@ class ConfigSchema(BaseModel):
 class Sentence(BaseModel):
     data: List[float]
     time: float
+    consumption: Optional[Consumption] = None
 
 
 class Author(str, Enum):
@@ -562,6 +563,7 @@ class QueryInfo(BaseModel):
     max_context: int
     entities: Optional[TokenSearch]
     sentence: Optional[SentenceSearch]
+    consumption: Optional[Consumption] = None
 
 
 class RerankModel(BaseModel):
