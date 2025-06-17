@@ -185,3 +185,20 @@ def test_nua_rerank(testing_config):
         )
     )
     assert results.context_scores["1"] > results.context_scores["2"]
+
+
+def test_nua_rerank_with_consumption(testing_config):
+    np = NucliaPredict()
+    results = np.rerank(
+        RerankModel(
+            user_id="Nuclia PY CLI",
+            question="What is the capital of France?",
+            context={
+                "1": "Paris is the capital of France.",
+                "2": "Berlin is the capital of Germany.",
+            },
+        ),
+        show_consumption=True,
+    )
+    assert results.context_scores["1"] > results.context_scores["2"]
+    assert results.consumption is not None

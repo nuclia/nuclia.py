@@ -573,3 +573,4 @@ class RerankResponse(BaseModel):
     context_scores: dict[str, float] = Field(
         description="Scores for each context given by the reranker"
     )
+    consumption: Optional[Consumption] = None
