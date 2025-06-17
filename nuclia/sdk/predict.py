@@ -78,7 +78,7 @@ class NucliaPredict:
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -103,7 +103,7 @@ class NucliaPredict:
         return nc.generate(
             body=body,
             model=model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -128,7 +128,7 @@ class NucliaPredict:
         for chunk in nc.generate_stream(
             body=body,
             model=model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         ):
             yield chunk
 
@@ -144,7 +144,7 @@ class NucliaPredict:
         return nc.tokens_predict(
             text,
             model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -159,7 +159,7 @@ class NucliaPredict:
         return nc.summarize(
             documents=texts,
             model=model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -211,7 +211,7 @@ class NucliaPredict:
         nc: NuaClient = kwargs["nc"]
         return nc.remi(
             request=request,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -227,7 +227,7 @@ class NucliaPredict:
         nc: NuaClient = kwargs["nc"]
         return nc.rerank(
             request,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
 
@@ -293,7 +293,7 @@ class AsyncNucliaPredict:
         return await nc.generate(
             body=body,
             model=model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -318,7 +318,7 @@ class AsyncNucliaPredict:
         async for chunk in nc.generate_stream(
             body=body,
             model=model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         ):
             yield chunk
 
@@ -334,7 +334,7 @@ class AsyncNucliaPredict:
         return await nc.tokens_predict(
             text,
             model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -353,7 +353,7 @@ class AsyncNucliaPredict:
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -368,7 +368,7 @@ class AsyncNucliaPredict:
         return await nc.summarize(
             documents=texts,
             model=model,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -411,7 +411,7 @@ class AsyncNucliaPredict:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.remi(
             request=request,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
@@ -427,5 +427,5 @@ class AsyncNucliaPredict:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.rerank(
             request,
-            extra_headers={"show_consumption": str(show_consumption).lower()},
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
