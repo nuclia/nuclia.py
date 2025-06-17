@@ -47,6 +47,23 @@ def test_generative(testing_config):
 
 
 @pytest.mark.asyncio
+async def test_generative_with_consumption(testing_config):
+    np = NucliaPredict()
+    generated = np.generate(
+        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini", show_consumption=True
+    )
+    assert "4" in generated.answer
+    assert generated.consumption is not None
+
+    anp = AsyncNucliaPredict()
+    async_generated = await anp.generate(
+        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini", show_consumption=True
+    )
+    assert "4" in async_generated.answer
+    assert async_generated.consumption is not None
+
+
+@pytest.mark.asyncio
 async def test_async_generative(testing_config):
     np = AsyncNucliaPredict()
     generated = await np.generate(
@@ -187,7 +204,8 @@ def test_nua_rerank(testing_config):
     assert results.context_scores["1"] > results.context_scores["2"]
 
 
-def test_nua_rerank_with_consumption(testing_config):
+@pytest.mark.asyncio
+async def test_nua_rerank_with_consumption(testing_config):
     np = NucliaPredict()
     results = np.rerank(
         RerankModel(
@@ -202,3 +220,18 @@ def test_nua_rerank_with_consumption(testing_config):
     )
     assert results.context_scores["1"] > results.context_scores["2"]
     assert results.consumption is not None
+
+    anp = AsyncNucliaPredict()
+    async_results = await anp.rerank(
+        RerankModel(
+            user_id="Nuclia PY CLI",
+            question="What is the capital of France?",
+            context={
+                "1": "Paris is the capital of France.",
+                "2": "Berlin is the capital of Germany.",
+            },
+        ),
+        show_consumption=True,
+    )
+    assert async_results.context_scores["1"] > async_results.context_scores["2"]
+    assert async_results.consumption is not None

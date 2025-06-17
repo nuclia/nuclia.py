@@ -138,6 +138,7 @@ class Token(BaseModel):
 class Tokens(BaseModel):
     tokens: List[Token]
     time: float
+    consumption: Optional[Consumption] = None
 
 
 class SummarizeResource(BaseModel):

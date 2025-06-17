@@ -52,7 +52,13 @@ class NucliaPredict:
         nc.del_config_predict(kbid)
 
     @nua
-    def sentence(self, text: str, model: Optional[str] = None, **kwargs) -> Sentence:
+    def sentence(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> Sentence:
         nc: NuaClient = kwargs["nc"]
         return nc.sentence_predict(text, model)
 
@@ -127,9 +133,19 @@ class NucliaPredict:
             yield chunk
 
     @nua
-    def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
+    def tokens(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> Tokens:
         nc: NuaClient = kwargs["nc"]
-        return nc.tokens_predict(text, model)
+        return nc.tokens_predict(
+            text,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def summarize(
@@ -247,7 +263,11 @@ class AsyncNucliaPredict:
 
     @nua
     async def sentence(
-        self, text: str, model: Optional[str] = None, **kwargs
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> Sentence:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.sentence_predict(text, model)
@@ -303,9 +323,19 @@ class AsyncNucliaPredict:
             yield chunk
 
     @nua
-    async def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
+    async def tokens(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> Tokens:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.tokens_predict(text, model)
+        return await nc.tokens_predict(
+            text,
+            model,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def query(

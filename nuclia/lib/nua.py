@@ -201,17 +201,31 @@ class NuaClient:
             endpoint = f"{self.url}{CONFIG}/{kbid}"
         return self._request("GET", endpoint, output=StoredLearningConfiguration)
 
-    def sentence_predict(self, text: str, model: Optional[str] = None) -> Sentence:
+    def sentence_predict(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
+    ) -> Sentence:
         endpoint = f"{self.url}{SENTENCE_PREDICT}?text={text}"
         if model:
             endpoint += f"&model={model}"
-        return self._request("GET", endpoint, output=Sentence)
+        return self._request(
+            "GET", endpoint, output=Sentence, extra_headers=extra_headers
+        )
 
-    def tokens_predict(self, text: str, model: Optional[str] = None) -> Tokens:
+    def tokens_predict(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
+    ) -> Tokens:
         endpoint = f"{self.url}{TOKENS_PREDICT}?text={text}"
         if model:
             endpoint += f"&model={model}"
-        return self._request("GET", endpoint, output=Tokens)
+        return self._request(
+            "GET", endpoint, output=Tokens, extra_headers=extra_headers
+        )
 
     def query_predict(
         self,
@@ -572,18 +586,30 @@ class AsyncNuaClient:
         return await self._request("GET", endpoint, output=StoredLearningConfiguration)
 
     async def sentence_predict(
-        self, text: str, model: Optional[str] = None
+        self,
+        text: str,
+        model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
     ) -> Sentence:
         endpoint = f"{self.url}{SENTENCE_PREDICT}?text={text}"
         if model:
             endpoint += f"&model={model}"
-        return await self._request("GET", endpoint, output=Sentence)
+        return await self._request(
+            "GET", endpoint, output=Sentence, extra_headers=extra_headers
+        )
 
-    async def tokens_predict(self, text: str, model: Optional[str] = None) -> Tokens:
+    async def tokens_predict(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
+    ) -> Tokens:
         endpoint = f"{self.url}{TOKENS_PREDICT}?text={text}"
         if model:
             endpoint += f"&model={model}"
-        return await self._request("GET", endpoint, output=Tokens)
+        return await self._request(
+            "GET", endpoint, output=Tokens, extra_headers=extra_headers
+        )
 
     async def query_predict(
         self,
