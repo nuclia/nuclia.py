@@ -29,6 +29,7 @@ from nuclia_models.predict.generative_responses import (
     StatusGenerativeResponse,
     ToolsGenerativeResponse,
 )
+from nuclia_models.common.consumption import Consumption
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
@@ -128,8 +129,8 @@ class NuaClient:
         method: str,
         url: str,
         output: Type[ConvertType],
-        extra_headers: dict[str, str],
         payload: Optional[dict[Any, Any]] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
     ) -> ConvertType:
         resp = self.client.request(
@@ -147,7 +148,7 @@ class NuaClient:
         self,
         method: str,
         url: str,
-        extra_headers: dict[str, str],
+        extra_headers: Optional[dict[str, str]] = None,
         payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> Iterator[GenerativeChunk]:
@@ -215,10 +216,10 @@ class NuaClient:
     def query_predict(
         self,
         text: str,
-        extra_headers: dict[str, str],
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
     ) -> QueryInfo:
         endpoint = f"{self.url}{QUERY_PREDICT}?text={text}"
         if semantic_model:
@@ -234,8 +235,8 @@ class NuaClient:
     def generate(
         self,
         body: ChatModel,
-        extra_headers: dict[str, str],
         model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> GenerativeFullResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
@@ -267,15 +268,17 @@ class NuaClient:
             elif isinstance(chunk.chunk, ToolsGenerativeResponse):
                 result.tools = chunk.chunk.tools
             elif isinstance(chunk.chunk, ConsumptionGenerative):
-                result.consumption.normalized_tokens = chunk.chunk.normalized_tokens
-                result.consumption.customer_key_tokens = chunk.chunk.customer_key_tokens
+                result.consumption = Consumption(
+                    normalized_tokens=chunk.chunk.normalized_tokens,
+                    customer_key_tokens=chunk.chunk.customer_key_tokens,
+                )
         return result
 
     def generate_stream(
         self,
         body: ChatModel,
-        extra_headers: dict[str, str],
         model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> Iterator[GenerativeChunk]:
         endpoint = f"{self.url}{CHAT_PREDICT}"
@@ -294,8 +297,8 @@ class NuaClient:
     def summarize(
         self,
         documents: dict[str, str],
-        extra_headers: dict[str, str],
         model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
@@ -351,7 +354,7 @@ class NuaClient:
     def remi(
         self,
         request: RemiRequest,
-        extra_headers: dict[str, str],
+        extra_headers: Optional[dict[str, str]] = None,
     ) -> RemiResponse:
         endpoint = f"{self.url}{REMI_PREDICT}"
         return self._request(
@@ -442,10 +445,18 @@ class NuaClient:
         activity_endpoint = f"{self.url}{STATUS_PROCESS}/{process_id}"
         return self._request("GET", activity_endpoint, ProcessRequestStatus)
 
-    def rerank(self, model: RerankModel) -> RerankResponse:
+    def rerank(
+        self,
+        model: RerankModel,
+        extra_headers: Optional[dict[str, str]] = None,
+    ) -> RerankResponse:
         endpoint = f"{self.url}{RERANK}"
         return self._request(
-            "POST", endpoint, payload=model.model_dump(), output=RerankResponse
+            "POST",
+            endpoint,
+            payload=model.model_dump(),
+            output=RerankResponse,
+            extra_headers=extra_headers,
         )
 
 
@@ -482,8 +493,8 @@ class AsyncNuaClient:
         method: str,
         url: str,
         output: Type[ConvertType],
-        extra_headers: dict[str, str],
         payload: Optional[dict[Any, Any]] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
     ) -> ConvertType:
         resp = await self.client.request(
@@ -501,7 +512,7 @@ class AsyncNuaClient:
         self,
         method: str,
         url: str,
-        extra_headers: dict[str, str],
+        extra_headers: Optional[dict[str, str]] = None,
         payload: Optional[dict[Any, Any]] = None,
         timeout: int = 60,
     ) -> AsyncIterator[GenerativeChunk]:
@@ -577,10 +588,10 @@ class AsyncNuaClient:
     async def query_predict(
         self,
         text: str,
-        extra_headers: dict[str, str],
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
     ) -> QueryInfo:
         endpoint = f"{self.url}{QUERY_PREDICT}?text={text}"
         if semantic_model:
@@ -612,8 +623,8 @@ class AsyncNuaClient:
     async def generate(
         self,
         body: ChatModel,
-        extra_headers: dict[str, str],
         model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> GenerativeFullResponse:
         endpoint = f"{self.url}{CHAT_PREDICT}"
@@ -645,16 +656,18 @@ class AsyncNuaClient:
             elif isinstance(chunk.chunk, ToolsGenerativeResponse):
                 result.tools = chunk.chunk.tools
             elif isinstance(chunk.chunk, ConsumptionGenerative):
-                result.consumption.normalized_tokens = chunk.chunk.normalized_tokens
-                result.consumption.customer_key_tokens = chunk.chunk.customer_key_tokens
+                result.consumption = Consumption(
+                    normalized_tokens=chunk.chunk.normalized_tokens,
+                    customer_key_tokens=chunk.chunk.customer_key_tokens,
+                )
 
         return result
 
     async def generate_stream(
         self,
         body: ChatModel,
-        extra_headers: dict[str, str],
         model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> AsyncIterator[GenerativeChunk]:
         endpoint = f"{self.url}{CHAT_PREDICT}"
@@ -673,8 +686,8 @@ class AsyncNuaClient:
     async def summarize(
         self,
         documents: dict[str, str],
-        extra_headers: dict[str, str],
         model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> SummarizedModel:
         endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
@@ -730,7 +743,7 @@ class AsyncNuaClient:
     async def remi(
         self,
         request: RemiRequest,
-        extra_headers: dict[str, str],
+        extra_headers: Optional[dict[str, str]] = None,
     ) -> RemiResponse:
         endpoint = f"{self.url}{REMI_PREDICT}"
         return await self._request(
@@ -862,8 +875,14 @@ class AsyncNuaClient:
             "GET", activity_endpoint, output=ProcessRequestStatus
         )
 
-    async def rerank(self, model: RerankModel) -> RerankResponse:
+    async def rerank(
+        self, model: RerankModel, extra_headers: Optional[dict[str, str]] = None
+    ) -> RerankResponse:
         endpoint = f"{self.url}{RERANK}"
         return await self._request(
-            "POST", endpoint, payload=model.model_dump(), output=RerankResponse
+            "POST",
+            endpoint,
+            payload=model.model_dump(),
+            output=RerankResponse,
+            extra_headers=extra_headers,
         )

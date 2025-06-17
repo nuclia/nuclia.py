@@ -68,7 +68,7 @@ class NucliaPredict:
     ) -> QueryInfo:
         nc: NuaClient = kwargs["nc"]
         return nc.query_predict(
-            text,
+            text=text,
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
@@ -95,8 +95,8 @@ class NucliaPredict:
             body = text
 
         return nc.generate(
-            body,
-            model,
+            body=body,
+            model=model,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
@@ -120,8 +120,8 @@ class NucliaPredict:
             body = text
 
         for chunk in nc.generate_stream(
-            body,
-            model,
+            body=body,
+            model=model,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         ):
             yield chunk
@@ -141,8 +141,8 @@ class NucliaPredict:
     ) -> SummarizedModel:
         nc: NuaClient = kwargs["nc"]
         return nc.summarize(
-            texts,
-            model,
+            documents=texts,
+            model=model,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
@@ -194,11 +194,14 @@ class NucliaPredict:
             request = RemiRequest(**kwargs)
         nc: NuaClient = kwargs["nc"]
         return nc.remi(
-            request, extra_headers={"show_consumption": str(show_consumption).lower()}
+            request=request,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
     @nua
-    def rerank(self, request: RerankModel, **kwargs) -> RerankResponse:
+    def rerank(
+        self, request: RerankModel, show_consumption: bool = False, **kwargs
+    ) -> RerankResponse:
         """
         Perform a reranking of the results based on the question and context provided.
 
@@ -206,7 +209,10 @@ class NucliaPredict:
         :return: RerankResponse
         """
         nc: NuaClient = kwargs["nc"]
-        return nc.rerank(request)
+        return nc.rerank(
+            request,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
 
 
 class AsyncNucliaPredict:
@@ -265,8 +271,8 @@ class AsyncNucliaPredict:
         else:
             body = text
         return await nc.generate(
-            body,
-            model,
+            body=body,
+            model=model,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
@@ -290,8 +296,8 @@ class AsyncNucliaPredict:
             body = text
 
         async for chunk in nc.generate_stream(
-            body,
-            model,
+            body=body,
+            model=model,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         ):
             yield chunk
@@ -313,7 +319,7 @@ class AsyncNucliaPredict:
     ) -> QueryInfo:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.query_predict(
-            text,
+            text=text,
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
@@ -330,8 +336,8 @@ class AsyncNucliaPredict:
     ) -> SummarizedModel:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.summarize(
-            texts,
-            model,
+            documents=texts,
+            model=model,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
@@ -374,12 +380,14 @@ class AsyncNucliaPredict:
 
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.remi(
-            request,
+            request=request,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         )
 
     @nua
-    async def rerank(self, request: RerankModel, **kwargs) -> RerankResponse:
+    async def rerank(
+        self, request: RerankModel, show_consumption: bool = False, **kwargs
+    ) -> RerankResponse:
         """
         Perform a reranking of the results based on the question and context provided.
 
@@ -387,4 +395,7 @@ class AsyncNucliaPredict:
         :return: RerankResponse
         """
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.rerank(request)
+        return await nc.rerank(
+            request,
+            extra_headers={"show_consumption": str(show_consumption).lower()},
+        )
