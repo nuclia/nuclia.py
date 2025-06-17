@@ -13,6 +13,8 @@ from nuclia.lib.nua_responses import (
     ConfigSchema,
     LearningConfigurationCreation,
     QueryInfo,
+    RerankModel,
+    RerankResponse,
     Sentence,
     StoredLearningConfiguration,
     SummarizedModel,
@@ -195,6 +197,17 @@ class NucliaPredict:
             request, extra_headers={"show_consumption": str(show_consumption).lower()}
         )
 
+    @nua
+    def rerank(self, request: RerankModel, **kwargs) -> RerankResponse:
+        """
+        Perform a reranking of the results based on the question and context provided.
+
+        :param request: RerankModel
+        :return: RerankResponse
+        """
+        nc: NuaClient = kwargs["nc"]
+        return nc.rerank(request)
+
 
 class AsyncNucliaPredict:
     @property
@@ -364,3 +377,14 @@ class AsyncNucliaPredict:
             request,
             extra_headers={"show_consumption": str(show_consumption).lower()},
         )
+
+    @nua
+    async def rerank(self, request: RerankModel, **kwargs) -> RerankResponse:
+        """
+        Perform a reranking of the results based on the question and context provided.
+
+        :param request: RerankModel
+        :return: RerankResponse
+        """
+        nc: AsyncNuaClient = kwargs["nc"]
+        return await nc.rerank(request)

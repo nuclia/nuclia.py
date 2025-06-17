@@ -561,3 +561,15 @@ class QueryInfo(BaseModel):
     max_context: int
     entities: Optional[TokenSearch]
     sentence: Optional[SentenceSearch]
+
+
+class RerankModel(BaseModel):
+    question: str
+    user_id: str
+    context: dict[str, str] = {}
+
+
+class RerankResponse(BaseModel):
+    context_scores: dict[str, float] = Field(
+        description="Scores for each context given by the reranker"
+    )

@@ -1,6 +1,6 @@
 from nuclia_models.predict.generative_responses import TextGenerativeResponse
 
-from nuclia.lib.nua_responses import ChatModel, UserPrompt
+from nuclia.lib.nua_responses import ChatModel, RerankModel, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 import pytest
 from nuclia_models.predict.remi import RemiRequest
@@ -170,3 +170,18 @@ async def test_nua_async_remi(testing_config):
 
     assert results.context_relevance[1] < 2
     assert results.groundedness[1] < 2
+
+
+def test_nua_rerank(testing_config):
+    np = NucliaPredict()
+    results = np.rerank(
+        RerankModel(
+            user_id="Nuclia PY CLI",
+            question="What is the capital of France?",
+            context={
+                "1": "Paris is the capital of France.",
+                "2": "Berlin is the capital of Germany.",
+            },
+        )
+    )
+    assert results.context_scores["1"] > results.context_scores["2"]

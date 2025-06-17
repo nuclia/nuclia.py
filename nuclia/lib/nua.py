@@ -43,6 +43,8 @@ from nuclia.lib.nua_responses import (
     PushResponseV2,
     QueryInfo,
     RephraseModel,
+    RerankModel,
+    RerankResponse,
     RestrictedIDString,
     Sentence,
     Source,
@@ -78,6 +80,7 @@ PUSH_PROCESS = "/api/v2/processing/push"
 SCHEMA = "/api/v1/learning/configuration/schema"
 SCHEMA_KBID = "/api/v1/schema"
 CONFIG = "/api/v1/config"
+RERANK = "/api/v1/predict/rerank"
 
 ConvertType = TypeVar("ConvertType", bound=BaseModel)
 
@@ -438,6 +441,12 @@ class NuaClient:
     def processing_id_status(self, process_id: str) -> ProcessRequestStatus:
         activity_endpoint = f"{self.url}{STATUS_PROCESS}/{process_id}"
         return self._request("GET", activity_endpoint, ProcessRequestStatus)
+
+    def rerank(self, model: RerankModel) -> RerankResponse:
+        endpoint = f"{self.url}{RERANK}"
+        return self._request(
+            "POST", endpoint, payload=model.model_dump(), output=RerankResponse
+        )
 
 
 class AsyncNuaClient:
@@ -851,4 +860,10 @@ class AsyncNuaClient:
         activity_endpoint = f"{self.url}{STATUS_PROCESS}/{process_id}"
         return await self._request(
             "GET", activity_endpoint, output=ProcessRequestStatus
+        )
+
+    async def rerank(self, model: RerankModel) -> RerankResponse:
+        endpoint = f"{self.url}{RERANK}"
+        return await self._request(
+            "POST", endpoint, payload=model.model_dump(), output=RerankResponse
         )
