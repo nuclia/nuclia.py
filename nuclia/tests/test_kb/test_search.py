@@ -132,7 +132,11 @@ def test_ask_json(testing_config):
 async def test_ask_json_async(testing_config):
     search = AsyncNucliaSearch()
     results = await search.ask_json(
-        query="Who is hedy Lamarr?", filters=["/icon/application/pdf"], schema=SCHEMA
+        query="Who is hedy Lamarr?",
+        filters=["/icon/application/pdf"],
+        schema=SCHEMA,
+        show_consumption=True,
     )
 
     assert "TECHNOLOGY" in results.object["document_type"]
+    assert results.consumption is not None
