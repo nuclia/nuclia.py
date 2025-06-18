@@ -283,7 +283,11 @@ class AsyncNucliaPredict:
         **kwargs,
     ) -> Sentence:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.sentence_predict(text, model)
+        return await nc.sentence_predict(
+            text,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def generate(
