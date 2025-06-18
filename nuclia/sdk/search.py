@@ -184,6 +184,7 @@ class NucliaSearch:
         filters: Optional[Union[List[str], List[Filter]]] = None,
         rag_strategies: Optional[list[RagStrategies]] = None,
         rag_images_strategies: Optional[list[RagImagesStrategies]] = None,
+        show_consumption: bool = False,
         **kwargs,
     ):
         """
@@ -217,7 +218,11 @@ class NucliaSearch:
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
 
-        ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
+        ask_response: SyncAskResponse = ndb.ndb.ask(
+            kbid=ndb.kbid,
+            content=req,
+            headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
         result = AskAnswer(
             answer=ask_response.answer.encode(),
@@ -257,6 +262,7 @@ class NucliaSearch:
         schema: Union[str, Dict[str, Any]],
         query: Union[str, dict, AskRequest, None] = None,
         filters: Optional[Union[List[str], List[Filter]]] = None,
+        show_consumption: bool = False,
         **kwargs,
     ):
         """
@@ -303,7 +309,11 @@ class NucliaSearch:
                 req.filters = filters
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
+        ask_response: SyncAskResponse = ndb.ndb.ask(
+            kbid=ndb.kbid,
+            content=req,
+            headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
         result = AskAnswer(
             answer=ask_response.answer.encode(),
@@ -483,6 +493,7 @@ class AsyncNucliaSearch:
         *,
         query: Union[str, dict, AskRequest],
         filters: Optional[List[str]] = None,
+        show_consumption: bool = False,
         timeout: int = 100,
         **kwargs,
     ):
@@ -509,7 +520,11 @@ class AsyncNucliaSearch:
             req = query
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_stream_response = await ndb.ask(req, timeout=timeout)
+        ask_stream_response = await ndb.ask(
+            req,
+            timeout=timeout,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
         result = AskAnswer(
             answer=b"",
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
@@ -569,6 +584,7 @@ class AsyncNucliaSearch:
         *,
         query: Union[str, dict, AskRequest],
         filters: Optional[List[str]] = None,
+        show_consumption: bool = False,
         timeout: int = 100,
         **kwargs,
     ) -> AsyncIterator[AskResponseItem]:
@@ -593,7 +609,11 @@ class AsyncNucliaSearch:
             req = query
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_stream_response = await ndb.ask(req, timeout=timeout)
+        ask_stream_response = await ndb.ask(
+            req,
+            timeout=timeout,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
         async for line in ask_stream_response.aiter_lines():
             try:
                 ask_response_item = AskResponseItem.model_validate_json(line)
@@ -609,6 +629,7 @@ class AsyncNucliaSearch:
         query: Union[str, dict, AskRequest],
         schema: Dict[str, Any],
         filters: Optional[List[str]] = None,
+        show_consumption: bool = False,
         timeout: int = 100,
         **kwargs,
     ):
@@ -635,7 +656,11 @@ class AsyncNucliaSearch:
             req = query
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_stream_response = await ndb.ask(req, timeout=timeout)
+        ask_stream_response = await ndb.ask(
+            req,
+            timeout=timeout,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
         result = AskAnswer(
             answer=b"",
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
