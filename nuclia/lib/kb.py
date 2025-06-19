@@ -324,13 +324,18 @@ class NucliaDBClient(BaseNucliaDBClient):
         handle_http_sync_errors(response)
         return int(response.headers.get("Upload-Offset"))
 
-    def summarize(self, request: SummarizeRequest, timeout: int = 1000):
+    def summarize(
+        self,
+        request: SummarizeRequest,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 1000,
+    ):
         if self.url is None or self.writer_session is None:
             raise Exception("KB not configured")
         url = f"{self.url}{SUMMARIZE_URL}"
         assert self.reader_session
         response = self.reader_session.post(
-            url, json=request.model_dump(), timeout=timeout
+            url, json=request.model_dump(), headers=extra_headers, timeout=timeout
         )
         handle_http_sync_errors(response)
         return response
@@ -569,12 +574,21 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         await handle_http_async_errors(response)
         return response
 
-    async def ask(self, request: AskRequest, timeout: int = 1000):
+    async def ask(
+        self,
+        request: AskRequest,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 1000,
+    ):
         if self.url is None or self.reader_session is None:
             raise Exception("KB not configured")
         url = f"{self.url}{ASK_URL}"
         req = self.reader_session.build_request(
-            "POST", url, json=request.model_dump(), timeout=timeout
+            "POST",
+            url,
+            json=request.model_dump(),
+            headers=extra_headers,
+            timeout=timeout,
         )
         response = await self.reader_session.send(req, stream=True)
         await handle_http_async_errors(response)
@@ -681,13 +695,18 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         await handle_http_async_errors(response)
         return int(response.headers.get("Upload-Offset"))
 
-    async def summarize(self, request: SummarizeRequest, timeout: int = 1000):
+    async def summarize(
+        self,
+        request: SummarizeRequest,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 1000,
+    ):
         if self.url is None or self.writer_session is None:
             raise Exception("KB not configured")
         url = f"{self.url}{SUMMARIZE_URL}"
         assert self.reader_session
         response = await self.reader_session.post(
-            url, json=request.model_dump(), timeout=timeout
+            url, json=request.model_dump(), headers=extra_headers, timeout=timeout
         )
         await handle_http_async_errors(response)
         return response

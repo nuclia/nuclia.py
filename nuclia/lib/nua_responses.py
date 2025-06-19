@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 import pydantic
 from pydantic import BaseModel, Field, RootModel, model_validator
 from typing_extensions import Annotated, Self
+from nuclia_models.common.consumption import Consumption
 
 
 class GenerativeOption(BaseModel):
@@ -51,6 +52,7 @@ class ConfigSchema(BaseModel):
 class Sentence(BaseModel):
     data: List[float]
     time: float
+    consumption: Optional[Consumption] = None
 
 
 class Author(str, Enum):
@@ -137,6 +139,7 @@ class Token(BaseModel):
 class Tokens(BaseModel):
     tokens: List[Token]
     time: float
+    consumption: Optional[Consumption] = None
 
 
 class SummarizeResource(BaseModel):
@@ -155,6 +158,7 @@ class SummarizedResource(BaseModel):
 class SummarizedModel(BaseModel):
     resources: Dict[str, SummarizedResource]
     summary: str = ""
+    consumption: Optional[Consumption] = None
 
 
 class RephraseModel(RootModel[str]):
@@ -535,6 +539,7 @@ class StoredLearningConfiguration(BaseModel):
 class SentenceSearch(BaseModel):
     data: List[float] = []
     time: float
+    consumption: Optional[Consumption] = None
 
 
 class Ner(BaseModel):
@@ -547,6 +552,7 @@ class Ner(BaseModel):
 class TokenSearch(BaseModel):
     tokens: List[Ner] = []
     time: float
+    consumption: Optional[Consumption] = None
 
 
 class QueryInfo(BaseModel):
@@ -569,3 +575,4 @@ class RerankResponse(BaseModel):
     context_scores: dict[str, float] = Field(
         description="Scores for each context given by the reranker"
     )
+    consumption: Optional[Consumption] = None
