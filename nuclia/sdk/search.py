@@ -30,7 +30,7 @@ from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 from nuclia.sdk.resource import RagImagesStrategiesParse, RagStrategiesParse
-from nuclia_models.common.consumption import Consumption
+from nuclia_models.common.consumption import Consumption, TokensDetail
 
 
 @dataclass
@@ -267,7 +267,7 @@ class NucliaSearch:
         filters: Optional[Union[List[str], List[Filter]]] = None,
         show_consumption: bool = False,
         **kwargs,
-    ) -> AskAnswer:
+    ) -> Optional[AskAnswer]:
         """
         Answer a question.
 
@@ -281,10 +281,10 @@ class NucliaSearch:
                         schema_json = json.load(json_file_handler)
                     except Exception:
                         logger.exception("File format is not JSON")
-                        return
+                        return None
             else:
                 logger.exception("File not found")
-                return
+                return None
         else:
             schema_json = schema
 
@@ -569,7 +569,18 @@ class AsyncNucliaSearch:
                 if ask_response_item.tokens:
                     result.tokens = ask_response_item.tokens.model_dump()
             elif ask_response_item.type == "consumption":
-                result.consumption = ask_response_item.consumption
+                result.consumption = Consumption(
+                    normalized_tokens=TokensDetail(
+                        input=ask_response_item.normalized_tokens.input,
+                        output=ask_response_item.normalized_tokens.output,
+                        image=ask_response_item.normalized_tokens.image,
+                    ),
+                    customer_key_tokens=TokensDetail(
+                        input=ask_response_item.customer_key_tokens.input,
+                        output=ask_response_item.customer_key_tokens.output,
+                        image=ask_response_item.customer_key_tokens.image,
+                    ),
+                )
             elif ask_response_item.type == "status":
                 result.status = ask_response_item.status
             elif ask_response_item.type == "prequeries":
@@ -708,7 +719,18 @@ class AsyncNucliaSearch:
                 if ask_response_item.tokens:
                     result.tokens = ask_response_item.tokens.model_dump()
             elif ask_response_item.type == "consumption":
-                result.consumption = ask_response_item.consumption
+                result.consumption = Consumption(
+                    normalized_tokens=TokensDetail(
+                        input=ask_response_item.normalized_tokens.input,
+                        output=ask_response_item.normalized_tokens.output,
+                        image=ask_response_item.normalized_tokens.image,
+                    ),
+                    customer_key_tokens=TokensDetail(
+                        input=ask_response_item.customer_key_tokens.input,
+                        output=ask_response_item.customer_key_tokens.output,
+                        image=ask_response_item.customer_key_tokens.image,
+                    ),
+                )
             elif ask_response_item.type == "status":
                 result.status = ask_response_item.status
             elif ask_response_item.type == "prequeries":
