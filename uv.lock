@@ -1362,9 +1362,9 @@ requires-dist = [
     { name = "httpx" },
     { name = "litellm", marker = "extra == 'litellm'" },
     { name = "nuclia-models", specifier = ">=0.45.0" },
-    { name = "nucliadb-models", specifier = ">=6.5,<7" },
+    { name = "nucliadb-models", specifier = ">=6.6.1,<7" },
     { name = "nucliadb-protos", marker = "extra == 'protos'", specifier = ">=6.4,<7" },
-    { name = "nucliadb-sdk", specifier = ">=6.5,<7" },
+    { name = "nucliadb-sdk", specifier = ">=6.6.1,<7" },
     { name = "prompt-toolkit" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyyaml", specifier = ">=5.4" },
@@ -1404,13 +1404,13 @@ wheels = [
 
 [[package]]
 name = "nucliadb-models"
-version = "6.5.0.post4426"
+version = "6.6.1.post4619"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/69/69dd8d5d3702997d2c92146d8e148f2b822a75eb34b4294de74b782024ac/nucliadb_models-6.5.0.post4426-py3-none-any.whl", hash = "sha256:01adcabbf7c4c80d3fea1c977dc436eaae5ece46ae693bc26f3ad4a44ee4c399", size = 63118 },
+    { url = "https://files.pythonhosted.org/packages/1f/19/49c33cc5c11175dcf99c3852f63f31c35cbdfd6469166c05faa5c747aaa7/nucliadb_models-6.6.1.post4619-py3-none-any.whl", hash = "sha256:7ad0a98ba8ffc8f504503a6f05222b3775b2d93c154b714ebbe6216323fbc819", size = 64324 },
 ]
 
 [[package]]
@@ -1428,7 +1428,7 @@ wheels = [
 
 [[package]]
 name = "nucliadb-sdk"
-version = "6.5.0.post4426"
+version = "6.6.1.post4619"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -1438,7 +1438,7 @@ dependencies = [
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/ac/1e69414425fda61cf844bd0ff3600fcd8ad83edef571801fe1c339f38a39/nucliadb_sdk-6.5.0.post4426-py3-none-any.whl", hash = "sha256:032f2d8a1e758a9d1469e22a693192db12b49fe16a0f546cd0cd3a850ab9be0a", size = 16534 },
+    { url = "https://files.pythonhosted.org/packages/f6/2f/c7da09b9bd6db33c46ae8845c4dbc5c9314db03cf9f11e2f57cabadce001/nucliadb_sdk-6.6.1.post4619-py3-none-any.whl", hash = "sha256:612071bb191827a23b86a8987ff07561c76f9ca2e59370bbb26629583155b5ae", size = 16706 },
 ]
 
 [[package]]
