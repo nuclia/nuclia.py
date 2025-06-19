@@ -297,9 +297,15 @@ class NucliaKB:
         )
 
     @kb
-    def summarize(self, *, resources: List[str], **kwargs):
+    def summarize(
+        self, *, resources: List[str], show_consumption: bool = False, **kwargs
+    ):
         ndb: NucliaDBClient = kwargs["ndb"]
-        return ndb.ndb.summarize(kbid=ndb.kbid, resources=resources)
+        return ndb.ndb.summarize(
+            kbid=ndb.kbid,
+            resources=resources,
+            headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @kb
     def notifications(self, **kwargs):
@@ -715,6 +721,7 @@ class AsyncNucliaKB:
         resources: List[str],
         generative_model: Optional[str] = None,
         summary_kind: Optional[str] = None,
+        show_consumption: bool = False,
         timeout: int = 1000,
         **kwargs,
     ) -> SummarizedModel:
@@ -725,6 +732,7 @@ class AsyncNucliaKB:
                 generative_model=generative_model,
                 summary_kind=SummaryKind(summary_kind),
             ),
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
             timeout=timeout,
         )
         return SummarizedModel.model_validate(resp.json())

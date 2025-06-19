@@ -30,6 +30,7 @@ from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 from nuclia.sdk.resource import RagImagesStrategiesParse, RagStrategiesParse
+from nuclia_models.common.consumption import Consumption, TokensDetail
 
 
 @dataclass
@@ -49,6 +50,7 @@ class AskAnswer:
     relations: Optional[Relations]
     predict_request: Optional[ChatModel]
     error_details: Optional[str]
+    consumption: Optional[Consumption]
 
     def __str__(self):
         if self.answer:
@@ -184,8 +186,9 @@ class NucliaSearch:
         filters: Optional[Union[List[str], List[Filter]]] = None,
         rag_strategies: Optional[list[RagStrategies]] = None,
         rag_images_strategies: Optional[list[RagImagesStrategies]] = None,
+        show_consumption: bool = False,
         **kwargs,
-    ):
+    ) -> AskAnswer:
         """
         Answer a question.
 
@@ -217,7 +220,11 @@ class NucliaSearch:
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
 
-        ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
+        ask_response: SyncAskResponse = ndb.ndb.ask(
+            kbid=ndb.kbid,
+            content=req,
+            headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
         result = AskAnswer(
             answer=ask_response.answer.encode(),
@@ -239,6 +246,7 @@ class NucliaSearch:
             else None,
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
+            consumption=ask_response.consumption,
         )
 
         if ask_response.prompt_context:
@@ -257,8 +265,9 @@ class NucliaSearch:
         schema: Union[str, Dict[str, Any]],
         query: Union[str, dict, AskRequest, None] = None,
         filters: Optional[Union[List[str], List[Filter]]] = None,
+        show_consumption: bool = False,
         **kwargs,
-    ):
+    ) -> Optional[AskAnswer]:
         """
         Answer a question.
 
@@ -272,10 +281,10 @@ class NucliaSearch:
                         schema_json = json.load(json_file_handler)
                     except Exception:
                         logger.exception("File format is not JSON")
-                        return
+                        return None
             else:
                 logger.exception("File not found")
-                return
+                return None
         else:
             schema_json = schema
 
@@ -303,7 +312,11 @@ class NucliaSearch:
                 req.filters = filters
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_response: SyncAskResponse = ndb.ndb.ask(kbid=ndb.kbid, content=req)
+        ask_response: SyncAskResponse = ndb.ndb.ask(
+            kbid=ndb.kbid,
+            content=req,
+            headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
         result = AskAnswer(
             answer=ask_response.answer.encode(),
@@ -325,6 +338,7 @@ class NucliaSearch:
             else None,
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
+            consumption=ask_response.consumption,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -483,9 +497,10 @@ class AsyncNucliaSearch:
         *,
         query: Union[str, dict, AskRequest],
         filters: Optional[List[str]] = None,
+        show_consumption: bool = False,
         timeout: int = 100,
         **kwargs,
-    ):
+    ) -> AskAnswer:
         """
         Answer a question.
 
@@ -509,7 +524,11 @@ class AsyncNucliaSearch:
             req = query
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_stream_response = await ndb.ask(req, timeout=timeout)
+        ask_stream_response = await ndb.ask(
+            req,
+            timeout=timeout,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
         result = AskAnswer(
             answer=b"",
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
@@ -526,6 +545,7 @@ class AsyncNucliaSearch:
             predict_request=None,
             relations=None,
             prompt_context=None,
+            consumption=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -548,6 +568,19 @@ class AsyncNucliaSearch:
                     result.timings = ask_response_item.timings.model_dump()
                 if ask_response_item.tokens:
                     result.tokens = ask_response_item.tokens.model_dump()
+            elif ask_response_item.type == "consumption":
+                result.consumption = Consumption(
+                    normalized_tokens=TokensDetail(
+                        input=ask_response_item.normalized_tokens.input,
+                        output=ask_response_item.normalized_tokens.output,
+                        image=ask_response_item.normalized_tokens.image,
+                    ),
+                    customer_key_tokens=TokensDetail(
+                        input=ask_response_item.customer_key_tokens.input,
+                        output=ask_response_item.customer_key_tokens.output,
+                        image=ask_response_item.customer_key_tokens.image,
+                    ),
+                )
             elif ask_response_item.type == "status":
                 result.status = ask_response_item.status
             elif ask_response_item.type == "prequeries":
@@ -569,6 +602,7 @@ class AsyncNucliaSearch:
         *,
         query: Union[str, dict, AskRequest],
         filters: Optional[List[str]] = None,
+        show_consumption: bool = False,
         timeout: int = 100,
         **kwargs,
     ) -> AsyncIterator[AskResponseItem]:
@@ -593,7 +627,11 @@ class AsyncNucliaSearch:
             req = query
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_stream_response = await ndb.ask(req, timeout=timeout)
+        ask_stream_response = await ndb.ask(
+            req,
+            timeout=timeout,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
         async for line in ask_stream_response.aiter_lines():
             try:
                 ask_response_item = AskResponseItem.model_validate_json(line)
@@ -609,9 +647,10 @@ class AsyncNucliaSearch:
         query: Union[str, dict, AskRequest],
         schema: Dict[str, Any],
         filters: Optional[List[str]] = None,
+        show_consumption: bool = False,
         timeout: int = 100,
         **kwargs,
-    ):
+    ) -> AskAnswer:
         """
         Answer a question.
 
@@ -635,7 +674,11 @@ class AsyncNucliaSearch:
             req = query
         else:
             raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
-        ask_stream_response = await ndb.ask(req, timeout=timeout)
+        ask_stream_response = await ndb.ask(
+            req,
+            timeout=timeout,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
         result = AskAnswer(
             answer=b"",
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
@@ -652,6 +695,7 @@ class AsyncNucliaSearch:
             predict_request=None,
             relations=None,
             prompt_context=None,
+            consumption=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -674,6 +718,19 @@ class AsyncNucliaSearch:
                     result.timings = ask_response_item.timings.model_dump()
                 if ask_response_item.tokens:
                     result.tokens = ask_response_item.tokens.model_dump()
+            elif ask_response_item.type == "consumption":
+                result.consumption = Consumption(
+                    normalized_tokens=TokensDetail(
+                        input=ask_response_item.normalized_tokens.input,
+                        output=ask_response_item.normalized_tokens.output,
+                        image=ask_response_item.normalized_tokens.image,
+                    ),
+                    customer_key_tokens=TokensDetail(
+                        input=ask_response_item.customer_key_tokens.input,
+                        output=ask_response_item.customer_key_tokens.output,
+                        image=ask_response_item.customer_key_tokens.image,
+                    ),
+                )
             elif ask_response_item.type == "status":
                 result.status = ask_response_item.status
             elif ask_response_item.type == "prequeries":

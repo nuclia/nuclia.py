@@ -52,9 +52,19 @@ class NucliaPredict:
         nc.del_config_predict(kbid)
 
     @nua
-    def sentence(self, text: str, model: Optional[str] = None, **kwargs) -> Sentence:
+    def sentence(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> Sentence:
         nc: NuaClient = kwargs["nc"]
-        return nc.sentence_predict(text, model)
+        return nc.sentence_predict(
+            text,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def query(
@@ -63,19 +73,25 @@ class NucliaPredict:
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
+        show_consumption: bool = False,
         **kwargs,
     ) -> QueryInfo:
         nc: NuaClient = kwargs["nc"]
         return nc.query_predict(
-            text,
+            text=text,
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
     def generate(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> GenerativeFullResponse:
         nc: NuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -88,11 +104,19 @@ class NucliaPredict:
         else:
             body = text
 
-        return nc.generate(body, model)
+        return nc.generate(
+            body=body,
+            model=model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def generate_stream(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> Iterator[GenerativeChunk]:
         nc: NuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -105,20 +129,42 @@ class NucliaPredict:
         else:
             body = text
 
-        for chunk in nc.generate_stream(body, model):
+        for chunk in nc.generate_stream(
+            body=body,
+            model=model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        ):
             yield chunk
 
     @nua
-    def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
+    def tokens(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> Tokens:
         nc: NuaClient = kwargs["nc"]
-        return nc.tokens_predict(text, model)
+        return nc.tokens_predict(
+            text,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def summarize(
-        self, texts: dict[str, str], model: Optional[str] = None, **kwargs
+        self,
+        texts: dict[str, str],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> SummarizedModel:
         nc: NuaClient = kwargs["nc"]
-        return nc.summarize(texts, model)
+        return nc.summarize(
+            documents=texts,
+            model=model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     def rephrase(
@@ -135,7 +181,12 @@ class NucliaPredict:
 
     @nua
     def rag(
-        self, question: str, context: list[str], model: Optional[str] = None, **kwargs
+        self,
+        question: str,
+        context: list[str],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> GenerativeFullResponse:
         nc: NuaClient = kwargs["nc"]
         body = ChatModel(
@@ -145,10 +196,19 @@ class NucliaPredict:
             query_context=context,
         )
 
-        return nc.generate(body, model)
+        return nc.generate(
+            body,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
-    def remi(self, request: Optional[RemiRequest] = None, **kwargs) -> RemiResponse:
+    def remi(
+        self,
+        request: Optional[RemiRequest] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> RemiResponse:
         """
         Perform a REMi evaluation over a RAG experience
 
@@ -162,10 +222,15 @@ class NucliaPredict:
         if request is None:
             request = RemiRequest(**kwargs)
         nc: NuaClient = kwargs["nc"]
-        return nc.remi(request)
+        return nc.remi(
+            request=request,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
-    def rerank(self, request: RerankModel, **kwargs) -> RerankResponse:
+    def rerank(
+        self, request: RerankModel, show_consumption: bool = False, **kwargs
+    ) -> RerankResponse:
         """
         Perform a reranking of the results based on the question and context provided.
 
@@ -173,7 +238,10 @@ class NucliaPredict:
         :return: RerankResponse
         """
         nc: NuaClient = kwargs["nc"]
-        return nc.rerank(request)
+        return nc.rerank(
+            request,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
 
 class AsyncNucliaPredict:
@@ -208,14 +276,26 @@ class AsyncNucliaPredict:
 
     @nua
     async def sentence(
-        self, text: str, model: Optional[str] = None, **kwargs
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> Sentence:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.sentence_predict(text, model)
+        return await nc.sentence_predict(
+            text,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def generate(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> GenerativeFullResponse:
         nc: AsyncNuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -227,11 +307,19 @@ class AsyncNucliaPredict:
             )
         else:
             body = text
-        return await nc.generate(body, model)
+        return await nc.generate(
+            body=body,
+            model=model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def generate_stream(
-        self, text: Union[str, ChatModel], model: Optional[str] = None, **kwargs
+        self,
+        text: Union[str, ChatModel],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> AsyncIterator[GenerativeChunk]:
         nc: AsyncNuaClient = kwargs["nc"]
         if isinstance(text, str):
@@ -244,13 +332,27 @@ class AsyncNucliaPredict:
         else:
             body = text
 
-        async for chunk in nc.generate_stream(body, model):
+        async for chunk in nc.generate_stream(
+            body=body,
+            model=model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        ):
             yield chunk
 
     @nua
-    async def tokens(self, text: str, model: Optional[str] = None, **kwargs) -> Tokens:
+    async def tokens(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
+    ) -> Tokens:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.tokens_predict(text, model)
+        return await nc.tokens_predict(
+            text,
+            model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def query(
@@ -259,22 +361,32 @@ class AsyncNucliaPredict:
         semantic_model: Optional[str] = None,
         token_model: Optional[str] = None,
         generative_model: Optional[str] = None,
+        show_consumption: bool = False,
         **kwargs,
     ) -> QueryInfo:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.query_predict(
-            text,
+            text=text,
             semantic_model=semantic_model,
             token_model=token_model,
             generative_model=generative_model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
     @nua
     async def summarize(
-        self, texts: dict[str, str], model: Optional[str] = None, **kwargs
+        self,
+        texts: dict[str, str],
+        model: Optional[str] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> SummarizedModel:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.summarize(texts, model)
+        return await nc.summarize(
+            documents=texts,
+            model=model,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
     async def rephrase(
@@ -298,7 +410,10 @@ class AsyncNucliaPredict:
 
     @nua
     async def remi(
-        self, request: Optional[RemiRequest] = None, **kwargs
+        self,
+        request: Optional[RemiRequest] = None,
+        show_consumption: bool = False,
+        **kwargs,
     ) -> RemiResponse:
         """
         Perform a REMi evaluation over a RAG experience
@@ -311,10 +426,15 @@ class AsyncNucliaPredict:
             request = RemiRequest(**kwargs)
 
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.remi(request)
+        return await nc.remi(
+            request=request,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
 
     @nua
-    async def rerank(self, request: RerankModel, **kwargs) -> RerankResponse:
+    async def rerank(
+        self, request: RerankModel, show_consumption: bool = False, **kwargs
+    ) -> RerankResponse:
         """
         Perform a reranking of the results based on the question and context provided.
 
@@ -322,4 +442,7 @@ class AsyncNucliaPredict:
         :return: RerankResponse
         """
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.rerank(request)
+        return await nc.rerank(
+            request,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
