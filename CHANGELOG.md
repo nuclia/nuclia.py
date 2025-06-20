@@ -1,10 +1,10 @@
 # Changelog
 
 
-## 4.9.4 (unreleased)
+## 4.9.4 (2025-06-20)
 
 
-- Nothing changed yet.
+- Add show_consumption parameter
 
 
 ## 4.9.3 (2025-06-16)
