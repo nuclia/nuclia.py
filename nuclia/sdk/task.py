@@ -1,3 +1,4 @@
+from calendar import c
 from nuclia.data import get_auth, get_async_auth
 from nuclia.decorators import kb
 from nuclia.exceptions import InvalidPayload
@@ -64,7 +65,7 @@ class NucliaTask:
         return TaskResponse.model_validate(response.json())
 
     @kb
-    def delete(self, *args, task_id: str, **kwargs):
+    def delete(self, *args, task_id: str, cleanup: bool = False, **kwargs):
         """
         Delete task
 
@@ -72,7 +73,7 @@ class NucliaTask:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         try:
-            _ = ndb.delete_task(task_id=task_id)
+            _ = ndb.delete_task(task_id=task_id, cleanup=cleanup)
         except InvalidPayload:
             pass
 
@@ -158,7 +159,7 @@ class AsyncNucliaTask:
         return TaskResponse.model_validate(response.json())
 
     @kb
-    async def delete(self, *args, task_id: str, **kwargs):
+    async def delete(self, *args, task_id: str, cleanup: bool = False, **kwargs):
         """
         Delete task
 
@@ -166,7 +167,7 @@ class AsyncNucliaTask:
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         try:
-            _ = await ndb.delete_task(task_id=task_id)
+            _ = await ndb.delete_task(task_id=task_id, cleanup=cleanup)
         except InvalidPayload:
             pass
 
