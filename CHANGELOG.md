@@ -4,7 +4,7 @@
 ## 4.9.5 (unreleased)
 
 
-- Nothing changed yet.
+- Add ability to delete a task with cleanup.
 
 
 ## 4.9.4 (2025-06-20)
