@@ -455,12 +455,16 @@ class NucliaDBClient(BaseNucliaDBClient):
         handle_http_sync_errors(response)
         return response
 
-    def delete_task(self, task_id: str) -> httpx.Response:
+    def delete_task(self, task_id: str, cleanup: bool = False) -> httpx.Response:
         if self.writer_session is None:
             raise Exception("KB not configured")
 
+        params = None
+        if cleanup:
+            params = {"cleanup": "true"}
+
         response: httpx.Response = self.writer_session.delete(
-            f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
+            f"{self.url}{DELETE_TASK.format(task_id=task_id)}", params=params
         )
         handle_http_sync_errors(response)
         return response
@@ -827,12 +831,16 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         await handle_http_async_errors(response)
         return response
 
-    async def delete_task(self, task_id: str) -> httpx.Response:
+    async def delete_task(self, task_id: str, cleanup: bool = False) -> httpx.Response:
         if self.writer_session is None:
             raise Exception("KB not configured")
 
+        params = None
+        if cleanup:
+            params = {"cleanup": "true"}
+
         response: httpx.Response = await self.writer_session.delete(
-            f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
+            f"{self.url}{DELETE_TASK.format(task_id=task_id)}", params=params
         )
         await handle_http_async_errors(response)
         return response
