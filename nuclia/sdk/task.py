@@ -6,9 +6,9 @@ from nuclia.sdk.auth import NucliaAuth, AsyncNucliaAuth
 from nuclia_models.worker.tasks import (
     ApplyOptions,
     TaskStartKB,
-    TaskResponse,
     TaskList,
     TaskName,
+    TaskResponse,
     PARAMETERS_TYPING,
     PublicTaskSet,
     TASKS,
