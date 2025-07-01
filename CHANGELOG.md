@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.5 (unreleased)
+## 4.9.5 (2025-07-01)
 
 
 - Add ability to delete a task with cleanup.
