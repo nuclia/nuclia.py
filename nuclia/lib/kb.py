@@ -464,8 +464,7 @@ class NucliaDBClient(BaseNucliaDBClient):
             params = {"cleanup": "true"}
 
         response: httpx.Response = self.writer_session.delete(
-            f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
-            params=params
+            f"{self.url}{DELETE_TASK.format(task_id=task_id)}", params=params
         )
         handle_http_sync_errors(response)
         return response
@@ -841,8 +840,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             params = {"cleanup": "true"}
 
         response: httpx.Response = await self.writer_session.delete(
-            f"{self.url}{DELETE_TASK.format(task_id=task_id)}",
-            params=params
+            f"{self.url}{DELETE_TASK.format(task_id=task_id)}", params=params
         )
         await handle_http_async_errors(response)
         return response
