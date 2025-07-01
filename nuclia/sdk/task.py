@@ -1,4 +1,3 @@
-from calendar import c
 from nuclia.data import get_auth, get_async_auth
 from nuclia.decorators import kb
 from nuclia.exceptions import InvalidPayload
