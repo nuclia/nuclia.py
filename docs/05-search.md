@@ -63,7 +63,7 @@ Based on a `find` request, Nuclia uses a generative AI to answer the question ba
 
   search = sdk.NucliaSearch()
   query = AskRequest(query="My question", prefer_markdown=True, citations=True)
-  search.ask(query)
+  search.ask(query=query)
   ```
 
 ## Filtering
