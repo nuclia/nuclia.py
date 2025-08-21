@@ -277,13 +277,33 @@ class NucliaKB:
         **kwargs,
     ):
         ndb: NucliaDBClient = kwargs["ndb"]
+        content = {}
+        if semantic_model:
+            content["semantic_model"] = semantic_model
+        if generative_model:
+            content["generative_model"] = generative_model
+        if ner_model:
+            content["ner_model"] = ner_model
+        if anonymization_model:
+            content["anonymization_model"] = anonymization_model
+        if visual_labeling:
+            content["visual_labeling"] = visual_labeling
+        content.update(**kwargs)
+
         ndb.ndb.set_configuration(
             kbid=ndb.kbid,
-            semantic_model=semantic_model,
-            generative_model=generative_model,
-            ner_model=ner_model,
-            anonymization_model=anonymization_model,
-            visual_labeling=visual_labeling,
+            content=content,
+        )
+
+    @kb
+    def update_configuration(
+        self,
+        **kwargs,
+    ):
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb.ndb.set_configuration(
+            kbid=ndb.kbid,
+            content=kwargs,
         )
 
     @kb
@@ -695,13 +715,32 @@ class AsyncNucliaKB:
         **kwargs,
     ):
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        content = {}
+        if semantic_model:
+            content["semantic_model"] = semantic_model
+        if generative_model:
+            content["generative_model"] = generative_model
+        if ner_model:
+            content["ner_model"] = ner_model
+        if anonymization_model:
+            content["anonymization_model"] = anonymization_model
+        if visual_labeling:
+            content["visual_labeling"] = visual_labeling
+        content.update(**kwargs)
         await ndb.ndb.set_configuration(
             kbid=ndb.kbid,
-            semantic_model=semantic_model,
-            generative_model=generative_model,
-            ner_model=ner_model,
-            anonymization_model=anonymization_model,
-            visual_labeling=visual_labeling,
+            content=content,
+        )
+
+    @kb
+    async def update_configuration(
+        self,
+        **kwargs,
+    ):
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        await ndb.ndb.set_configuration(
+            kbid=ndb.kbid,
+            content=kwargs,
         )
 
     @kb
