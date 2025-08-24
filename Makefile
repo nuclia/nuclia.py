@@ -8,5 +8,5 @@ fmt:
 	ruff format nuclia
 
 test:
-	mypy nuclia
-	pytest --asyncio-mode=auto nuclia
+	uv run mypy nuclia
+	uv run pytest --asyncio-mode=auto nuclia
