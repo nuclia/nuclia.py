@@ -4,7 +4,7 @@
 ## 4.9.6 (unreleased)
 
 
-- Nothing changed yet.
+- Fix region
 
 
 ## 4.9.5 (2025-07-01)
