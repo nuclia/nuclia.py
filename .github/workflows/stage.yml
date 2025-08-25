@@ -48,6 +48,6 @@ jobs:
         with:
           files: ./coverage.xml
           flags: stage
+          verbose: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
