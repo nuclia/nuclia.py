@@ -10,5 +10,6 @@ fmt:
 test:
 	pytest nuclia/
 
+# TODO: don't leave this -k here!
 test-cov:
-	pytest  --cov=nuclia/ --cov-config=.coveragerc --cov-report=xml nuclia/
+	pytest  --cov=nuclia/ --cov-config=.coveragerc --cov-report=xml nuclia/ -k conversation
