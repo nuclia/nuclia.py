@@ -46,7 +46,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.xml
           flags: stage
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
