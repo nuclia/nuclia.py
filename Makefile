@@ -10,6 +10,12 @@ fmt:
 test:
 	pytest nuclia/
 
-# TODO: don't leave this -k here!
+# NOTE: --cov-append is useful for CI but it'll incrementally append on the same
+# file if executed locally
 test-cov:
-	pytest  --cov=nuclia/ --cov-config=.coveragerc --cov-report=xml nuclia/ -k conversation
+	pytest \
+		--cov=nuclia \
+		--cov-config=.coveragerc \
+		--cov-report=xml \
+		--cov-append \
+		nuclia/
