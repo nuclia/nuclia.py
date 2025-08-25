@@ -42,12 +42,11 @@ jobs:
       - name: Test
         run: |
           source .venv/bin/activate
-          GA_TESTING_SERVICE_TOKEN="${{ secrets.GA_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.GA_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.TEST_EUROPE1_NUCLIA_NUA }}" make test
+          GA_TESTING_SERVICE_TOKEN="${{ secrets.GA_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{ secrets.GA_TESTING_TOKEN }}" GA_TESTING_NUA="${{ secrets.TEST_EUROPE1_NUCLIA_NUA }}" make test-cov
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.xml
           flags: prod
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
