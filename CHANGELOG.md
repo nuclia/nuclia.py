@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.6 (unreleased)
+## 4.9.6 (2025-08-25)
 
 
 - Fix region
