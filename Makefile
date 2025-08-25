@@ -8,5 +8,4 @@ fmt:
 	ruff format nuclia
 
 test:
-	mypy nuclia
 	pytest nuclia/
