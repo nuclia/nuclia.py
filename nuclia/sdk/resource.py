@@ -220,7 +220,7 @@ class NucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        url = get_regional_url(ndb.region.value, "/api/v1" + file_field.value.file.uri)
+        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
         download = requests.get(url, stream=True, headers=ndb.headers)
         if download.status_code != 200:
             raise ValueError(f"Error downloading file: {download.text}")
@@ -383,7 +383,7 @@ class AsyncNucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        url = get_regional_url(ndb.region.value, "/api/v1" + file_field.value.file.uri)
+        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
         download = requests.get(url, stream=True, headers=ndb.headers)
         if download.status_code != 200:
             raise ValueError(f"Error downloading file: {download.text}")
