@@ -11,4 +11,4 @@ test:
 	pytest nuclia/
 
 test-cov:
-	pytest --cov=nuclia/ --cov-config=.coveragerc --cov-report=xml nuclia/
+	pytest  --cov=nuclia/ --cov-config=.coveragerc --cov-report=xml nuclia/
