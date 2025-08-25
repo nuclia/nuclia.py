@@ -8,5 +8,14 @@ fmt:
 	ruff format nuclia
 
 test:
-	uv run mypy nuclia
-	uv run pytest --asyncio-mode=auto nuclia
+	pytest nuclia/
+
+# NOTE: --cov-append is useful for CI but it'll incrementally append on the same
+# file if executed locally
+test-cov:
+	pytest \
+		--cov=nuclia \
+		--cov-config=.coveragerc \
+		--cov-report=xml \
+		--cov-append \
+		nuclia/

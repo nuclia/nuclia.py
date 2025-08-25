@@ -1,0 +1,4 @@
+[run]
+omit =
+    # we care about source code coverage, not test code
+    */tests/*
