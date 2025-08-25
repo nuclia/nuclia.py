@@ -56,6 +56,7 @@ def test_resource(testing_config):
 def test_resource_download(testing_config):
     nresource = NucliaResource()
     slug = "download-file-test"
+    
     # Clean up any existing resource with the same slug
     try:
         res = nresource.get(slug=slug)
