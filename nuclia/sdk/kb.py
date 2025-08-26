@@ -266,7 +266,7 @@ class NucliaKB:
         self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
-    def set_configuration(
+    def update_configuration(
         self,
         *,
         semantic_model: Optional[str] = None,
@@ -693,7 +693,7 @@ class AsyncNucliaKB:
         await self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
-    async def set_configuration(
+    async def update_configuration(
         self,
         *,
         semantic_model: Optional[str] = None,
