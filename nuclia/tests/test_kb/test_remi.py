@@ -1,9 +1,11 @@
-from nuclia.sdk.kb import NucliaKB, AsyncNucliaKB
-from nuclia.tests.fixtures import IS_PROD
-from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery
 from datetime import datetime
-from nuclia_models.common.utils import Aggregation
+
 import pytest
+from nuclia_models.common.utils import Aggregation
+from nuclia_models.events.remi import ContextRelevanceQuery, RemiQuery
+
+from nuclia.sdk.kb import AsyncNucliaKB, NucliaKB
+from nuclia.tests.fixtures import IS_PROD
 
 
 def test_remi_query_and_get_event(testing_config):

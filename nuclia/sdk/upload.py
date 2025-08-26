@@ -21,10 +21,10 @@ from nuclia.decorators import kb
 from nuclia.exceptions import DuplicateError, GettingRemoteFileError, RateLimitError
 from nuclia.lib.conversations import Conversation
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.lib.utils import build_httpx_async_client
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import RESOURCE_ATTRIBUTES, AsyncNucliaResource, NucliaResource
-from nuclia.lib.utils import build_httpx_async_client
 
 MB = 1024 * 1024
 CHUNK_SIZE = 5 * MB

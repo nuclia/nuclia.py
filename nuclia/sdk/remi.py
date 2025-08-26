@@ -1,15 +1,17 @@
-from nuclia.decorators import kb
-from nuclia.lib.kb import NucliaDBClient, AsyncNucliaDBClient
+from datetime import datetime
+from typing import Optional, Union
+
+from nuclia_models.common.utils import Aggregation
 from nuclia_models.events.remi import (
     AggregatedRemiScoreMetric,
     RemiQuery,
     RemiQueryResults,
     RemiQueryResultWithContext,
 )
-from nuclia_models.common.utils import Aggregation
-from typing import Union, Optional
-from datetime import datetime
 from pydantic import TypeAdapter
+
+from nuclia.decorators import kb
+from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 
 WAIT_FOR_DOWNLOAD_TIMEOUT = 120
 

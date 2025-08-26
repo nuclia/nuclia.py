@@ -1,25 +1,26 @@
-from nuclia.decorators import kb
-from nuclia.lib.kb import NucliaDBClient, AsyncNucliaDBClient
+import asyncio
+from time import monotonic, sleep
+from typing import Union
+
 from nuclia_models.events.activity_logs import (  # type: ignore
-    ActivityLogsQuery,
     ActivityLogsAskQuery,
+    ActivityLogsQuery,
     ActivityLogsSearchQuery,
-    DownloadActivityLogsQuery,
     DownloadActivityLogsAskQuery,
+    DownloadActivityLogsQuery,
     DownloadActivityLogsSearchQuery,
     DownloadFormat,
     EventType,
 )
+
+from nuclia.decorators import kb
+from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.lib.models import (
     ActivityLogsOutput,
     ActivityLogsQueryResponse,
     DownloadRequestOutput,
 )
-from typing import Union
-from time import monotonic, sleep
 from nuclia.sdk.logger import logger
-
-import asyncio
 
 WAIT_FOR_DOWNLOAD_TIMEOUT = 120
 

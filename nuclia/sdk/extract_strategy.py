@@ -1,9 +1,11 @@
-from nuclia.data import get_auth, get_async_auth
-from nuclia.decorators import kb, pretty
-from nuclia.lib.kb import NucliaDBClient, AsyncNucliaDBClient
-from nuclia.sdk.auth import NucliaAuth, AsyncNucliaAuth
-from nuclia_models.config.proto import ExtractConfig
 from typing import Dict
+
+from nuclia_models.config.proto import ExtractConfig
+
+from nuclia.data import get_async_auth, get_auth
+from nuclia.decorators import kb, pretty
+from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 
 class NucliaExtractStrategy:

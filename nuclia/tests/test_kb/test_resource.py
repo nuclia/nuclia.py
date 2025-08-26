@@ -1,5 +1,4 @@
 import warnings
-
 from time import sleep
 
 from nucliadb_sdk.v2.exceptions import NotFoundError

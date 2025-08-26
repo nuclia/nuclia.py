@@ -1,12 +1,12 @@
+import pytest
 from nuclia_models.predict.generative_responses import (
-    TextGenerativeResponse,
     ConsumptionGenerative,
+    TextGenerativeResponse,
 )
+from nuclia_models.predict.remi import RemiRequest
 
 from nuclia.lib.nua_responses import ChatModel, RerankModel, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
-import pytest
-from nuclia_models.predict.remi import RemiRequest
 
 
 def test_predict(testing_config):

@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from nuclia_models.events.activity_logs import (
     ActivityLogsQueryResponse,
     BaseConfigModel,
@@ -9,7 +11,6 @@ from nucliadb_models.metadata import (
     RelationType,
 )
 from pydantic import BaseModel
-from typing import Optional, Union
 
 
 class ActivityLogsOutput(BaseConfigModel):
