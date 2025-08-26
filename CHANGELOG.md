@@ -1,10 +1,16 @@
 # Changelog
 
 
-## 4.9.6 (unreleased)
+## 4.9.7 (unreleased)
 
 
 - Nothing changed yet.
+
+
+## 4.9.6 (2025-08-25)
+
+
+- Fix region
 
 
 ## 4.9.5 (2025-07-01)

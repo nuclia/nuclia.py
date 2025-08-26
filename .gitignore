@@ -10,3 +10,7 @@ venv
 .venv
 .DS_Store
 .python-version
+
+### Coverage
+.coverage
+coverage.xml

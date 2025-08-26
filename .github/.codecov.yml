@@ -1,0 +1,17 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        # our current (Aug 2025) we have around 55% code coverage. We'll want to
+        # decrease this threshold once we go up to our desired coverage target
+        threshold: 25%
+
+    patch:
+      default:
+        # if we want to reach more coverage with time, we must enforce new code
+        # comes tested
+        target: 85%
+
+ignore:
+  - "**/tests/**"
