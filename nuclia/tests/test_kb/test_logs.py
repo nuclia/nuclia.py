@@ -1,13 +1,14 @@
-from nuclia.sdk.kb import NucliaKB, AsyncNucliaKB
-from nuclia.tests.fixtures import IS_PROD
+import pytest
 from nuclia_models.events.activity_logs import (
     ActivityLogsQuery,
-    Pagination,
     DownloadActivityLogsQuery,
     DownloadFormat,
     EventType,
+    Pagination,
 )
-import pytest
+
+from nuclia.sdk.kb import AsyncNucliaKB, NucliaKB
+from nuclia.tests.fixtures import IS_PROD
 
 
 def test_activity_logs_query(testing_config):

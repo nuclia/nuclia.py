@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from nuclia.sdk.kbs import NucliaKBS, AsyncNucliaKBS
+from nuclia.sdk.kbs import AsyncNucliaKBS, NucliaKBS
 from nuclia.tests.fixtures import IS_PROD, TESTING_ACCOUNT_SLUG, TESTING_KBID
 
 NEW_KB_SLUG = "testkb-" + uuid4().hex

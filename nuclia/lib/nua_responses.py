@@ -3,9 +3,9 @@ from enum import Enum, IntEnum
 from typing import Any, Dict, List, Optional, Union, cast
 
 import pydantic
+from nuclia_models.common.consumption import Consumption
 from pydantic import BaseModel, Field, RootModel, model_validator
 from typing_extensions import Annotated, Self
-from nuclia_models.common.consumption import Consumption
 
 
 class GenerativeOption(BaseModel):

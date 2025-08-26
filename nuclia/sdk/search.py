@@ -4,33 +4,33 @@ import warnings
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, List, Optional, Union
 
+from nuclia_models.common.consumption import Consumption, TokensDetail
+from nucliadb_models.graph.requests import GraphSearchRequest
+from nucliadb_models.graph.responses import GraphSearchResponse
 from nucliadb_models.search import (
     AskRequest,
     AskResponseItem,
     CatalogRequest,
+    ChatModel,
     Filter,
+    FindOptions,
     FindRequest,
     KnowledgeboxFindResults,
     KnowledgeboxSearchResults,
-    RagStrategies,
     RagImagesStrategies,
+    RagStrategies,
     Relations,
-    FindOptions,
     SearchRequest,
     SyncAskResponse,
-    ChatModel,
 )
-from nucliadb_models.graph.requests import GraphSearchRequest
-from nucliadb_models.graph.responses import GraphSearchResponse
 from pydantic import ValidationError
 
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import kb, pretty
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
-from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
+from nuclia.sdk.logger import logger
 from nuclia.sdk.resource import RagImagesStrategiesParse, RagStrategiesParse
-from nuclia_models.common.consumption import Consumption, TokensDetail
 
 
 @dataclass

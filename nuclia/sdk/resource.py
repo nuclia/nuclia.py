@@ -1,28 +1,26 @@
 import json
+import os
 from typing import Any, Dict, List, Optional, Union
 from uuid import uuid4
-import os
 
-from nucliadb_sdk.v2 import exceptions
 import backoff
 import requests
-from nucliadb_models.search import AskRequest
-from nuclia.exceptions import RateLimitError
-
 from nucliadb_models.metadata import ResourceProcessingStatus
 from nucliadb_models.resource import Resource
+from nucliadb_models.search import (
+    AskRequest,
+    Filter,
+    RagImagesStrategies,
+    RagStrategies,
+)
+from nucliadb_sdk.v2 import exceptions
+from pydantic import BaseModel, Field, ValidationError
 
 from nuclia import get_list_parameter, get_regional_url
 from nuclia.decorators import kb, pretty
+from nuclia.exceptions import RateLimitError
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.logger import logger
-from nucliadb_models.search import (
-    Filter,
-    RagStrategies,
-    RagImagesStrategies,
-)
-from pydantic import ValidationError, BaseModel, Field
-
 
 RESOURCE_ATTRIBUTES = [
     "icon",

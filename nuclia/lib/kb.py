@@ -1,5 +1,6 @@
 import base64
 import os
+from datetime import datetime
 from enum import Enum
 from typing import Dict, Optional, Union
 
@@ -7,27 +8,32 @@ import aiofiles
 import backoff
 import httpx
 import requests
-from nucliadb_models.search import AskRequest, SummarizeRequest
 from nuclia_models.common.utils import Aggregation
-from nucliadb_sdk import NucliaDB, NucliaDBAsync
-from tqdm import tqdm
+from nuclia_models.config.proto import ExtractConfig
 from nuclia_models.events.activity_logs import (  # type: ignore
+    ActivityLogsAskQuery,
     ActivityLogsQuery,
     ActivityLogsSearchQuery,
-    ActivityLogsAskQuery,
+    DownloadActivityLogsAskQuery,
     DownloadActivityLogsQuery,
     DownloadActivityLogsSearchQuery,
-    DownloadActivityLogsAskQuery,
-    EventType,
     DownloadFormat,
+    EventType,
 )
 from nuclia_models.events.remi import RemiQuery
 from nuclia_models.worker.tasks import TaskStartKB
-from nuclia_models.config.proto import ExtractConfig
+from nucliadb_models.search import AskRequest, SummarizeRequest
+from nucliadb_sdk import NucliaDB, NucliaDBAsync
+from tqdm import tqdm
+
 from nuclia.exceptions import RateLimitError
-from nuclia.lib.utils import handle_http_sync_errors, handle_http_async_errors
-from datetime import datetime
-from nuclia.lib.utils import build_httpx_client, build_httpx_async_client, USER_AGENT
+from nuclia.lib.utils import (
+    USER_AGENT,
+    build_httpx_async_client,
+    build_httpx_client,
+    handle_http_async_errors,
+    handle_http_sync_errors,
+)
 
 RESOURCE_PATH = "/resource/{rid}"
 RESOURCE_PATH_BY_SLUG = "/slug/{slug}"

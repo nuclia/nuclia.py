@@ -1,6 +1,6 @@
-from nuclia.sdk.kb import NucliaKB
-
 import pytest
+
+from nuclia.sdk.kb import NucliaKB
 
 
 def test_labels(testing_config):

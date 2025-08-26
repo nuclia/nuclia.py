@@ -1,9 +1,11 @@
-from nuclia import sdk
-from nuclia_models.accounts.backups import BackupCreate, BackupRestore
-from nuclia.tests.fixtures import TESTING_ACCOUNT_SLUG, TESTING_KBID
 import random
 import string
+
 import pytest
+from nuclia_models.accounts.backups import BackupCreate, BackupRestore
+
+from nuclia import sdk
+from nuclia.tests.fixtures import TESTING_ACCOUNT_SLUG, TESTING_KBID
 
 ZONE = "europe-1"
 

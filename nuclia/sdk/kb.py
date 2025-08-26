@@ -1,11 +1,11 @@
 import asyncio
-from datetime import datetime
-from deprecated import deprecated
 import os
 import tempfile
 import time
+from datetime import datetime
 from typing import Any, List, Optional, Union
 
+from deprecated import deprecated
 from nucliadb_models import Notification
 from nucliadb_models.labels import KnowledgeBoxLabels, Label, LabelSet, LabelSetKind
 from nucliadb_models.resource import ResourceList
@@ -17,7 +17,6 @@ from nuclia.decorators import kb
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.lib.models import GraphRelation, get_relation
 from nuclia.lib.nua_responses import SummarizedModel
-from nuclia.sdk.logger import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 from nuclia.sdk.export_import import (
     AsyncNucliaExports,
@@ -25,15 +24,16 @@ from nuclia.sdk.export_import import (
     NucliaExports,
     NucliaImports,
 )
-from nuclia.sdk.logs import NucliaLogs, AsyncNucliaLogs
-from nuclia.sdk.remi import NucliaRemi, AsyncNucliaRemi
+from nuclia.sdk.extract_strategy import (
+    AsyncNucliaExtractStrategy,
+    NucliaExtractStrategy,
+)
+from nuclia.sdk.logger import logger
+from nuclia.sdk.logs import AsyncNucliaLogs, NucliaLogs
+from nuclia.sdk.remi import AsyncNucliaRemi, NucliaRemi
 from nuclia.sdk.resource import AsyncNucliaResource, NucliaResource
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
-from nuclia.sdk.task import NucliaTask, AsyncNucliaTask
-from nuclia.sdk.extract_strategy import (
-    NucliaExtractStrategy,
-    AsyncNucliaExtractStrategy,
-)
+from nuclia.sdk.task import AsyncNucliaTask, NucliaTask
 from nuclia.sdk.upload import AsyncNucliaUpload, NucliaUpload
 
 

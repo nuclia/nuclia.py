@@ -1,16 +1,18 @@
+import asyncio
 import base64
 import datetime
 import json
 import webbrowser
+from time import time
 from typing import Any, Dict, List, Optional, Tuple
-from pydantic import TypeAdapter
 
 from httpx import AsyncClient, Client, ConnectError
-from prompt_toolkit import prompt
-from tabulate import tabulate
-from nuclia.sdk.logger import logger
-from nuclia import get_global_url, get_regional_url, is_nuclia_hosted
 from nucliadb_models.resource import KnowledgeBoxObj
+from prompt_toolkit import prompt
+from pydantic import TypeAdapter
+from tabulate import tabulate
+
+from nuclia import get_global_url, get_regional_url, is_nuclia_hosted
 from nuclia.config import (
     Account,
     Config,
@@ -23,9 +25,8 @@ from nuclia.config import (
     retrieve_nua,
 )
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
-import asyncio
-from time import time
-from nuclia.lib.utils import build_httpx_client, build_httpx_async_client
+from nuclia.lib.utils import build_httpx_async_client, build_httpx_client
+from nuclia.sdk.logger import logger
 
 USER = "/api/v1/user/welcome"
 MEMBER = "/api/v1/user"
