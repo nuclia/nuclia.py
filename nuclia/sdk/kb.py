@@ -276,19 +276,19 @@ class NucliaKB:
         visual_labeling: Optional[str] = None,
         **kwargs,
     ):
-        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs.pop("ndb")
+
         content = {}
-        if semantic_model:
+        if semantic_model is not None:
             content["semantic_model"] = semantic_model
-        if generative_model:
+        if generative_model is not None:
             content["generative_model"] = generative_model
-        if ner_model:
+        if ner_model is not None:
             content["ner_model"] = ner_model
-        if anonymization_model:
+        if anonymization_model is not None:
             content["anonymization_model"] = anonymization_model
-        if visual_labeling:
+        if visual_labeling is not None:
             content["visual_labeling"] = visual_labeling
-        content.update(**kwargs)
 
         ndb.ndb.set_configuration(
             kbid=ndb.kbid,
@@ -300,7 +300,7 @@ class NucliaKB:
         self,
         **kwargs,
     ):
-        ndb: NucliaDBClient = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs.pop("ndb")
         ndb.ndb.set_configuration(
             kbid=ndb.kbid,
             content=kwargs,
@@ -714,19 +714,20 @@ class AsyncNucliaKB:
         visual_labeling: Optional[str] = None,
         **kwargs,
     ):
-        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs.pop("ndb")
+
         content = {}
-        if semantic_model:
+        if semantic_model is not None:
             content["semantic_model"] = semantic_model
-        if generative_model:
+        if generative_model is not None:
             content["generative_model"] = generative_model
-        if ner_model:
+        if ner_model is not None:
             content["ner_model"] = ner_model
-        if anonymization_model:
+        if anonymization_model is not None:
             content["anonymization_model"] = anonymization_model
-        if visual_labeling:
+        if visual_labeling is not None:
             content["visual_labeling"] = visual_labeling
-        content.update(**kwargs)
+
         await ndb.ndb.set_configuration(
             kbid=ndb.kbid,
             content=content,
@@ -737,7 +738,7 @@ class AsyncNucliaKB:
         self,
         **kwargs,
     ):
-        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs.pop("ndb")
         await ndb.ndb.set_configuration(
             kbid=ndb.kbid,
             content=kwargs,
