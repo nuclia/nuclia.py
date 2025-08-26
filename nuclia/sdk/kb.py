@@ -290,20 +290,9 @@ class NucliaKB:
         if visual_labeling is not None:
             content["visual_labeling"] = visual_labeling
 
-        ndb.ndb.set_configuration(
+        ndb.ndb.update_configuration(
             kbid=ndb.kbid,
             content=content,
-        )
-
-    @kb
-    def update_configuration(
-        self,
-        **kwargs,
-    ):
-        ndb: NucliaDBClient = kwargs.pop("ndb")
-        ndb.ndb.set_configuration(
-            kbid=ndb.kbid,
-            content=kwargs,
         )
 
     @kb
@@ -728,20 +717,9 @@ class AsyncNucliaKB:
         if visual_labeling is not None:
             content["visual_labeling"] = visual_labeling
 
-        await ndb.ndb.set_configuration(
+        await ndb.ndb.update_configuration(
             kbid=ndb.kbid,
             content=content,
-        )
-
-    @kb
-    async def update_configuration(
-        self,
-        **kwargs,
-    ):
-        ndb: AsyncNucliaDBClient = kwargs.pop("ndb")
-        await ndb.ndb.set_configuration(
-            kbid=ndb.kbid,
-            content=kwargs,
         )
 
     @kb
