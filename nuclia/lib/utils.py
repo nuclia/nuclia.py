@@ -1,25 +1,25 @@
-import json
-
-import httpx
 import importlib.metadata
-import requests
-from httpx import Response as HttpxResponse, HTTPStatusError
-from tabulate import tabulate
+import json
 from typing import Optional
 
+import httpx
+import requests
+from httpx import HTTPStatusError
+from httpx import Response as HttpxResponse
+from nuclia_models.worker.tasks import TaskDefinition, TaskList
+from nucliadb_models.resource import KnowledgeBoxList, ResourceList
+from nucliadb_models.search import SyncAskResponse
+from requests import HTTPError as RequestsHTTPError
+from requests import Response as RequestsResponse
+from tabulate import tabulate
+
 from nuclia.exceptions import (
-    RateLimitError,
-    UserTokenExpired,
     DuplicateError,
     InvalidPayload,
+    RateLimitError,
+    UserTokenExpired,
 )
-from nucliadb_models.resource import ResourceList
-from nucliadb_models.search import SyncAskResponse
 from nuclia.lib.models import ActivityLogsOutput
-from nuclia_models.worker.tasks import TaskDefinition, TaskList
-from nucliadb_models.resource import KnowledgeBoxList
-from requests import Response as RequestsResponse, HTTPError as RequestsHTTPError
-
 
 USER_AGENT = f"nuclia.py/{importlib.metadata.version('nuclia')}"
 

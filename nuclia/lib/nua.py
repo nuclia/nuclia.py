@@ -1,7 +1,10 @@
+import asyncio
 import base64
+import os
 from enum import Enum
 from time import sleep
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncIterator,
     Iterator,
@@ -9,27 +12,27 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    TYPE_CHECKING,
 )
 
 import aiofiles
 from deprecated import deprecated
-from pydantic import BaseModel
-
-from nuclia import REGIONAL
-from nuclia.exceptions import NuaAPIException
-from nuclia_models.common.consumption import ConsumptionGenerative
+from nuclia_models.common.consumption import Consumption, ConsumptionGenerative
 from nuclia_models.predict.generative_responses import (
+    CitationsGenerativeResponse,
     GenerativeChunk,
     GenerativeFullResponse,
     JSONGenerativeResponse,
-    TextGenerativeResponse,
-    CitationsGenerativeResponse,
     MetaGenerativeResponse,
     StatusGenerativeResponse,
+    TextGenerativeResponse,
     ToolsGenerativeResponse,
 )
-from nuclia_models.common.consumption import Consumption
+from nuclia_models.predict.remi import RemiRequest, RemiResponse
+from pydantic import BaseModel, ValidationError
+from tqdm import tqdm
+
+from nuclia import REGIONAL
+from nuclia.exceptions import NuaAPIException
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
@@ -55,13 +58,7 @@ from nuclia.lib.nua_responses import (
     SummarizeResource,
     Tokens,
 )
-from nuclia_models.predict.remi import RemiRequest, RemiResponse
-import os
-from tqdm import tqdm
-import asyncio
-from nuclia.lib.utils import build_httpx_client, build_httpx_async_client
-from pydantic import ValidationError
-
+from nuclia.lib.utils import build_httpx_async_client, build_httpx_client
 
 if TYPE_CHECKING:
     from nucliadb_protos.writer_pb2 import BrokerMessage

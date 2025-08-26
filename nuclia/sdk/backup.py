@@ -1,17 +1,18 @@
 from typing import Optional, Union
+from uuid import UUID
 
-from nuclia import get_regional_url
-from nuclia.data import get_auth, get_async_auth
-from nuclia.decorators import account, accounts, zone
-from nuclia.sdk.auth import NucliaAuth, AsyncNucliaAuth
 from nuclia_models.accounts.backups import (
     BackupCreate,
     BackupCreateResponse,
     BackupResponse,
     BackupRestore,
 )
-from pydantic import TypeAdapter, BaseModel
-from uuid import UUID
+from pydantic import BaseModel, TypeAdapter
+
+from nuclia import get_regional_url
+from nuclia.data import get_async_auth, get_auth
+from nuclia.decorators import account, accounts, zone
+from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 BACKUPS_ENDPOINT = "/api/v1/account/{account_id}/backups"
 BACKUP_ENDPOINT = "/api/v1/account/{account_id}/backup/{backup_id}"

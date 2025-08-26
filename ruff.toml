@@ -1,0 +1,21 @@
+target-version = "py39"
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+]
+
+ignore = [
+    "E501",
+    "E203",
+    "E252",
+    "E701",
+    "F541",
+    "F901",
+]
+
+[lint.isort]
+known-first-party = ["nuclia"]

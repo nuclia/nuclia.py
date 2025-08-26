@@ -1,20 +1,21 @@
-from nuclia.sdk.kb import NucliaKB, AsyncNucliaKB
-from nuclia.tests.fixtures import IS_PROD
+import pytest
+from nuclia_models.worker.proto import (
+    ApplyTo,
+    DataAugmentation,
+    Filter,
+    LLMConfig,
+    Operation,
+)
 from nuclia_models.worker.tasks import (
+    ApplyOptions,
+    JobStatus,
     TaskList,
     TaskName,
-    ApplyOptions,
     TaskResponse,
-    JobStatus,
 )
-from nuclia_models.worker.proto import (
-    DataAugmentation,
-    ApplyTo,
-    Filter,
-    Operation,
-    LLMConfig,
-)
-import pytest
+
+from nuclia.sdk.kb import AsyncNucliaKB, NucliaKB
+from nuclia.tests.fixtures import IS_PROD
 
 
 def test_worker_manager_tasks(testing_config):

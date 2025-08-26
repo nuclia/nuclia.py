@@ -1,7 +1,8 @@
-from nuclia.sdk.kb import NucliaKB
+from time import sleep
+
 from nucliadb_sdk.v2.exceptions import NotFoundError
 
-from time import sleep
+from nuclia.sdk.kb import NucliaKB
 
 
 def test_graph(testing_config):
