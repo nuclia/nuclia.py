@@ -1,12 +1,14 @@
 from typing import AsyncIterator, Iterator, Optional, Union
 
-from nuclia.data import get_auth
-from nuclia.decorators import nua
-from nuclia.lib.nua import AsyncNuaClient, NuaClient, ContextItem
 from nuclia_models.predict.generative_responses import (
     GenerativeChunk,
     GenerativeFullResponse,
 )
+from nuclia_models.predict.remi import RemiRequest, RemiResponse
+
+from nuclia.data import get_auth
+from nuclia.decorators import nua
+from nuclia.lib.nua import AsyncNuaClient, ContextItem, NuaClient
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
@@ -22,7 +24,6 @@ from nuclia.lib.nua_responses import (
     UserPrompt,
 )
 from nuclia.sdk.auth import NucliaAuth
-from nuclia_models.predict.remi import RemiRequest, RemiResponse
 
 
 class NucliaPredict:

@@ -2,9 +2,9 @@ from typing import Dict, Optional
 
 from nuclia import get_regional_url
 from nuclia.config import retrieve, retrieve_account
-from nuclia.data import get_auth, get_async_auth
+from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import account, accounts, zone
-from nuclia.sdk.auth import NucliaAuth, AsyncNucliaAuth
+from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 KBS_ENDPOINT = "/api/v1/account/{account}/kbs"
 KB_ENDPOINT = "/api/v1/account/{account}/kb/{kb}"

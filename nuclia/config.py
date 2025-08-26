@@ -1,7 +1,8 @@
-from enum import Enum
 import os
-from typing import List, Optional
 from datetime import datetime
+from enum import Enum
+from typing import List, Optional
+
 from pydantic import BaseModel
 
 from nuclia import CLOUD_ID

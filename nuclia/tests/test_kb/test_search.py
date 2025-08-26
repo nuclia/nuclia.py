@@ -1,6 +1,7 @@
-from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
-from nucliadb_models.search import AskRequest, CustomPrompt
 import pytest
+from nucliadb_models.search import AskRequest, CustomPrompt
+
+from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
 
 
 def test_find(testing_config):

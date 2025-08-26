@@ -1,27 +1,27 @@
 import json
-
-from datetime import datetime, timezone
 from base64 import b64decode
+from datetime import datetime, timezone
 
 try:
     from litellm import CustomLLM
     from litellm.llms.custom_httpx.http_handler import HTTPHandler
-    from litellm.utils import ModelResponse, Choices, Message
+    from litellm.utils import Choices, Message, ModelResponse
 except ImportError:
     raise ImportError(
         "The 'litellm' library is required to use this functionality. "
         "Install it with: pip install nuclia[litellm]"
     )
 
-from nuclia.lib.nua import NuaClient
-from nuclia.sdk.predict import NucliaPredict
-from nuclia.lib.nua_responses import ChatModel, UserPrompt
-from nuclia_models.predict.generative_responses import (
-    GenerativeFullResponse,
-)
 from typing import Callable, Optional, Union
 
 import httpx
+from nuclia_models.predict.generative_responses import (
+    GenerativeFullResponse,
+)
+
+from nuclia.lib.nua import NuaClient
+from nuclia.lib.nua_responses import ChatModel, UserPrompt
+from nuclia.sdk.predict import NucliaPredict
 
 
 class NucliaNuaChat(CustomLLM):

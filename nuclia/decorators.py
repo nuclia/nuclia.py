@@ -1,9 +1,9 @@
 import asyncio
-from functools import wraps
 import inspect
+from functools import wraps
 
-from httpx import ConnectError
 import yaml
+from httpx import ConnectError
 
 from nuclia import BASE_DOMAIN
 from nuclia.data import (
