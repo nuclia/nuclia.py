@@ -1,12 +1,14 @@
+import base64
+import io
+import tempfile
 import warnings
 from time import sleep
-import io
-from nucliadb_sdk.v2.exceptions import NotFoundError
-import base64
-import tempfile
-from nuclia.sdk.resource import NucliaResource
-from nucliadb_models.file import FileField
+
 from nucliadb_models.common import File
+from nucliadb_models.file import FileField
+from nucliadb_sdk.v2.exceptions import NotFoundError
+
+from nuclia.sdk.resource import NucliaResource
 
 
 def test_resource(testing_config):

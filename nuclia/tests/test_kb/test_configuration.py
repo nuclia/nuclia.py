@@ -1,6 +1,7 @@
-from nuclia.sdk.kb import NucliaKB, AsyncNucliaKB
 import pytest
 from nucliadb_sdk.v2.exceptions import UnknownError
+
+from nuclia.sdk.kb import AsyncNucliaKB, NucliaKB
 
 
 def test_configuration(testing_config):
