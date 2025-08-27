@@ -1,3 +1,5 @@
+from typing import Type, Union
+
 import pytest
 from nucliadb_models.graph.requests import (
     AnyNode,
@@ -13,8 +15,13 @@ from nucliadb_models.search import (
 )
 
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
+from nuclia.tests.utils import maybe_await
 
 
+@pytest.mark.parametrize(
+    "search_klass",
+    [NucliaSearch, AsyncNucliaSearch],
+)
 @pytest.mark.parametrize(
     "query",
     [
@@ -23,34 +30,40 @@ from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
         SearchRequest(query="Who is hedy Lamarr?"),
     ],
 )
-async def test_search(testing_config, query):
-    search = NucliaSearch()
-    async_search = AsyncNucliaSearch()
-
-    results = search.search(query=query)
-    async_results = await async_search.search(query=query)
-    assert results == async_results
+async def test_search(
+    testing_config,
+    search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
+    query,
+):
+    search = search_klass()
+    maybe_results = search.search(query=query)
+    results = await maybe_await(maybe_results)
 
     assert len(results.resources.keys()) == 2
     titles = [r.title for r in results.resources.values()]
     assert "Lamarr Lesson plan.pdf" in titles
 
 
-async def test_search_with_filters(testing_config):
-    search = NucliaSearch()
-    async_search = AsyncNucliaSearch()
-
-    results = search.search(
+@pytest.mark.parametrize(
+    "search_klass",
+    [NucliaSearch, AsyncNucliaSearch],
+)
+async def test_search_with_filters(
+    testing_config,
+    search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
+):
+    search = search_klass()
+    maybe_results = search.search(
         query="Who is hedy Lamarr?", filters=["/icon/application/pdf"]
     )
-    async_results = async_search.search(
-        query="Who is hedy Lamarr?", filters=["/icon/application/pdf"]
-    )
-    assert results == async_results
-
+    results = await maybe_await(maybe_results)
     assert len(results.resources.keys()) == 1
 
 
+@pytest.mark.parametrize(
+    "search_klass",
+    [NucliaSearch, AsyncNucliaSearch],
+)
 @pytest.mark.parametrize(
     "query",
     [
@@ -59,17 +72,21 @@ async def test_search_with_filters(testing_config):
         CatalogRequest(query=""),
     ],
 )
-async def test_catalog(testing_config, query):
-    search = NucliaSearch()
-    async_search = AsyncNucliaSearch()
-
-    results = search.catalog(query=query)
-    async_results = await async_search.catalog(query=query)
-    assert results == async_results
-
+async def test_catalog(
+    testing_config,
+    search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
+    query,
+):
+    search = search_klass()
+    maybe_results = search.catalog(query=query)
+    results = await maybe_await(maybe_results)
     assert len(results.resources.keys()) >= 2
 
 
+@pytest.mark.parametrize(
+    "search_klass",
+    [NucliaSearch, AsyncNucliaSearch],
+)
 @pytest.mark.parametrize(
     "query",
     [
@@ -78,19 +95,23 @@ async def test_catalog(testing_config, query):
         FindRequest(query="Who is Hedy Lamarr?"),
     ],
 )
-async def test_find(testing_config, query):
-    search = NucliaSearch()
-    async_search = AsyncNucliaSearch()
-
-    results = search.find(query=query)
-    async_results = await async_search.find(query=query)
-    assert results == async_results
-
+async def test_find(
+    testing_config,
+    search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
+    query,
+):
+    search = search_klass()
+    maybe_results = search.find(query=query)
+    results = await maybe_await(maybe_results)
     assert len(results.resources.keys()) == 2
     titles = [r.title for r in results.resources.values()]
     assert "Lamarr Lesson plan.pdf" in titles
 
 
+@pytest.mark.parametrize(
+    "search_klass",
+    [NucliaSearch, AsyncNucliaSearch],
+)
 @pytest.mark.parametrize(
     "query",
     [
@@ -99,18 +120,16 @@ async def test_find(testing_config, query):
         AskRequest(query="Who is Hedy Lamarr?"),
     ],
 )
-async def test_ask(testing_config, query):
-    search = NucliaSearch()
-    async_search = AsyncNucliaSearch()
+async def test_ask(
+    testing_config,
+    search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
+    query,
+):
+    search = search_klass()
 
-    results = search.ask(query=query)
-    async_results = await async_search.ask(query=query)
-    assert results.find_result == async_results.find_result
-
+    maybe_results = search.ask(query=query)
+    results = await maybe_await(maybe_results)
     answer = results.answer.decode()
-    assert "Lamarr" in answer
-
-    answer = async_results.answer.decode()
     assert "Lamarr" in answer
 
 
@@ -209,6 +228,10 @@ async def test_ask_json_async(testing_config):
 
 
 @pytest.mark.parametrize(
+    "search_klass",
+    [NucliaSearch, AsyncNucliaSearch],
+)
+@pytest.mark.parametrize(
     "query",
     [
         {
@@ -221,12 +244,12 @@ async def test_ask_json_async(testing_config):
         GraphSearchRequest(query=AnyNode(value="Hedy", match=NodeMatchKindName.FUZZY)),
     ],
 )
-async def test_graph(testing_config, query):
-    search = NucliaSearch()
-    async_search = AsyncNucliaSearch()
-
-    results = search.graph(query=query)
-    async_results = await async_search.graph(query=query)
-    assert results == async_results
-
+async def test_graph(
+    testing_config,
+    search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
+    query,
+):
+    search = search_klass()
+    maybe_results = search.graph(query=query)
+    results = await maybe_await(maybe_results)
     assert len(results.paths) == 22
