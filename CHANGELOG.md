@@ -4,7 +4,7 @@
 ## 4.9.7 (unreleased)
 
 
-- Nothing changed yet.
+- Add update_configuration to sdk
 
 
 ## 4.9.6 (2025-08-25)
