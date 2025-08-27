@@ -13,6 +13,7 @@ from nucliadb_models.search import (
     FindRequest,
     SearchRequest,
 )
+from pydantic import ValidationError
 
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
 from nuclia.tests.utils import maybe_await
@@ -258,7 +259,7 @@ async def test_graph(
 async def test_search_query_type_check(
     testing_config,
 ) -> None:
-    query = object()  # invalid for every endpoint
+    query = object()  # invalid on every call
 
     search = NucliaSearch()
     with pytest.raises(TypeError):
@@ -270,7 +271,7 @@ async def test_search_query_type_check(
     with pytest.raises(TypeError):
         search.ask(query=query)
     with pytest.raises(TypeError):
-        search.ask_json(query=query)
+        search.ask_json(schema={}, query=query)
     with pytest.raises(TypeError):
         search.graph(query=query)
 
@@ -284,8 +285,46 @@ async def test_search_query_type_check(
     with pytest.raises(TypeError):
         await async_search.ask(query=query)
     with pytest.raises(TypeError):
-        await async_search.ask_stream(query=query)
+        async for _ in async_search.ask_stream(query=query):
+            pass
     with pytest.raises(TypeError):
-        await async_search.ask_json(query=query)
+        await async_search.ask_json(schema={}, query=query)
     with pytest.raises(TypeError):
+        await async_search.graph(query=query)
+
+
+async def test_search_query_validation_errors(
+    testing_config,
+) -> None:
+    query = {"query": object()}  # invalid on every call
+
+    search = NucliaSearch()
+    with pytest.raises(ValidationError):
+        search.search(query=query)
+    with pytest.raises(ValidationError):
+        search.find(query=query)
+    with pytest.raises(ValidationError):
+        search.catalog(query=query)
+    with pytest.raises(ValidationError):
+        search.ask(query=query)
+    with pytest.raises(ValidationError):
+        search.ask_json(schema={}, query=query)
+    with pytest.raises(ValidationError):
+        search.graph(query=query)
+
+    async_search = AsyncNucliaSearch()
+    with pytest.raises(ValidationError):
+        await async_search.search(query=query)
+    with pytest.raises(ValidationError):
+        await async_search.find(query=query)
+    with pytest.raises(ValidationError):
+        await async_search.catalog(query=query)
+    with pytest.raises(ValidationError):
+        await async_search.ask(query=query)
+    with pytest.raises(ValidationError):
+        async for _ in async_search.ask_stream(query=query):
+            pass
+    with pytest.raises(ValidationError):
+        await async_search.ask_json(schema={}, query=query)
+    with pytest.raises(ValidationError):
         await async_search.graph(query=query)
