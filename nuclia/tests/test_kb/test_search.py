@@ -1,5 +1,9 @@
-
 import pytest
+from nucliadb_models.graph.requests import (
+    AnyNode,
+    GraphSearchRequest,
+    NodeMatchKindName,
+)
 from nucliadb_models.search import (
     AskRequest,
     CatalogRequest,
@@ -7,7 +11,6 @@ from nucliadb_models.search import (
     FindRequest,
     SearchRequest,
 )
-from nucliadb_models.graph.requests import GraphSearchRequest, AnyNode, NodeMatchKindName
 
 from nuclia.sdk.search import AsyncNucliaSearch, NucliaSearch
 
@@ -37,8 +40,12 @@ async def test_search_with_filters(testing_config):
     search = NucliaSearch()
     async_search = AsyncNucliaSearch()
 
-    results = search.search(query="Who is hedy Lamarr?", filters=["/icon/application/pdf"])
-    async_results = async_search.search(query="Who is hedy Lamarr?", filters=["/icon/application/pdf"])
+    results = search.search(
+        query="Who is hedy Lamarr?", filters=["/icon/application/pdf"]
+    )
+    async_results = async_search.search(
+        query="Who is hedy Lamarr?", filters=["/icon/application/pdf"]
+    )
     assert results == async_results
 
     assert len(results.resources.keys()) == 1
@@ -105,6 +112,7 @@ async def test_ask(testing_config, query):
 
     answer = async_results.answer.decode()
     assert "Lamarr" in answer
+
 
 async def test_ask_with_custom_prompt(testing_config):
     search = NucliaSearch()
@@ -210,12 +218,7 @@ async def test_ask_json_async(testing_config):
                 "match": "fuzzy",
             }
         },
-        GraphSearchRequest(
-            query=AnyNode(
-                value="Hedy",
-                match=NodeMatchKindName.FUZZY
-            )
-        )
+        GraphSearchRequest(query=AnyNode(value="Hedy", match=NodeMatchKindName.FUZZY)),
     ],
 )
 async def test_graph(testing_config, query):
