@@ -403,10 +403,20 @@ class AsyncNucliaResource:
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        kw = {
+            "kbid": ndb.kbid,
+        }
+        for param in RESOURCE_ATTRIBUTES:
+            if param in kwargs:
+                kw[param] = kwargs.get(param)  # type: ignore
         if rid:
-            await ndb.ndb.update_resource(kbid=ndb.kbid, rid=rid, **kwargs)
+            kw["rid"] = rid
+            if slug:
+                kw["slug"] = slug
+            await ndb.ndb.update_resource(**kw)
         elif slug:
-            await ndb.ndb.update_resource_by_slug(kbid=ndb.kbid, rslug=slug, **kwargs)
+            kw["rslug"] = slug
+            await ndb.ndb.update_resource_by_slug(**kw)
         else:
             raise ValueError("Either rid or slug must be provided")
 
