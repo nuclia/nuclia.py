@@ -333,7 +333,7 @@ class NucliaKB:
         override: Optional[bool] = False,
         **kwargs,
     ):
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if rid:
             res = ndb.ndb.get_resource_by_id(
                 kbid=ndb.kbid,
@@ -439,7 +439,7 @@ class NucliaKB:
         filters: Optional[List[str]] = None,
         **kwargs,
     ):
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if filters is None:
             batch = self.list(ndb=ndb, page=page)
             resources = batch.resources
@@ -771,7 +771,7 @@ class AsyncNucliaKB:
         destination: str,
         **kwargs,
     ):
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if rid:
             res = await ndb.ndb.get_resource_by_id(
                 kbid=ndb.kbid,
@@ -861,7 +861,7 @@ class AsyncNucliaKB:
     async def copy_all(
         self, *, destination: str, page=0, filters: Optional[List[str]] = None, **kwargs
     ):
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if filters is None:
             batch = await self.list(ndb=ndb, page=page)
             resources = batch.resources

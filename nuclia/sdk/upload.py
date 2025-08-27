@@ -262,7 +262,7 @@ class NucliaUpload:
         **kwargs,
     ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         with requests.get(origin, stream=True, allow_redirects=True) as r:
             try:
                 r.raise_for_status()
@@ -314,7 +314,7 @@ class NucliaUpload:
         rid: Optional[str] = kwargs.get("rid")
         if rid:
             return (rid, False)
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         slug = kwargs.get("slug")
         need_to_create_resource = slug is None
         if slug:

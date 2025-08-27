@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field, ValidationError
 from nuclia import get_list_parameter, get_regional_url
 from nuclia.decorators import kb, pretty
 from nuclia.exceptions import RateLimitError
-from nuclia.lib.kb import NucliaDBClient
+from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.logger import logger
 
 RESOURCE_ATTRIBUTES = [
@@ -64,7 +64,7 @@ class NucliaResource:
     )
     @kb
     def create(*args, **kwargs) -> str:
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         slug = kwargs.get("slug") or uuid4().hex
         kw = {
             "kbid": ndb.kbid,
@@ -164,7 +164,7 @@ class NucliaResource:
     ) -> Resource:
         show = show or ["basic"]
         extracted = extracted or []
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         show = get_list_parameter(show)
         extracted = get_list_parameter(extracted)
         if "basic" not in show:
@@ -204,7 +204,7 @@ class NucliaResource:
         output: str,
         **kwargs,
     ):
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if rid:
             res = ndb.ndb.get_resource_by_id(
                 kbid=ndb.kbid, rid=rid, query_params={"show": ["values"]}
@@ -231,13 +231,13 @@ class NucliaResource:
     def update(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         kw = {
             "kbid": ndb.kbid,
         }
         for param in RESOURCE_ATTRIBUTES:
             if param in kwargs:
-                kw[param] = kwargs.get(param)
+                kw[param] = kwargs.get(param)  # type: ignore
         if rid:
             kw["rid"] = rid
             if slug:
@@ -253,7 +253,7 @@ class NucliaResource:
     def send_to_process(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         kw = {
             "kbid": ndb.kbid,
         }
@@ -272,24 +272,13 @@ class NucliaResource:
     def delete(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
-        ndb = kwargs["ndb"]
+        ndb: NucliaDBClient = kwargs["ndb"]
         if rid:
             ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
         elif slug:
             ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
         else:
             raise ValueError("Either rid or slug must be provided")
-
-    def _update_resource(self, rid: str, **kwargs):
-        ndb = kwargs["ndb"]
-        kw = {
-            "kbid": ndb.kbid,
-            "rid": rid,
-        }
-        for param in RESOURCE_ATTRIBUTES:
-            if param in kwargs:
-                kw[param] = kwargs.get(param)
-        ndb.ndb.update_resource(**kw)
 
 
 class AsyncNucliaResource:
@@ -301,7 +290,7 @@ class AsyncNucliaResource:
 
     @kb
     async def create(*args, **kwargs) -> str:
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         slug = kwargs.get("slug") or uuid4().hex
         kw = {
             "kbid": ndb.kbid,
@@ -327,7 +316,7 @@ class AsyncNucliaResource:
     ) -> Resource:
         show = show or ["basic"]
         extracted = extracted or []
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         show = get_list_parameter(show)
         extracted = get_list_parameter(extracted)
         if "basic" not in show:
@@ -367,7 +356,7 @@ class AsyncNucliaResource:
         output: str,
         **kwargs,
     ):
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if rid:
             res = await ndb.ndb.get_resource_by_id(
                 kbid=ndb.kbid, rid=rid, query_params={"show": ["values"]}
@@ -394,7 +383,7 @@ class AsyncNucliaResource:
     async def send_to_process(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         kw = {
             "kbid": ndb.kbid,
         }
@@ -413,13 +402,21 @@ class AsyncNucliaResource:
     async def update(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        kw = {
+            "kbid": ndb.kbid,
+        }
+        for param in RESOURCE_ATTRIBUTES:
+            if param in kwargs:
+                kw[param] = kwargs.get(param)  # type: ignore
         if rid:
-            await self._update_resource(kbid=ndb.kbid, rid=rid, **kwargs)
+            kw["rid"] = rid
+            if slug:
+                kw["slug"] = slug
+            await ndb.ndb.update_resource(**kw)
         elif slug:
-            # TODO: delete directly when nucliadb sdk will support update by slug
-            res = ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
-            await self._update_resource(kbid=ndb.kbid, rid=res.id, **kwargs)
+            kw["rslug"] = slug
+            await ndb.ndb.update_resource_by_slug(**kw)
         else:
             raise ValueError("Either rid or slug must be provided")
 
@@ -427,23 +424,10 @@ class AsyncNucliaResource:
     async def delete(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
-        ndb = kwargs["ndb"]
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if rid:
             await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
         elif slug:
-            # TODO: delete directly when nucliadb sdk will support delete by slug
-            res = await ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
-            await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=res.id)
+            await ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
         else:
             raise ValueError("Either rid or slug must be provided")
-
-    async def _update_resource(self, rid: str, **kwargs):
-        ndb = kwargs["ndb"]
-        kw = {
-            "kbid": ndb.kbid,
-            "rid": rid,
-        }
-        for param in RESOURCE_ATTRIBUTES:
-            if param in kwargs:
-                kw[param] = kwargs.get(param)
-        await ndb.ndb.update_resource(**kw)

@@ -3,12 +3,15 @@ import io
 import tempfile
 import warnings
 from time import sleep
+from typing import Type, Union
 
+import pytest
 from nucliadb_models.common import File
 from nucliadb_models.file import FileField
 from nucliadb_sdk.v2.exceptions import NotFoundError
 
-from nuclia.sdk.resource import NucliaResource
+from nuclia.sdk.resource import AsyncNucliaResource, NucliaResource
+from nuclia.tests.utils import maybe_await
 
 
 def test_resource(testing_config):
@@ -85,3 +88,138 @@ def test_resource_download(testing_config):
     with tempfile.TemporaryDirectory() as tmpdir:
         output = f"{tmpdir}/image.png"
         nresource.download_file(rid=res_id, file_id="file", output=output)
+
+
+@pytest.mark.parametrize(
+    "nresource_klass",
+    [NucliaResource, AsyncNucliaResource],
+)
+async def test_resource_crud_by_id(
+    testing_config,
+    nresource_klass: Union[Type[NucliaResource], Type[AsyncNucliaResource]],
+):
+    nresource = nresource_klass()
+    slug = "crud-by-id"
+
+    try:
+        await maybe_await(nresource.delete(slug=slug))
+    except NotFoundError:
+        pass
+
+    rid = await maybe_await(
+        nresource.create(
+            slug=slug,
+            title="Testing",
+            texts={"mytext": {"body": "testing is essential for a reliable software"}},
+        )
+    )
+    res = await maybe_await(nresource.get(rid=rid))
+    assert res.title == "Testing"
+
+    await maybe_await(nresource.update(rid=rid, title="Reliability"))
+    res = await maybe_await(nresource.get(rid=rid))
+    assert res.title == "Reliability"
+
+    await maybe_await(nresource.delete(rid=rid))
+    try:
+        for _ in range(3):
+            await maybe_await(nresource.get(slug=slug))
+            sleep(0.5)
+        assert False
+    except NotFoundError:
+        assert True
+
+
+@pytest.mark.parametrize(
+    "nresource_klass",
+    [NucliaResource, AsyncNucliaResource],
+)
+async def test_resource_crud_by_slug(
+    testing_config,
+    nresource_klass: Union[Type[NucliaResource], Type[AsyncNucliaResource]],
+):
+    nresource = nresource_klass()
+    slug = "crud-by-slug"
+
+    try:
+        await maybe_await(nresource.delete(slug=slug))
+    except NotFoundError:
+        pass
+
+    await maybe_await(
+        nresource.create(
+            slug=slug,
+            title="Testing",
+            texts={"mytext": {"body": "testing is essential for a reliable software"}},
+        )
+    )
+    res = await maybe_await(nresource.get(slug=slug))
+    assert res.title == "Testing"
+
+    await maybe_await(nresource.update(slug=slug, title="Reliability"))
+    res = await maybe_await(nresource.get(slug=slug))
+    assert res.title == "Reliability"
+
+    await maybe_await(nresource.delete(slug=slug))
+    try:
+        for _ in range(3):
+            await maybe_await(nresource.get(slug=slug))
+            sleep(0.5)
+        assert False
+    except NotFoundError:
+        assert True
+
+
+@pytest.mark.parametrize(
+    "nresource_klass",
+    [NucliaResource, AsyncNucliaResource],
+)
+async def test_resource_file_download(
+    testing_config,
+    nresource_klass: Union[Type[NucliaResource], Type[AsyncNucliaResource]],
+):
+    nresource = nresource_klass()
+    slug = "resource-with-file"
+
+    try:
+        await maybe_await(nresource.delete(slug=slug))
+    except NotFoundError:
+        pass
+
+    rid = await maybe_await(
+        nresource.create(
+            slug=slug,
+            files={
+                "myfile": {
+                    "language": "en",
+                    "file": {
+                        "filename": "myfile.txt",
+                        "payload": base64.b64encode(b"this is my file"),
+                    },
+                }
+            },
+        )
+    )
+
+    res = await maybe_await(nresource.get(rid=rid))
+    assert res
+
+    with tempfile.NamedTemporaryFile() as fp:
+        await maybe_await(
+            nresource.download_file(rid=rid, file_id="myfile", output=fp.name)
+        )
+
+        with open(fp.name, "r") as f:
+            content = f.read()
+            assert content == "this is my file"
+
+    # cleanup test
+
+    await maybe_await(nresource.delete(rid=rid))
+    try:
+        for _ in range(3):
+            await maybe_await(nresource.get(slug=slug))
+            sleep(0.5)
+        assert False
+    except NotFoundError:
+        assert True
