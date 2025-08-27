@@ -418,8 +418,6 @@ class AsyncNucliaResource:
         if rid:
             await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
         elif slug:
-            # TODO: delete directly when nucliadb sdk will support delete by slug
-            res = await ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
-            await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=res.id)
+            ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
         else:
             raise ValueError("Either rid or slug must be provided")
