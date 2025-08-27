@@ -280,17 +280,6 @@ class NucliaResource:
         else:
             raise ValueError("Either rid or slug must be provided")
 
-    def _update_resource(self, rid: str, **kwargs):
-        ndb: NucliaDBClient = kwargs["ndb"]
-        kw = {
-            "kbid": ndb.kbid,
-            "rid": rid,
-        }
-        for param in RESOURCE_ATTRIBUTES:
-            if param in kwargs:
-                kw[param] = kwargs.get(param)  # type: ignore
-        ndb.ndb.update_resource(**kw)
-
 
 class AsyncNucliaResource:
     """
@@ -415,11 +404,9 @@ class AsyncNucliaResource:
     ):
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if rid:
-            await self._update_resource(kbid=ndb.kbid, rid=rid, **kwargs)
+            await ndb.ndb.update_resource(kbid=ndb.kbid, rid=rid, **kwargs)
         elif slug:
-            # TODO: delete directly when nucliadb sdk will support update by slug
-            res = ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
-            await self._update_resource(kbid=ndb.kbid, rid=res.id, **kwargs)
+            await ndb.ndb.update_resource_by_slug(kbid=ndb.kbid, rslug=slug, **kwargs)
         else:
             raise ValueError("Either rid or slug must be provided")
 
@@ -436,14 +423,3 @@ class AsyncNucliaResource:
             await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=res.id)
         else:
             raise ValueError("Either rid or slug must be provided")
-
-    async def _update_resource(self, rid: str, **kwargs):
-        ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        kw = {
-            "kbid": ndb.kbid,
-            "rid": rid,
-        }
-        for param in RESOURCE_ATTRIBUTES:
-            if param in kwargs:
-                kw[param] = kwargs.get(param)  # type: ignore
-        await ndb.ndb.update_resource(**kw)
