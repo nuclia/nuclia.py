@@ -253,3 +253,39 @@ async def test_graph(
     maybe_results = search.graph(query=query)
     results = await maybe_await(maybe_results)
     assert len(results.paths) >= 22
+
+
+async def test_search_query_type_check(
+    testing_config,
+) -> None:
+    query = object()  # invalid for every endpoint
+
+    search = NucliaSearch()
+    with pytest.raises(TypeError):
+        search.search(query=query)
+    with pytest.raises(TypeError):
+        search.find(query=query)
+    with pytest.raises(TypeError):
+        search.catalog(query=query)
+    with pytest.raises(TypeError):
+        search.ask(query=query)
+    with pytest.raises(TypeError):
+        search.ask_json(query=query)
+    with pytest.raises(TypeError):
+        search.graph(query=query)
+
+    async_search = AsyncNucliaSearch()
+    with pytest.raises(TypeError):
+        await async_search.search(query=query)
+    with pytest.raises(TypeError):
+        await async_search.find(query=query)
+    with pytest.raises(TypeError):
+        await async_search.catalog(query=query)
+    with pytest.raises(TypeError):
+        await async_search.ask(query=query)
+    with pytest.raises(TypeError):
+        await async_search.ask_stream(query=query)
+    with pytest.raises(TypeError):
+        await async_search.ask_json(query=query)
+    with pytest.raises(TypeError):
+        await async_search.graph(query=query)
