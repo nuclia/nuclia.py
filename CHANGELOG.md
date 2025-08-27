@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.7 (unreleased)
+## 4.9.7 (2025-08-27)
 
 
 - Add update_configuration to sdk
