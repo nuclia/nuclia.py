@@ -12,7 +12,9 @@ from uuid import uuid4
 import aiofiles
 import backoff
 import requests
+from nucliadb_models.resource import Resource
 from nucliadb_models.text import TextFormat
+from nucliadb_models.writer import ResourceCreated
 from nucliadb_sdk import exceptions
 from tqdm import tqdm
 
@@ -309,7 +311,7 @@ class NucliaUpload:
         factor=10,
     )
     def _get_or_create_resource(*args, **kwargs) -> Tuple[str, bool]:
-        rid = kwargs.get("rid")
+        rid: Optional[str] = kwargs.get("rid")
         if rid:
             return (rid, False)
         ndb = kwargs["ndb"]
@@ -317,7 +319,9 @@ class NucliaUpload:
         need_to_create_resource = slug is None
         if slug:
             try:
-                resource = ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
+                resource: Resource = ndb.ndb.get_resource_by_slug(
+                    kbid=ndb.kbid, slug=slug
+                )
                 rid = resource.id
                 logger.warning(f"Using existing resource: {rid}")
                 need_to_create_resource = False
@@ -334,10 +338,11 @@ class NucliaUpload:
             for param in RESOURCE_ATTRIBUTES:
                 if param in kwargs:
                     kw[param] = kwargs.get(param)
-            resource = ndb.ndb.create_resource(**kw)
-            rid = resource.uuid
+            resource_created: ResourceCreated = ndb.ndb.create_resource(**kw)
+            rid = resource_created.uuid
             logger.warning(f"New resource created: {rid}")
 
+        assert rid is not None
         return (rid, need_to_create_resource)
 
     @backoff.on_exception(
@@ -613,7 +618,7 @@ class AsyncNucliaUpload:
         return rid
 
     async def _get_or_create_resource(*args, **kwargs) -> Tuple[str, bool]:
-        rid = kwargs.get("rid")
+        rid: Optional[str] = kwargs.get("rid")
         if rid:
             return (rid, False)
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
@@ -621,7 +626,9 @@ class AsyncNucliaUpload:
         need_to_create_resource = slug is None
         if slug:
             try:
-                resource = await ndb.ndb.get_resource_by_slug(kbid=ndb.kbid, slug=slug)
+                resource: Resource = await ndb.ndb.get_resource_by_slug(
+                    kbid=ndb.kbid, slug=slug
+                )
                 rid = resource.id
                 logger.warning(f"Using existing resource: {rid}")
                 need_to_create_resource = False
@@ -638,10 +645,11 @@ class AsyncNucliaUpload:
             for param in RESOURCE_ATTRIBUTES:
                 if param in kwargs:
                     kw[param] = kwargs.get(param)
-            resource = await ndb.ndb.create_resource(**kw)
-            rid = resource.uuid
+            resource_created: ResourceCreated = await ndb.ndb.create_resource(**kw)
+            rid = resource_created.uuid
             logger.warning(f"New resource created: {rid}")
 
+        assert rid is not None
         return (rid, need_to_create_resource)
 
     async def _update_resource(self, rid: str, **kwargs):
