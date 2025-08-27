@@ -36,18 +36,6 @@ def accounts(func):
         return wrapper_checkout_accounts
 
 
-def kbs(func):
-    @wraps(func)
-    def wrapper_checkout_kbs(*args, **kwargs):
-        if "account" in kwargs:
-            auth = get_auth()
-            account_id = auth.get_account_id(kwargs["account"])
-            auth.kbs(account_id)
-        return func(*args, **kwargs)
-
-    return wrapper_checkout_kbs
-
-
 def kb(func):
     @wraps(func)
     async def async_wrapper_checkout(*args, **kwargs):
