@@ -266,7 +266,7 @@ class NucliaKB:
         self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
-    def set_configuration(
+    def update_configuration(
         self,
         *,
         semantic_model: Optional[str] = None,
@@ -276,14 +276,23 @@ class NucliaKB:
         visual_labeling: Optional[str] = None,
         **kwargs,
     ):
-        ndb: NucliaDBClient = kwargs["ndb"]
-        ndb.ndb.set_configuration(
+        ndb: NucliaDBClient = kwargs.pop("ndb")
+
+        content = {}
+        if semantic_model is not None:
+            content["semantic_model"] = semantic_model
+        if generative_model is not None:
+            content["generative_model"] = generative_model
+        if ner_model is not None:
+            content["ner_model"] = ner_model
+        if anonymization_model is not None:
+            content["anonymization_model"] = anonymization_model
+        if visual_labeling is not None:
+            content["visual_labeling"] = visual_labeling
+
+        ndb.ndb.update_configuration(
             kbid=ndb.kbid,
-            semantic_model=semantic_model,
-            generative_model=generative_model,
-            ner_model=ner_model,
-            anonymization_model=anonymization_model,
-            visual_labeling=visual_labeling,
+            content=content,
         )
 
     @kb
@@ -684,7 +693,7 @@ class AsyncNucliaKB:
         await self.resource.delete(ndb=kwargs["ndb"], rid=uid, slug=slug)
 
     @kb
-    async def set_configuration(
+    async def update_configuration(
         self,
         *,
         semantic_model: Optional[str] = None,
@@ -694,14 +703,23 @@ class AsyncNucliaKB:
         visual_labeling: Optional[str] = None,
         **kwargs,
     ):
-        ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        await ndb.ndb.set_configuration(
+        ndb: AsyncNucliaDBClient = kwargs.pop("ndb")
+
+        content = {}
+        if semantic_model is not None:
+            content["semantic_model"] = semantic_model
+        if generative_model is not None:
+            content["generative_model"] = generative_model
+        if ner_model is not None:
+            content["ner_model"] = ner_model
+        if anonymization_model is not None:
+            content["anonymization_model"] = anonymization_model
+        if visual_labeling is not None:
+            content["visual_labeling"] = visual_labeling
+
+        await ndb.ndb.update_configuration(
             kbid=ndb.kbid,
-            semantic_model=semantic_model,
-            generative_model=generative_model,
-            ner_model=ner_model,
-            anonymization_model=anonymization_model,
-            visual_labeling=visual_labeling,
+            content=content,
         )
 
     @kb
