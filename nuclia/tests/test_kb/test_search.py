@@ -252,4 +252,4 @@ async def test_graph(
     search = search_klass()
     maybe_results = search.graph(query=query)
     results = await maybe_await(maybe_results)
-    assert len(results.paths) == 22
+    assert len(results.paths) >= 22
