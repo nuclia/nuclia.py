@@ -164,6 +164,7 @@ async def test_resource_get_public_url_async(testing_config):
     assert downloaded.status_code == 200
     assert downloaded.content == content
 
+
 @pytest.mark.parametrize(
     "nresource_klass",
     [NucliaResource, AsyncNucliaResource],
