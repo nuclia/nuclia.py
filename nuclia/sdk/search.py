@@ -10,6 +10,7 @@ from nucliadb_models.graph.responses import GraphSearchResponse
 from nucliadb_models.search import (
     AskRequest,
     AskResponseItem,
+    AugmentedContext,
     CatalogRequest,
     ChatModel,
     Filter,
@@ -51,6 +52,7 @@ class AskAnswer:
     predict_request: Optional[ChatModel]
     error_details: Optional[str]
     consumption: Optional[Consumption]
+    augmented_context: Optional[AugmentedContext]
 
     def __str__(self):
         if self.answer:
@@ -247,6 +249,7 @@ class NucliaSearch:
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
             consumption=ask_response.consumption,
+            augmented_context=ask_response.augmented_context,
         )
 
         if ask_response.prompt_context:
@@ -340,6 +343,7 @@ class NucliaSearch:
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
             consumption=ask_response.consumption,
+            augmented_context=ask_response.augmented_context,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -548,6 +552,7 @@ class AsyncNucliaSearch:
             relations=None,
             prompt_context=None,
             consumption=None,
+            augmented_context=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -594,6 +599,8 @@ class AsyncNucliaSearch:
                 result.predict_request = ask_response_item.metadata.get(
                     "predict_request"
                 )
+            elif ask_response_item.type == "augmented_context":
+                result.augmented_context = ask_response_item.augmented
             else:  # pragma: no cover
                 warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
@@ -700,6 +707,7 @@ class AsyncNucliaSearch:
             relations=None,
             prompt_context=None,
             consumption=None,
+            augmented_context=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -746,6 +754,8 @@ class AsyncNucliaSearch:
                 result.predict_request = ask_response_item.metadata.get(
                     "predict_request"
                 )
+            elif ask_response_item.type == "augmented_context":
+                result.augmented_context = ask_response_item.augmented
             else:  # pragma: no cover
                 warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
