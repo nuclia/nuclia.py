@@ -1,10 +1,16 @@
 # Changelog
 
 
-## 4.9.7 (unreleased)
+## 4.9.8 (unreleased)
 
 
-- Nothing changed yet.
+- Parse augmented_context on /ask stream to remove warning
+
+
+## 4.9.7 (2025-08-27)
+
+
+- Add update_configuration to sdk
 
 
 ## 4.9.6 (2025-08-25)

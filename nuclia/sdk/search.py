@@ -10,6 +10,7 @@ from nucliadb_models.graph.responses import GraphSearchResponse
 from nucliadb_models.search import (
     AskRequest,
     AskResponseItem,
+    AugmentedContext,
     CatalogRequest,
     ChatModel,
     Filter,
@@ -51,6 +52,7 @@ class AskAnswer:
     predict_request: Optional[ChatModel]
     error_details: Optional[str]
     consumption: Optional[Consumption]
+    augmented_context: Optional[AugmentedContext]
 
     def __str__(self):
         if self.answer:
@@ -79,7 +81,7 @@ class NucliaSearch:
     def search(
         self,
         *,
-        query: Union[str, SearchRequest] = "",
+        query: Union[str, dict, SearchRequest] = "",
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ) -> KnowledgeboxSearchResults:
@@ -100,7 +102,7 @@ class NucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or SearchRequest")
+            raise TypeError("query must be 'str', 'dict' or 'SearchRequest'")
 
         return ndb.ndb.search(req, kbid=ndb.kbid)
 
@@ -109,7 +111,7 @@ class NucliaSearch:
     def find(
         self,
         *,
-        query: Union[str, FindRequest] = "",
+        query: Union[str, dict, FindRequest] = "",
         highlight: Optional[bool] = False,
         relations: Optional[bool] = False,
         filters: Optional[Union[List[str], List[Filter]]] = None,
@@ -137,7 +139,7 @@ class NucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or FindRequest")
+            raise TypeError("query must be 'str', 'dict' or 'FindRequest'")
 
         if relations:
             req.features.append(FindOptions.RELATIONS)
@@ -149,7 +151,7 @@ class NucliaSearch:
     def catalog(
         self,
         *,
-        query: Union[str, CatalogRequest] = "",
+        query: Union[str, dict, CatalogRequest] = "",
         filters: Optional[Union[List[str], List[Filter]]] = None,
         **kwargs,
     ):
@@ -174,7 +176,7 @@ class NucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or CatalogRequest")
+            raise TypeError("query must be 'str', 'dict', or 'CatalogRequest'")
 
         return ndb.ndb.catalog(req, kbid=ndb.kbid)
 
@@ -218,7 +220,7 @@ class NucliaSearch:
         elif isinstance(query, AskRequest):
             req = query
         else:
-            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
+            raise TypeError("query must be 'str', 'dict' or 'AskRequest'")
 
         ask_response: SyncAskResponse = ndb.ndb.ask(
             kbid=ndb.kbid,
@@ -247,6 +249,7 @@ class NucliaSearch:
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
             consumption=ask_response.consumption,
+            augmented_context=ask_response.augmented_context,
         )
 
         if ask_response.prompt_context:
@@ -311,7 +314,8 @@ class NucliaSearch:
             if filters is not None:
                 req.filters = filters
         else:
-            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
+            raise TypeError("query must be 'str, 'dict' or 'AskRequest'")
+
         ask_response: SyncAskResponse = ndb.ndb.ask(
             kbid=ndb.kbid,
             content=req,
@@ -339,6 +343,7 @@ class NucliaSearch:
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
             consumption=ask_response.consumption,
+            augmented_context=ask_response.augmented_context,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
@@ -370,7 +375,7 @@ class NucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception(f"Invalid query: '{query}'")
+            raise TypeError("query must be 'dict' or 'GraphSearchRequest'")
 
         return ndb.ndb.graph_search(req, kbid=ndb.kbid)
 
@@ -415,7 +420,7 @@ class AsyncNucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or SearchRequest")
+            raise TypeError("query must be 'str', 'dict' or 'SearchRequest'")
 
         return await ndb.ndb.search(req, kbid=ndb.kbid)
 
@@ -450,7 +455,7 @@ class AsyncNucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or FindRequest")
+            raise TypeError("query must be 'str', 'dict' or 'FindRequest'")
 
         if relations:
             req.features.append(FindOptions.RELATIONS)
@@ -487,7 +492,7 @@ class AsyncNucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception("Invalid Query either str or CatalogRequest")
+            raise TypeError("query must be 'str', 'dict', or 'CatalogRequest'")
 
         return await ndb.ndb.catalog(req, kbid=ndb.kbid)
 
@@ -523,7 +528,8 @@ class AsyncNucliaSearch:
         elif isinstance(query, AskRequest):
             req = query
         else:
-            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
+            raise TypeError("query must be 'str', 'dict' or 'AskRequest'")
+
         ask_stream_response = await ndb.ask(
             req,
             timeout=timeout,
@@ -546,6 +552,7 @@ class AsyncNucliaSearch:
             relations=None,
             prompt_context=None,
             consumption=None,
+            augmented_context=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -592,6 +599,8 @@ class AsyncNucliaSearch:
                 result.predict_request = ask_response_item.metadata.get(
                     "predict_request"
                 )
+            elif ask_response_item.type == "augmented_context":
+                result.augmented_context = ask_response_item.augmented
             else:  # pragma: no cover
                 warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
@@ -626,7 +635,8 @@ class AsyncNucliaSearch:
         elif isinstance(query, AskRequest):
             req = query
         else:
-            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
+            raise TypeError("query must be 'str, 'dict' or 'AskRequest'")
+
         ask_stream_response = await ndb.ask(
             req,
             timeout=timeout,
@@ -673,7 +683,8 @@ class AsyncNucliaSearch:
         elif isinstance(query, AskRequest):
             req = query
         else:
-            raise ValueError("Invalid query type. Must be str, dict or AskRequest.")
+            raise TypeError("query must be 'str, 'dict' or 'AskRequest'")
+
         ask_stream_response = await ndb.ask(
             req,
             timeout=timeout,
@@ -696,6 +707,7 @@ class AsyncNucliaSearch:
             relations=None,
             prompt_context=None,
             consumption=None,
+            augmented_context=None,
         )
         async for line in ask_stream_response.aiter_lines():
             try:
@@ -742,6 +754,8 @@ class AsyncNucliaSearch:
                 result.predict_request = ask_response_item.metadata.get(
                     "predict_request"
                 )
+            elif ask_response_item.type == "augmented_context":
+                result.augmented_context = ask_response_item.augmented
             else:  # pragma: no cover
                 warnings.warn(f"Unknown ask stream item type: {ask_response_item.type}")
         return result
@@ -769,6 +783,6 @@ class AsyncNucliaSearch:
                 logger.exception("Error validating query")
                 raise
         else:
-            raise Exception(f"Invalid query: '{query}'")
+            raise TypeError("query must be 'dict' or 'GraphSearchRequest'")
 
         return await ndb.ndb.graph_search(req, kbid=ndb.kbid)
