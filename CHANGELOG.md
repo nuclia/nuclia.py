@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.8 (unreleased)
+## 4.9.8 (2025-08-29)
 
 
 - Parse augmented_context on /ask stream to remove warning
