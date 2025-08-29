@@ -74,7 +74,7 @@ async def test_backup_async(testing_config):
     # Restore the KB
     new_kb_slug = "BackupTestSDK" + "".join(random.choices(string.ascii_letters, k=4))
     with pytest.raises(Exception) as exc_info:
-        _ = await sdk.NucliaBackup().restore(
+        _ = await sdk.AsyncNucliaBackup().restore(
             restore=BackupRestore(
                 slug=new_kb_slug, title="Test SDK KB (can be deleted)"
             ),
