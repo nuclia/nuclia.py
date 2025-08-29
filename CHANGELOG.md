@@ -5,6 +5,7 @@
 
 
 - Parse augmented_context on /ask stream to remove warning
+- Generate temporal download url for a knowledgebox resource file
 
 
 ## 4.9.7 (2025-08-27)

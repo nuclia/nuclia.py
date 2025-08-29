@@ -16,6 +16,7 @@ from nuclia import get_global_url, get_regional_url, is_nuclia_hosted
 from nuclia.config import (
     Account,
     Config,
+    EphemeralToken,
     KnowledgeBox,
     PersonalTokenCreate,
     PersonalTokenItem,
@@ -36,6 +37,7 @@ LIST_KBS = "/api/v1/account/{account}/kbs"
 VERIFY_NUA = "/api/authorizer/info"
 PERSONAL_TOKENS = "/api/v1/user/pa_tokens"
 PERSONAL_TOKEN = "/api/v1/user/pa_token/{token_id}"
+SA_EPHEMERAL_TOKEN = "/api/v1/ephemeral_token"
 
 
 class BaseNucliaAuth:
@@ -357,6 +359,26 @@ class NucliaAuth(BaseNucliaAuth):
     def post_login(self):
         self.accounts()
         self.zones()
+
+    def create_ephemeral_token(
+        self, kbid: str, ttl: Optional[int] = None
+    ) -> EphemeralToken:
+        kb_obj = self._config.get_kb(kbid)
+        if kb_obj is None:
+            raise ValueError("KnowledgeBox not found")
+
+        if kb_obj.region is None:
+            raise ValueError("KnowledgeBox region not set")
+
+        payload = {}
+        if ttl is not None:
+            payload["ttl"] = ttl
+        resp = self.client.post(
+            get_regional_url(kb_obj.region, SA_EPHEMERAL_TOKEN),
+            headers={"X-NUCLIA-SERVICEACCOUNT": f"Bearer {kb_obj.token}"},
+            json=payload,
+        )
+        return EphemeralToken(token=resp.json().get("token"))
 
     def create_personal_token(
         self, description: str, days: int = 90, login: bool = False
@@ -740,3 +762,23 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                     )
                     result.append(kb_obj)
         return result
+
+    async def create_ephemeral_token(
+        self, kbid: str, ttl: Optional[int] = None
+    ) -> EphemeralToken:
+        kb_obj = self._config.get_kb(kbid)
+        if kb_obj is None:
+            raise ValueError("KnowledgeBox not found")
+
+        if kb_obj.region is None:
+            raise ValueError("KnowledgeBox region not set")
+
+        payload = {}
+        if ttl is not None:
+            payload["ttl"] = ttl
+        resp = await self.client.post(
+            get_regional_url(kb_obj.region, SA_EPHEMERAL_TOKEN),
+            headers={"X-NUCLIA-SERVICEACCOUNT": f"Bearer {kb_obj.token}"},
+            json=payload,
+        )
+        return EphemeralToken(token=resp.json().get("token"))

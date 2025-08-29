@@ -49,6 +49,10 @@ class PersonalTokenCreate(BaseModel):
     expires: Optional[datetime]
 
 
+class EphemeralToken(BaseModel):
+    token: str
+
+
 class PersonalTokenItem(BaseModel):
     id: str
     description: str
