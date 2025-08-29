@@ -14,6 +14,14 @@ def test_list_kbs(testing_config):
     assert TESTING_KBID in [kb.id for kb in all]
 
 
+def test_ephemeral_token(testing_config):
+    kbs = NucliaKBS()
+    token = kbs.ephemeral_token(
+        account=TESTING_ACCOUNT_SLUG, id=TESTING_KBID, zone="europe-1"
+    )
+    assert token.token is not None
+
+
 @pytest.mark.asyncio
 async def test_async_list_kbs(testing_config):
     kbs = AsyncNucliaKBS()

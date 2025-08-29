@@ -4,6 +4,8 @@ import tempfile
 import warnings
 from time import sleep
 
+import httpx
+import pytest
 from nucliadb_models.common import File
 from nucliadb_models.file import FileField
 from nucliadb_sdk.v2.exceptions import NotFoundError
@@ -85,3 +87,77 @@ def test_resource_download(testing_config):
     with tempfile.TemporaryDirectory() as tmpdir:
         output = f"{tmpdir}/image.png"
         nresource.download_file(rid=res_id, file_id="file", output=output)
+
+
+def test_resource_get_public_url(testing_config):
+    nresource = NucliaResource()
+    slug = "download-file-test"
+
+    # Clean up any existing resource with the same slug
+    try:
+        res = nresource.get(slug=slug)
+    except NotFoundError:
+        pass
+    else:
+        nresource.delete(rid=res.id)
+
+    # Create a resource with a file
+    content = b"some random data"
+    file_binary = io.BytesIO(content)
+    res_id = nresource.create(
+        slug=slug,
+        files={
+            "file": FileField(
+                file=File(
+                    filename="image.png",
+                    content_type="image/png",
+                    payload=base64.b64encode(file_binary.getvalue()).decode("utf-8"),
+                )
+            )
+        },
+    )
+
+    url = nresource.temporal_download_url(rid=res_id, file_id="file", ttl=60)
+    assert "eph-token=" in url
+    downloaded = httpx.get(url)
+    assert downloaded.status_code == 200
+    assert downloaded.content == content
+
+
+@pytest.mark.asyncio
+async def test_resource_get_public_url_async(testing_config):
+    from nuclia.sdk.resource import AsyncNucliaResource
+
+    nresource = AsyncNucliaResource()
+    slug = "download-file-test-async"
+
+    # Clean up any existing resource with the same slug
+    try:
+        res = await nresource.get(slug=slug)
+    except NotFoundError:
+        pass
+    else:
+        await nresource.delete(rid=res.id)
+
+    # Create a resource with a file
+    content = b"some random data"
+    file_binary = io.BytesIO(content)
+    res_id = await nresource.create(
+        slug=slug,
+        files={
+            "file": FileField(
+                file=File(
+                    filename="image.png",
+                    content_type="image/png",
+                    payload=base64.b64encode(file_binary.getvalue()).decode("utf-8"),
+                )
+            )
+        },
+    )
+
+    url = await nresource.temporal_download_url(rid=res_id, file_id="file", ttl=60)
+    assert "eph-token=" in url
+    async with httpx.AsyncClient() as client:
+        downloaded = await client.get(url)
+    assert downloaded.status_code == 200
+    assert downloaded.content == content
