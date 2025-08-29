@@ -249,6 +249,7 @@ class NucliaSearch:
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
             consumption=ask_response.consumption,
+            augmented_context=ask_response.augmented_context,
         )
 
         if ask_response.prompt_context:
@@ -342,6 +343,7 @@ class NucliaSearch:
             relations=ask_response.relations,
             prompt_context=ask_response.prompt_context,
             consumption=ask_response.consumption,
+            augmented_context=ask_response.augmented_context,
         )
         if ask_response.metadata is not None:
             if ask_response.metadata.timings is not None:
