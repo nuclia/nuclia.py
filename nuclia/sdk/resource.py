@@ -17,6 +17,7 @@ from nucliadb_sdk.v2 import exceptions
 from pydantic import BaseModel, Field, ValidationError
 
 from nuclia import get_list_parameter, get_regional_url
+from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import kb, pretty
 from nuclia.exceptions import RateLimitError
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
@@ -228,6 +229,35 @@ class NucliaResource:
                     f.write(chunk)
 
     @kb
+    def temporal_download_url(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        file_id: str,
+        ttl: int = 10,
+        **kwargs,
+    ):
+        ndb = kwargs["ndb"]
+        if rid:
+            res = ndb.ndb.get_resource_by_id(
+                kbid=ndb.kbid, rid=rid, query_params={"show": ["values"]}
+            )
+        elif slug:
+            res = ndb.ndb.get_resource_by_slug(
+                kbid=ndb.kbid, slug=slug, query_params={"show": ["values"]}
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+        file_field = res.data.files.get(file_id)
+        if not file_field:
+            raise ValueError(f"File with id {file_id} not found in resource")
+        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
+        auth = get_auth()
+        token = auth.create_ephemeral_token(ndb.kbid, ttl=ttl)
+        return f"{url}?eph-token={token.token}"
+
+    @kb
     def update(
         self, *, rid: Optional[str] = None, slug: Optional[str] = None, **kwargs
     ):
@@ -378,6 +408,38 @@ class AsyncNucliaResource:
             for chunk in download.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
+
+    @kb
+    async def temporal_download_url(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        file_id: str,
+        ttl: int = 10,
+        **kwargs,
+    ):
+        ndb = kwargs["ndb"]
+        if rid:
+            res = await ndb.ndb.get_resource_by_id(
+                kbid=ndb.kbid, rid=rid, query_params={"show": ["values"]}
+            )
+        elif slug:
+            res = await ndb.ndb.get_resource_by_slug(
+                kbid=ndb.kbid, slug=slug, query_params={"show": ["values"]}
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+        file_field = res.data.files.get(file_id)
+        if not file_field:
+            raise ValueError(f"File with id {file_id} not found in resource")
+        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
+        download = requests.get(url, stream=True, headers=ndb.headers)
+        if download.status_code != 200:
+            raise ValueError(f"Error downloading file: {download.text}")
+        auth = get_async_auth()
+        token = await auth.create_ephemeral_token(ndb.kbid, ttl=ttl)
+        return f"{url}?eph-token={token.token}"
 
     @kb
     async def send_to_process(
