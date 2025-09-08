@@ -165,7 +165,7 @@ def test_ask_with_markdown_answer(testing_config):
             system="Answer the question and use lists as much as possible.",
             user="Based on this context {context}, answer the question {question}",
         ),
-        generative_model="gemini-1-5-pro",
+        generative_model="gemini-2.5-pro",
         prefer_markdown=True,
     )
     results = search.ask(query=ask)
