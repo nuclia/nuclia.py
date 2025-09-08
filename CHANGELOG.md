@@ -1,10 +1,10 @@
 # Changelog
 
 
-## 4.9.9 (unreleased)
+## 4.9.9 (2025-09-09)
 
 
-- Nothing changed yet.
+- Adds splitting strategies
 
 
 ## 4.9.8 (2025-08-29)

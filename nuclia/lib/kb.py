@@ -9,7 +9,7 @@ import backoff
 import httpx
 import requests
 from nuclia_models.common.utils import Aggregation
-from nuclia_models.config.proto import ExtractConfig
+from nuclia_models.config.proto import ExtractConfig, SplitConfiguration
 from nuclia_models.events.activity_logs import (  # type: ignore
     ActivityLogsAskQuery,
     ActivityLogsQuery,
@@ -67,6 +67,8 @@ GET_TASK = "/task/{task_id}/inspect"
 RESTART_TASK = "/task/{task_id}/restart"
 EXTRACT_STRATEGIES = "/extract_strategies"
 DELETE_EXTRACT_STRATEGY = "/extract_strategies/strategy/{id}"
+SPLIT_STRATEGIES = "/split_strategies"
+DELETE_SPLIT_STRATEGY = "/split_strategies/strategy/{id}"
 
 DOWNLOAD_FORMAT_HEADERS = {
     DownloadFormat.CSV: "text/csv",
@@ -284,6 +286,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         md5: Optional[str] = None,
         content_type: str = "application/octet-stream",
         extract_strategy: Optional[str] = None,
+        split_strategy: Optional[str] = None,
     ):
         if self.writer_session is None:
             raise Exception("KB not configured")
@@ -307,6 +310,9 @@ class NucliaDBClient(BaseNucliaDBClient):
             )
         if extract_strategy is not None:
             headers["x-extract-strategy"] = extract_strategy
+
+        if split_strategy is not None:
+            headers["x-split-strategy"] = split_strategy
 
         response: httpx.Response = self.writer_session.post(url, headers=headers)
         handle_http_sync_errors(response)
@@ -536,6 +542,37 @@ class NucliaDBClient(BaseNucliaDBClient):
         handle_http_sync_errors(response)
         return response
 
+    def list_split_strategies(self) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.reader_session.get(
+            f"{self.url}{SPLIT_STRATEGIES}"
+        )
+        handle_http_sync_errors(response)
+        return response
+
+    def add_split_strategy(self, config: SplitConfiguration) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.post(
+            f"{self.url}{SPLIT_STRATEGIES}",
+            json=config.model_dump(mode="json", exclude_unset=True),
+        )
+        handle_http_sync_errors(response)
+        return response
+
+    def delete_split_strategy(self, strategy_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.delete(
+            f"{self.url}{DELETE_SPLIT_STRATEGY.format(id=strategy_id)}",
+        )
+        handle_http_sync_errors(response)
+        return response
+
 
 class AsyncNucliaDBClient(BaseNucliaDBClient):
     reader_session: Optional[httpx.AsyncClient] = None
@@ -661,6 +698,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         md5: Optional[str] = None,
         content_type: str = "application/octet-stream",
         extract_strategy: Optional[str] = None,
+        split_strategy: Optional[str] = None,
     ):
         if self.writer_session is None:
             raise Exception("KB not configured")
@@ -684,6 +722,8 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             )
         if extract_strategy is not None:
             headers["x-extract-strategy"] = extract_strategy
+        if split_strategy is not None:
+            headers["x-split-strategy"] = split_strategy
 
         response = await self.writer_session.post(url, headers=headers)
         await handle_http_async_errors(response)
@@ -908,6 +948,37 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
 
         response: httpx.Response = await self.writer_session.delete(
             f"{self.url}{DELETE_EXTRACT_STRATEGY.format(id=strategy_id)}",
+        )
+        await handle_http_async_errors(response)
+        return response
+
+    async def list_split_strategies(self) -> httpx.Response:
+        if self.reader_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.reader_session.get(
+            f"{self.url}{SPLIT_STRATEGIES}"
+        )
+        await handle_http_async_errors(response)
+        return response
+
+    async def add_split_strategy(self, config: SplitConfiguration) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.post(
+            f"{self.url}{SPLIT_STRATEGIES}",
+            json=config.model_dump(mode="json", exclude_unset=True),
+        )
+        await handle_http_async_errors(response)
+        return response
+
+    async def delete_split_strategy(self, strategy_id: str) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.delete(
+            f"{self.url}{DELETE_SPLIT_STRATEGY.format(id=strategy_id)}",
         )
         await handle_http_async_errors(response)
         return response
