@@ -67,6 +67,7 @@ class NucliaUpload:
         blanklineSplitter: Optional[bool] = False,
         mimetype: Optional[str] = None,
         extract_strategy: Optional[str] = None,
+        split_strategy: Optional[str] = None,
         **kwargs,
     ) -> Optional[str]:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
@@ -102,6 +103,7 @@ class NucliaUpload:
                     content_type=mimetype,
                     md5=md5_hash.hexdigest(),
                     extract_strategy=extract_strategy,
+                    split_strategy=split_strategy,
                 )
 
                 offset = 0
@@ -204,6 +206,9 @@ class NucliaUpload:
         extract_strategy = kwargs.get("extract_strategy")
         if extract_strategy is not None:
             texts[field]["extract_strategy"] = extract_strategy
+        split_strategy = kwargs.get("split_strategy")
+        if split_strategy is not None:
+            texts[field]["split_strategy"] = split_strategy
         rid, is_new_resource = self._get_or_create_resource(
             texts=texts,
             icon=icon,
@@ -236,6 +241,9 @@ class NucliaUpload:
         extract_strategy = kwargs.get("extract_strategy")
         if extract_strategy is not None:
             links[field]["extract_strategy"] = extract_strategy
+        split_strategy = kwargs.get("split_strategy")
+        if split_strategy is not None:
+            links[field]["split_strategy"] = split_strategy
         kwargs["icon"] = "application/stf-link"
         rid, is_new_resource = self._get_or_create_resource(
             links=links,
@@ -259,6 +267,7 @@ class NucliaUpload:
         interpretTables: Optional[bool] = False,
         blanklineSplitter: Optional[bool] = False,
         extract_strategy: Optional[str] = None,
+        split_strategy: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
@@ -291,6 +300,7 @@ class NucliaUpload:
                     filename=filename,
                     content_type=mimetype,
                     extract_strategy=extract_strategy,
+                    split_strategy=split_strategy,
                 )
                 offset = 0
                 for _ in tqdm(range((size // CHUNK_SIZE) + 1)):
@@ -391,6 +401,7 @@ class AsyncNucliaUpload:
         interpretTables: Optional[bool] = False,
         blanklineSplitter: Optional[bool] = False,
         extract_strategy: Optional[str] = None,
+        split_strategy: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
@@ -424,6 +435,7 @@ class AsyncNucliaUpload:
                     content_type=mimetype,
                     md5=md5_hash.hexdigest(),
                     extract_strategy=extract_strategy,
+                    split_strategy=split_strategy,
                 )
                 offset = 0
                 for _ in tqdm(range((size // CHUNK_SIZE) + 1)):
@@ -523,6 +535,9 @@ class AsyncNucliaUpload:
         extract_strategy = kwargs.get("extract_strategy")
         if extract_strategy is not None:
             texts[field]["extract_strategy"] = extract_strategy
+        split_strategy = kwargs.get("split_strategy")
+        if split_strategy is not None:
+            texts[field]["split_strategy"] = split_strategy
         rid, is_new_resource = await self._get_or_create_resource(
             texts=texts,
             icon=icon,
@@ -553,6 +568,9 @@ class AsyncNucliaUpload:
         extract_strategy = kwargs.get("extract_strategy")
         if extract_strategy is not None:
             links[field]["extract_strategy"] = extract_strategy
+        split_strategy = kwargs.get("split_strategy")
+        if split_strategy is not None:
+            links[field]["split_strategy"] = split_strategy
         kwargs["icon"] = "application/stf-link"
         rid, is_new_resource = await self._get_or_create_resource(
             links=links,
@@ -576,6 +594,7 @@ class AsyncNucliaUpload:
         interpretTables: Optional[bool] = False,
         blanklineSplitter: Optional[bool] = False,
         extract_strategy: Optional[str] = None,
+        split_strategy: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Upload a remote url to a Nuclia KnowledgeBox"""
@@ -603,6 +622,7 @@ class AsyncNucliaUpload:
                     filename=filename,
                     content_type=mimetype,
                     extract_strategy=extract_strategy,
+                    split_strategy=split_strategy,
                 )
                 offset = 0
                 with tqdm(total=(size // CHUNK_SIZE) + 1) as p_bar:
