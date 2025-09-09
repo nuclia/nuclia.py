@@ -290,3 +290,44 @@ from nuclia import sdk
 upload = sdk.NucliaUpload()
 upload.file(path=FILE_PATH, extract_strategy="1361c0c7-918a-4a7f-b44b-ba37437619fb")
 ```
+
+
+## Use split strategies
+
+Split strategies let you control how resources are divided into chunks during ingestion. You can split content by a specific delimiter, set custom chunk sizes, or use an LLM for intelligent splitting. This enables more precise indexing and retrieval, tailored to your data structure and use case.
+
+### Manage split strategies
+
+CLI:
+
+```bash
+nuclia kb split_strategies add --config='{"name":"strategy1","max_paragraph":5000}'
+nuclia kb split_strategies list
+nuclia kb split_strategies delete --id=1361c0c7-918a-4a7f-b44b-ba37437619fb
+```
+
+SDK:
+
+```python
+from nuclia import sdk
+split_strategies = sdk.NucliaKB().split_strategies
+print(split_strategies.list())
+id = split_strategies.add(config={"name": "strategy1", "max_paragraph": 5000})
+split_strategies.delete(id=id)
+```
+
+### Use extract strategies
+
+CLI:
+
+```bash
+nuclia kb upload file --path=FILE_PATH --split_strategy=1361c0c7-918a-4a7f-b44b-ba37437619fb
+```
+
+SDK:
+
+```python
+from nuclia import sdk
+upload = sdk.NucliaUpload()
+upload.file(path=FILE_PATH, split_strategy="1361c0c7-918a-4a7f-b44b-ba37437619fb")
+```
