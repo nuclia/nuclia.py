@@ -20,7 +20,7 @@ async def test_split_strategies_async(testing_config):
     nkb = AsyncNucliaKB()
     # preventive clean up
     strategies_ids = await nkb.split_strategies.list()
-    for id in await strategies_ids.keys():
+    for id in strategies_ids.keys():
         await nkb.split_strategies.delete(id=id)
 
     # tests
