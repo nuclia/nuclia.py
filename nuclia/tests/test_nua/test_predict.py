@@ -258,3 +258,22 @@ async def test_nua_rerank_with_consumption(testing_config):
     )
     assert async_results.context_scores["1"] > async_results.context_scores["2"]
     assert async_results.consumption is not None
+
+
+@pytest.mark.asyncio
+async def test_generative_with_reasoning(testing_config):
+    np = NucliaPredict()
+    generated = np.generate(
+        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini", show_consumption=True
+    )
+    assert "4" in generated.answer, generated.answer
+    assert "4" in generated.reasoning, generated.reasoning
+
+    anp = AsyncNucliaPredict()
+    async_generated = await anp.generate(
+        text=ChatModel(question="How much is 2 + 2?"),
+        model="chatgpt-azure-4o-mini",
+        show_consumption=True,
+    )
+    assert "4" in async_generated.answer, async_generated.answer
+    assert "4" in async_generated.reasoning, async_generated.reasoning

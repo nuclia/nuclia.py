@@ -4,7 +4,7 @@
 ## 4.9.9 (unreleased)
 
 
-- Nothing changed yet.
+- Add reasoning to ChatModel
 
 
 ## 4.9.8 (2025-08-29)

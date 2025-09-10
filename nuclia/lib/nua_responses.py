@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum, IntEnum
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
@@ -82,6 +82,61 @@ class Tool(BaseModel):
     )
 
 
+class Reasoning(BaseModel):
+    display: bool = Field(
+        default=True,
+        description="Whether to display the reasoning steps in the response.",
+    )
+    effort: Literal["low", "medium", "high"] = Field(
+        default="medium",
+        description=(
+            "Level of reasoning effort. Used by OpenAI models to control the depth of reasoning. "
+            "This parameter will be automatically mapped to budget_tokens "
+            "if the chosen model does not support effort."
+        ),
+    )
+    budget_tokens: int = Field(
+        default=15_000,
+        description=(
+            "Token budget for reasoning. Used by Anthropic or Google models to limit the number of "
+            "tokens used for reasoning. This parameter will be automatically mapped to effort "
+            "if the chosen model does not support budget_tokens."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_budget_tokens_or_effort(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "budget_tokens" not in data and "effort" not in data:
+                return data
+
+            effort_map = {"low": 7500, "medium": 15_000, "high": 30_000}
+            if "budget_tokens" not in data:
+                if data["effort"] in effort_map:
+                    data["budget_tokens"] = effort_map[data["effort"]]
+                else:
+                    raise ValueError(
+                        f"Invalid effort value: {data['effort']}. "
+                        f"Valid values are: {', '.join(effort_map.keys())}."
+                    )
+            if "effort" not in data:
+                budget_tokens = data["budget_tokens"]
+                if not isinstance(budget_tokens, int):
+                    raise ValueError(
+                        f"Invalid budget_tokens value: {budget_tokens}. "
+                        "It must be an integer."
+                    )
+                if budget_tokens <= effort_map["low"]:
+                    data["effort"] = "low"
+                elif budget_tokens <= effort_map["medium"]:
+                    data["effort"] = "medium"
+                else:
+                    data["effort"] = "high"
+
+        return data
+
+
 class ChatModel(BaseModel):
     question: str
     retrieval: bool = True
@@ -115,6 +170,13 @@ class ChatModel(BaseModel):
     tools: List[Tool] = Field(
         default_factory=list, description="List of tools to choose"
     )
+    reasoning: Reasoning | bool = Field(
+        default=False,
+        description=(
+            "Reasoning options for the generative model. "
+            "Set to True to enable default reasoning, False to disable, or provide a Reasoning object for custom options."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
@@ -126,6 +188,15 @@ class ChatModel(BaseModel):
             raise ValueError("Can not setup citations and Tools at the same time")
         if len(self.tools) > 0 and self.json_schema is not None:
             raise ValueError("Can not setup Tools and JSON Schema at the same time")
+        return self
+
+    @model_validator(mode="after")
+    def check_reasoning_budget_vs_max_tokens(self) -> "ChatModel":
+        if isinstance(self.reasoning, Reasoning) and self.max_tokens is not None:
+            if self.reasoning.budget_tokens >= self.max_tokens:
+                raise ValueError(
+                    f"`budget_tokens` ({self.reasoning.budget_tokens}) cannot be greater or equal than `max_tokens` ({self.max_tokens})."
+                )
         return self
 
 

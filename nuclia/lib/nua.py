@@ -264,6 +264,8 @@ class NuaClient:
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
+            elif isinstance(chunk.chunk, ReasoningGenerativeResponse):
+                result.reasoning = chunk.chunk.reasoning
             elif isinstance(chunk.chunk, JSONGenerativeResponse):
                 result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
@@ -664,6 +666,8 @@ class AsyncNuaClient:
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
+            elif isinstance(chunk.chunk, ReasoningGenerativeResponse):
+                result.reasoning = chunk.chunk.reasoning
             elif isinstance(chunk.chunk, JSONGenerativeResponse):
                 result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
