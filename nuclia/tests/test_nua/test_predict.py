@@ -5,7 +5,7 @@ from nuclia_models.predict.generative_responses import (
 )
 from nuclia_models.predict.remi import RemiRequest
 
-from nuclia.lib.nua_responses import ChatModel, RerankModel, UserPrompt
+from nuclia.lib.nua_responses import ChatModel, Reasoning, RerankModel, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 
@@ -265,18 +265,33 @@ async def test_generative_with_reasoning(testing_config):
     np = NucliaPredict()
     generated = np.generate(
         ChatModel(
-            question="How much is 2 + 2?",
-            reasoning=True,
+            question="Explain photosynthesis in 11 words. Reason about it and think hard before responding",
+            retrieval=False,
+            user_id="Nuclia PY CLI",
+            query_context=[
+                "Photosynthesis is how plants make their own food. They use sunlight, water, and air (carbon dioxide) to make sugar and oxygen. It happens in their leaves."
+            ],
+            generative_model="chatgpt-azure-o3-mini",
+            max_tokens=2000,
+            reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
         ),
-        model="chatgpt-azure-4o-mini",
     )
-    assert "4" in generated.answer, generated.answer
-    assert "4" in generated.reasoning, generated.reasoning
+    assert "sun" in generated.answer, generated.answer
+    assert "11" in generated.reasoning, generated.reasoning
 
     anp = AsyncNucliaPredict()
     async_generated = await anp.generate(
-        text=ChatModel(question="How much is 2 + 2?", reasoning=True),
-        model="chatgpt-azure-4o-mini",
+        text=ChatModel(
+            question="Explain photosynthesis in 11 words. Reason about it and think hard before responding",
+            retrieval=False,
+            user_id="Nuclia PY CLI",
+            query_context=[
+                "Photosynthesis is how plants make their own food. They use sunlight, water, and air (carbon dioxide) to make sugar and oxygen. It happens in their leaves."
+            ],
+            generative_model="chatgpt-azure-o3-mini",
+            max_tokens=2000,
+            reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
+        ),
     )
-    assert "4" in async_generated.answer, async_generated.answer
-    assert "4" in async_generated.reasoning, async_generated.reasoning
+    assert "sun" in async_generated.answer, async_generated.answer
+    assert "11" in async_generated.reasoning, async_generated.reasoning
