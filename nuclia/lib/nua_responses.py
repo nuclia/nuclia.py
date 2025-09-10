@@ -170,7 +170,7 @@ class ChatModel(BaseModel):
     tools: List[Tool] = Field(
         default_factory=list, description="List of tools to choose"
     )
-    reasoning: Reasoning | bool = Field(
+    reasoning: Union[Reasoning, bool] = Field(
         default=False,
         description=(
             "Reasoning options for the generative model. "
