@@ -24,7 +24,7 @@ dependencies = [
     "httpcore>=1.0.0",
     "prompt_toolkit",
     "nucliadb_sdk>=6.7.2,<7",
-    "nucliadb_models>=6.6.1,<7",
+    "nucliadb_models>=6.8.0,<7",
     "nuclia-models>=0.47.0",
     "tqdm",
     "aiofiles",
