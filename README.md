@@ -10,7 +10,7 @@ pip install nuclia
 
 ### Nuclia
 
-You can login with your Nuclia user [How to sign-up](https://nuclia.cloud/user/signup) via
+You can login with your Nuclia user [How to sign-up](https://rag.progress.cloud/user/signup) via
 
 ```bash
 nuclia auth login
