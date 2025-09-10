@@ -43,11 +43,11 @@ class NucliaUpload:
     - `field`: Field id. If not provided, a unique value will be generated.
     - `title`: resource title.
     - `usermetadata`: User metadata.
-        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `fieldmetadata`: Field metadata.
-        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `origin`: Origin metadata.
-        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `extra`: user-defined metadata.
     """
 
@@ -377,11 +377,11 @@ class AsyncNucliaUpload:
     - `field`: Field id. If not provided, a unique value will be generated.
     - `title`: resource title.
     - `usermetadata`: User metadata.
-        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `fieldmetadata`: Field metadata.
-        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `origin`: Origin metadata.
-        See https://docs.nuclia.dev/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Resources/operation/Create_Resource_kb__kbid__resources_post
     - `extra`: user-defined metadata.
     """
 

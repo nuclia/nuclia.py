@@ -11,7 +11,7 @@ With the `crewAI` Python library and the `NucliaNuaChat` class, you can integrat
    pip install crewai nuclia[litellm]
    ```
 
-2. Obtain your Nuclia [NUA key](https://docs.nuclia.dev/docs/management/authentication#generate-nua-key)
+2. Obtain your Nuclia [NUA key](https://docs.rag.progress.cloud/docs/management/authentication#generate-nua-key)
 
 ## How to Integrate crewAI Agents with Nuclia LLMs
 

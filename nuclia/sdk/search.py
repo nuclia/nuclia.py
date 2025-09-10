@@ -88,7 +88,7 @@ class NucliaSearch:
         """
         Perform a search query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -120,7 +120,7 @@ class NucliaSearch:
         """
         Perform a find query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str) and highlight is not None:
@@ -158,7 +158,7 @@ class NucliaSearch:
         """
         Perform a catalog query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/catalog_post_kb__kbid__catalog_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/catalog_post_kb__kbid__catalog_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -194,7 +194,7 @@ class NucliaSearch:
         """
         Answer a question.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -274,7 +274,7 @@ class NucliaSearch:
         """
         Answer a question.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if isinstance(schema, str):
@@ -362,7 +362,7 @@ class NucliaSearch:
         """
         Perform a graph path query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post
         """
         ndb: NucliaDBClient = kwargs["ndb"]
 
@@ -406,7 +406,7 @@ class AsyncNucliaSearch:
         """
         Perform a search query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Search_Knowledge_Box_kb__kbid__search_post
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -438,7 +438,7 @@ class AsyncNucliaSearch:
         """
         Perform a find query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Find_Knowledge_Box_kb__kbid__find_post
         """
 
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
@@ -474,7 +474,7 @@ class AsyncNucliaSearch:
         """
         Perform a catalog query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/catalog_post_kb__kbid__catalog_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/catalog_post_kb__kbid__catalog_post
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -509,7 +509,7 @@ class AsyncNucliaSearch:
         """
         Answer a question.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
 
@@ -618,7 +618,7 @@ class AsyncNucliaSearch:
         """
         Answer a question.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if isinstance(query, str):
@@ -664,7 +664,7 @@ class AsyncNucliaSearch:
         """
         Answer a question.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/Ask_Knowledge_Box_kb__kbid__ask_post
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
 
@@ -770,7 +770,7 @@ class AsyncNucliaSearch:
         """
         Perform a graph path query.
 
-        See https://docs.nuclia.dev/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post
+        See https://docs.rag.progress.cloud/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
 
