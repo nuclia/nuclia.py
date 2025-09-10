@@ -16,7 +16,7 @@ else:
     IS_PROD = True
     TESTING_ACCOUNT_SLUG = "nuclia"
     TESTING_KBID = "18ab102c-a7db-4a35-b894-c20422b3b9f0"
-    TESTING_KB = "https://europe-1.nuclia.cloud/api/v1/kb/" + TESTING_KBID
+    TESTING_KB = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_KBID
 
 
 @pytest.fixture(scope="module")

@@ -1,10 +1,16 @@
 # Changelog
 
 
-## 4.9.9 (unreleased)
+## 4.9.10 (unreleased)
 
 
 - Add reasoning to ChatModel
+
+
+## 4.9.9 (2025-09-09)
+
+
+- Adds splitting strategies
 
 
 ## 4.9.8 (2025-08-29)

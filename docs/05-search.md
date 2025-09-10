@@ -116,7 +116,7 @@ RAG strategies can be used to improve the quality of the answers by extending th
   search.ask(query="My question", rag_strategies=[{"name": "hierarchy"}])
   ```
 
-See the [RAG strategies documentation](https://docs.nuclia.dev/docs/rag/rag-strategy) for more information.
+See the [RAG strategies documentation](https://docs.rag.progress.cloud/docs/rag/rag-strategy) for more information.
 
 ## Complex queries
 
@@ -168,4 +168,4 @@ a bit cumbersome, the knowledge graph can be queried as in this example:
   ```
 
 For more information about graph querying, please refer to [Nuclia's graph
-doc](https://docs.nuclia.dev/docs/rag/advanced/graph) or the [API reference](https://docs.nuclia.dev/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post)
+doc](https://docs.rag.progress.cloud/docs/rag/advanced/graph) or the [API reference](https://docs.rag.progress.cloud/docs/api#tag/Search/operation/graph_search_knowledgebox_kb__kbid__graph_post)
