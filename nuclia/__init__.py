@@ -2,7 +2,7 @@ import os
 from typing import List, Optional
 from urllib.parse import urlparse
 
-BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "nuclia.cloud")
+BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "rag.progress.cloud")
 BASE = f"https://{BASE_DOMAIN}"
 REGIONAL = "https://{region}." + BASE_DOMAIN
 CLOUD_ID = BASE.split("/")[-1]
