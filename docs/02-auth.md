@@ -63,7 +63,7 @@ You define its expiration date (default is 90 days), and you can revoke it at an
 
 ## API key
 
-An API key can be generated from the Nuclia Dashboard, see [Get an API key](https://docs.nuclia.dev/docs/guides/getting-started/quick-start/push#get-an-api-key).
+An API key can be generated from the Nuclia Dashboard, see [Get an API key](https://docs.rag.progress.cloud/docs/guides/getting-started/quick-start/push#get-an-api-key).
 
 When authenticating with an API key, you can only access the Knowledge Box that is associated with this API key.
 The authentication will last as long as the key is valid (potentially forever, but an API key can be revoked from the Nuclia Dashboard).
