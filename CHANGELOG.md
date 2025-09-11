@@ -4,7 +4,7 @@
 ## 4.9.10 (unreleased)
 
 
-- Nothing changed yet.
+- Fix typo in docs
 
 
 ## 4.9.9 (2025-09-09)

@@ -316,7 +316,7 @@ id = split_strategies.add(config={"name": "strategy1", "max_paragraph": 5000})
 split_strategies.delete(id=id)
 ```
 
-### Use extract strategies
+### Use split strategies
 
 CLI:
 
