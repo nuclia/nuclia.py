@@ -93,7 +93,10 @@ Model Support for Reasoning Options:
 
 * **OpenAI models** → support `effort` only.
 * **Google & Anthropic models** → support `budget_tokens` only.
-* **Convenience:** If you send just one of these values, Nuclia will automatically fill in the other for you.
+
+:::tip
+If you send just one of these values (`effort` or `budget_tokens`), Nuclia will automatically fill in the other for you.
+:::
 
 :::warning
 * Enabling reasoning can use additional tokens, which may increase your usage costs.

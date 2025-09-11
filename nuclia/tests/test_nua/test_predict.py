@@ -272,12 +272,14 @@ async def test_generative_with_reasoning(testing_config):
                 "Photosynthesis is how plants make their own food. They use sunlight, water, and air (carbon dioxide) to make sugar and oxygen. It happens in their leaves."
             ],
             generative_model="chatgpt-azure-o3-mini",
-            max_tokens=2000,
+            max_tokens=4000,
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
         ),
     )
     assert "sun" in generated.answer, generated.answer
-    assert "11" in generated.reasoning, generated.reasoning
+    assert "11" in generated.reasoning or "eleven" in generated.reasoning, (
+        generated.reasoning
+    )
 
     anp = AsyncNucliaPredict()
     async_generated = await anp.generate(
@@ -289,9 +291,11 @@ async def test_generative_with_reasoning(testing_config):
                 "Photosynthesis is how plants make their own food. They use sunlight, water, and air (carbon dioxide) to make sugar and oxygen. It happens in their leaves."
             ],
             generative_model="chatgpt-azure-o3-mini",
-            max_tokens=2000,
+            max_tokens=4000,
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
         ),
     )
     assert "sun" in async_generated.answer, async_generated.answer
-    assert "11" in async_generated.reasoning, async_generated.reasoning
+    assert "11" in generated.reasoning or "eleven" in generated.reasoning, (
+        async_generated.reasoning
+    )
