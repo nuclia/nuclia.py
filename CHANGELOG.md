@@ -5,6 +5,7 @@
 
 
 - Add reasoning to ChatModel
+- Fix typo in docs
 
 
 ## 4.9.9 (2025-09-09)
