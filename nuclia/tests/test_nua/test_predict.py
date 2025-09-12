@@ -5,7 +5,7 @@ from nuclia_models.predict.generative_responses import (
 )
 from nuclia_models.predict.remi import RemiRequest
 
-from nuclia.lib.nua_responses import ChatModel, Reasoning, RerankModel, UserPrompt
+from nuclia.lib.nua_responses import ChatModel, RerankModel, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 
