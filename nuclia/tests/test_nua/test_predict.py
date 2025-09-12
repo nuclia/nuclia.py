@@ -5,7 +5,7 @@ from nuclia_models.predict.generative_responses import (
 )
 from nuclia_models.predict.remi import RemiRequest
 
-from nuclia.lib.nua_responses import ChatModel, RerankModel, UserPrompt
+from nuclia.lib.nua_responses import ChatModel, Reasoning, RerankModel, UserPrompt
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 
@@ -258,3 +258,46 @@ async def test_nua_rerank_with_consumption(testing_config):
     )
     assert async_results.context_scores["1"] > async_results.context_scores["2"]
     assert async_results.consumption is not None
+
+
+@pytest.mark.asyncio
+async def test_generative_with_reasoning(testing_config):
+    np = NucliaPredict()
+    generated = np.generate(
+        ChatModel(
+            question=(
+                "Create the simplest possible regex pattern that from the following list it matches all aws zones"
+                " but not aws-il and also matches progress zone?\n\n - aws-il-central-1-1\n\n - aws-us-east-2-1\n\n"
+                " - aws-europe-central-1-1\n\n - gke-prod-1\n\n - progress-proc-us-east-2-1"
+            ),
+            retrieval=False,
+            user_id="Nuclia PY CLI",
+            generative_model="chatgpt-azure-o3-mini",
+            max_tokens=4000,
+            reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
+            user_prompt=UserPrompt(prompt="{question}"),
+        ),
+    )
+    assert "progress" in generated.answer, generated.answer
+    # Reasoning is not very consistent since the model decides when to use it
+    # assert "progress" in generated.reasoning, generated.reasoning
+
+    anp = AsyncNucliaPredict()
+    async_generated = await anp.generate(
+        text=ChatModel(
+            question=(
+                "Create the simplest possible regex pattern that from the following list it matches all aws zones"
+                " but not aws-il and also matches progress zone?\n\n - aws-il-central-1-1\n\n - aws-us-east-2-1\n\n"
+                " - aws-europe-central-1-1\n\n - gke-prod-1\n\n - progress-proc-us-east-2-1"
+            ),
+            retrieval=False,
+            user_id="Nuclia PY CLI",
+            generative_model="chatgpt-azure-o3-mini",
+            max_tokens=4000,
+            reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
+            user_prompt=UserPrompt(prompt="{question}"),
+        ),
+    )
+    assert "progress" in async_generated.answer, async_generated.answer
+    # Reasoning is not very consistent since the model decides when to use it
+    # assert "progress" in async_generated.reasoning, async_generated.reasoning
