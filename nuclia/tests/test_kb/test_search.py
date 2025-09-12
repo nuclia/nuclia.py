@@ -342,7 +342,6 @@ async def test_search_query_validation_errors(
             query=(
                 "If the Navy had adopted Lamarr’s invention during World War II, how might this have changed the effectiveness of"
                 " Allied naval communications and torpedo guidance? Support your reasoning with historical and technological context."
-                " Try to answer briefly."
             ),
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
             generative_model="chatgpt-azure-o3-mini",
