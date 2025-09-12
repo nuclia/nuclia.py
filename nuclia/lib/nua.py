@@ -762,10 +762,7 @@ class AsyncNuaClient:
                 for c in context
             ]
         return await self._request(
-            "POST",
-            endpoint,
-            payload=body,
-            output=RephraseModel,
+            "POST", endpoint, payload=body, output=RephraseModel, timeout=120
         )
 
     async def remi(
@@ -798,7 +795,11 @@ class AsyncNuaClient:
             query_context=context,
         )
         return await self._request(
-            "POST", endpoint, payload=body.model_dump(), output=ChatResponse
+            "POST",
+            endpoint,
+            payload=body.model_dump(),
+            output=ChatResponse,
+            timeout=300,
         )
 
     async def process_link(
