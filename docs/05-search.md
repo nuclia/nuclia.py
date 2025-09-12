@@ -66,6 +66,43 @@ Based on a `find` request, Nuclia uses a generative AI to answer the question ba
   search.ask(query=query)
   ```
 
+### Reasoning
+
+You can enable reasoning so the AI “thinks” before answering. This is only available if the underlying LLM supports it.
+
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  from nucliadb_models.search import AskRequest, Reasoning
+
+  search = sdk.NucliaSearch()
+  query = AskRequest(
+    query="My question with extra reasoning effort",
+    max_tokens=5000,
+    reasoning=Reasoning(
+        display=True,      # Show reasoning in the response
+        effort="low",      # Can be "low", "medium", or "high"
+        budget_tokens=1024 # How many tokens reasoning can use
+    ),
+  )
+  search.ask(query=query)
+  ```
+
+Model Support for Reasoning Options:
+
+* **OpenAI models** → support `effort` only.
+* **Google & Anthropic models** → support `budget_tokens` only.
+
+:::tip
+If you send just one of these values (`effort` or `budget_tokens`), Nuclia will automatically fill in the other for you.
+:::
+
+:::warning
+* Enabling reasoning can use additional tokens, which may increase your usage costs.
+* You may need to increase `max_tokens` to give the LLM enough room to reason and generate an answer.
+:::
+
 ## Filtering
 
 Any endpoint that involves search (`search`, `find` and `ask`) also support more advanced filtering expressions. Expressions can have one of the following operators:

@@ -23,6 +23,7 @@ from nuclia_models.predict.generative_responses import (
     GenerativeFullResponse,
     JSONGenerativeResponse,
     MetaGenerativeResponse,
+    ReasoningGenerativeResponse,
     StatusGenerativeResponse,
     TextGenerativeResponse,
     ToolsGenerativeResponse,
@@ -264,6 +265,8 @@ class NuaClient:
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
+            elif isinstance(chunk.chunk, ReasoningGenerativeResponse):
+                result.reasoning = (result.reasoning or "") + chunk.chunk.text
             elif isinstance(chunk.chunk, JSONGenerativeResponse):
                 result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):
@@ -664,6 +667,8 @@ class AsyncNuaClient:
         ):
             if isinstance(chunk.chunk, TextGenerativeResponse):
                 result.answer += chunk.chunk.text
+            elif isinstance(chunk.chunk, ReasoningGenerativeResponse):
+                result.reasoning = (result.reasoning or "") + chunk.chunk.text
             elif isinstance(chunk.chunk, JSONGenerativeResponse):
                 result.object = chunk.chunk.object
             elif isinstance(chunk.chunk, MetaGenerativeResponse):

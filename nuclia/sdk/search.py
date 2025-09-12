@@ -37,6 +37,7 @@ from nuclia.sdk.resource import RagImagesStrategiesParse, RagStrategiesParse
 @dataclass
 class AskAnswer:
     answer: bytes
+    reasoning: Optional[str]
     object: Optional[Dict[str, Any]]
     learning_id: str
     relations_result: Optional[Relations]
@@ -230,6 +231,7 @@ class NucliaSearch:
 
         result = AskAnswer(
             answer=ask_response.answer.encode(),
+            reasoning=ask_response.reasoning,
             learning_id=ask_response.learning_id,
             relations_result=ask_response.relations,
             find_result=ask_response.retrieval_results,
@@ -324,6 +326,7 @@ class NucliaSearch:
 
         result = AskAnswer(
             answer=ask_response.answer.encode(),
+            reasoning=ask_response.reasoning,
             learning_id=ask_response.learning_id,
             relations_result=ask_response.relations,
             find_result=ask_response.retrieval_results,
@@ -537,6 +540,7 @@ class AsyncNucliaSearch:
         )
         result = AskAnswer(
             answer=b"",
+            reasoning=None,
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
             relations_result=None,
             find_result=None,
@@ -562,6 +566,8 @@ class AsyncNucliaSearch:
                 continue
             if ask_response_item.type == "answer":
                 result.answer += ask_response_item.text.encode()
+            elif ask_response_item.type == "reasoning":
+                result.reasoning = (result.reasoning or "") + ask_response_item.text
             elif ask_response_item.type == "answer_json":
                 result.object = ask_response_item.object
             elif ask_response_item.type == "retrieval":
@@ -692,6 +698,7 @@ class AsyncNucliaSearch:
         )
         result = AskAnswer(
             answer=b"",
+            reasoning=None,
             learning_id=ask_stream_response.headers.get("NUCLIA-LEARNING-ID", ""),
             relations_result=None,
             find_result=None,
@@ -717,6 +724,8 @@ class AsyncNucliaSearch:
                 continue
             if ask_response_item.type == "answer":
                 result.answer += ask_response_item.text.encode()
+            elif ask_response_item.type == "reasoning":
+                result.reasoning = (result.reasoning or "") + ask_response_item.text
             elif ask_response_item.type == "retrieval":
                 result.find_result = ask_response_item.results
             elif ask_response_item.type == "answer_json":
