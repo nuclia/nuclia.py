@@ -5,7 +5,7 @@
 
 
 - Fix typo in docs
-
+- Increase timeout duration for NUA calls
 
 ## 4.9.9 (2025-09-09)
 
