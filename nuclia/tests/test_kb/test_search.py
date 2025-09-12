@@ -11,6 +11,7 @@ from nucliadb_models.search import (
     CatalogRequest,
     CustomPrompt,
     FindRequest,
+    Reasoning,
     SearchRequest,
 )
 from pydantic import ValidationError
