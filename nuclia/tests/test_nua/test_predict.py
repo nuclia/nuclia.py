@@ -265,22 +265,21 @@ async def test_generative_with_reasoning(testing_config):
     np = NucliaPredict()
     generated = np.generate(
         ChatModel(
-            question="Explain photosynthesis in 11 words. Reason about it and think hard before responding",
+            question=(
+                "Create the simplest possible regex pattern that from the following list it matches all aws zones"
+                " but not aws-il and also matches progress zone?\n\n - aws-il-central-1-1\n\n - aws-us-east-2-1\n\n"
+                " - aws-europe-central-1-1\n\n - gke-prod-1\n\n - progress-proc-us-east-2-1"
+            ),
             retrieval=False,
             user_id="Nuclia PY CLI",
-            query_context=[
-                "Photosynthesis is how plants make their own food. They use sunlight, water, and air (carbon dioxide) to make sugar and oxygen. It happens in their leaves."
-            ],
             generative_model="chatgpt-azure-o3-mini",
             max_tokens=4000,
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
+            user_prompt=UserPrompt(prompt="{question}"),
         ),
     )
-    assert "sun" in generated.answer, generated.answer
-    # Reasoning is not very consistent since the model decides when to use it
-    # assert "11" in generated.reasoning or "eleven" in generated.reasoning, (
-    #    generated.reasoning
-    # )
+    assert "progress" in generated.answer, generated.answer
+    assert "progress" in generated.reasoning, generated.reasoning
 
     anp = AsyncNucliaPredict()
     async_generated = await anp.generate(
@@ -292,16 +291,11 @@ async def test_generative_with_reasoning(testing_config):
             ),
             retrieval=False,
             user_id="Nuclia PY CLI",
-            query_context=[
-                "Photosynthesis is how plants make their own food. They use sunlight, water, and air (carbon dioxide) to make sugar and oxygen. It happens in their leaves."
-            ],
             generative_model="chatgpt-azure-o3-mini",
             max_tokens=4000,
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
+            user_prompt=UserPrompt(prompt="{question}"),
         ),
     )
-    assert "sun" in async_generated.answer, async_generated.answer
-    # Reasoning is not very consistent since the model decides when to use it
-    # assert "11" in generated.reasoning or "eleven" in generated.reasoning, (
-    #    async_generated.reasoning
-    # )
+    assert "progress" in async_generated.answer, async_generated.answer
+    assert "progress" in async_generated.reasoning, async_generated.reasoning
