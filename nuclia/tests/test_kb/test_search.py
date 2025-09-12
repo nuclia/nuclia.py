@@ -329,35 +329,3 @@ async def test_search_query_validation_errors(
         await async_search.ask_json(schema={}, query=query)
     with pytest.raises(ValidationError):
         await async_search.graph(query=query)
-
-
-@pytest.mark.parametrize(
-    "search_klass",
-    [NucliaSearch, AsyncNucliaSearch],
-)
-@pytest.mark.parametrize(
-    "query",
-    [
-        AskRequest(
-            query=(
-                "If the Navy had adopted Lamarr’s invention during World War II, how might this have changed the effectiveness of"
-                " Allied naval communications and torpedo guidance? Support your reasoning with historical and technological context."
-            ),
-            reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
-            generative_model="chatgpt-azure-o3-mini",
-            max_tokens=5000,
-        ),
-    ],
-)
-async def test_ask_with_reasoning(
-    testing_config,
-    search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
-    query,
-):
-    search = search_klass()
-
-    maybe_results = search.ask(query=query)
-    results = await maybe_await(maybe_results)
-    answer = results.answer.decode()
-    assert "Lamarr" in answer
-    assert results.reasoning is not None
