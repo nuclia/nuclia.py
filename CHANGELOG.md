@@ -4,7 +4,7 @@
 ## 4.9.10 (unreleased)
 
 
-- Add reasoning to ChatModel
+- Add reasoning to /chat and /ask
 - Fix typo in docs
 
 

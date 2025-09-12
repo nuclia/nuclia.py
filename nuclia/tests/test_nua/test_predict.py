@@ -284,7 +284,11 @@ async def test_generative_with_reasoning(testing_config):
     anp = AsyncNucliaPredict()
     async_generated = await anp.generate(
         text=ChatModel(
-            question="Explain photosynthesis in 11 words. Reason about it and think hard before responding",
+            question=(
+                "Create the simplest possible regex pattern that from the following list it matches all aws zones"
+                " but not aws-il and also matches progress zone?\n\n - aws-il-central-1-1\n\n - aws-us-east-2-1\n\n"
+                " - aws-europe-central-1-1\n\n - gke-prod-1\n\n - progress-proc-us-east-2-1"
+            ),
             retrieval=False,
             user_id="Nuclia PY CLI",
             query_context=[
