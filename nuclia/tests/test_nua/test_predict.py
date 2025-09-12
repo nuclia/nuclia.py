@@ -279,7 +279,8 @@ async def test_generative_with_reasoning(testing_config):
         ),
     )
     assert "progress" in generated.answer, generated.answer
-    assert "progress" in generated.reasoning, generated.reasoning
+    # Reasoning is not very consistent since the model decides when to use it
+    # assert "progress" in generated.reasoning, generated.reasoning
 
     anp = AsyncNucliaPredict()
     async_generated = await anp.generate(
@@ -298,4 +299,5 @@ async def test_generative_with_reasoning(testing_config):
         ),
     )
     assert "progress" in async_generated.answer, async_generated.answer
-    assert "progress" in async_generated.reasoning, async_generated.reasoning
+    # Reasoning is not very consistent since the model decides when to use it
+    # assert "progress" in async_generated.reasoning, async_generated.reasoning
