@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.10 (unreleased)
+## 4.9.10 (2025-09-15)
 
 
 - Add reasoning to /chat and /ask
