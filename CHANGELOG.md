@@ -4,7 +4,8 @@
 ## 4.9.11 (unreleased)
 
 
-- Nothing changed yet.
+- Add reasoning to activity logs
+- `chat` and `ask` events are now their own event type in activity logs
 
 
 ## 4.9.10 (2025-09-15)
