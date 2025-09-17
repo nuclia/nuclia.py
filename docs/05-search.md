@@ -68,7 +68,7 @@ Based on a `find` request, Nuclia uses a generative AI to answer the question ba
 
 ### Reasoning
 
-You can enable reasoning so the AI “thinks” before answering. This is only available if the underlying LLM supports it.
+Some LLMs support reasoning. In some models, reasoning is enabled by default, while in others it must be explicitly requested. You can control this behavior using the reasoning parameter.
 
 - SDK:
 
