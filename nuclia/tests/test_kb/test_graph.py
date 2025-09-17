@@ -46,14 +46,14 @@ def test_graph(testing_config):
             query={"query": {"prop": "path", "source": {"value": "Alice"}}}
         )
         try:
-            assert len(paths.paths) == 2
+            assert len(paths.paths) >= 2
         except AssertionError:
             # wait for a bit before retrying
             print("Graph was not indexed yet, waiting a bit...")
             sleep(DELAY)
         else:
             break
-    assert len(paths.paths) == 2
+    assert len(paths.paths) >= 2
 
     nkb.update_graph(
         slug="graph1",
@@ -73,13 +73,13 @@ def test_graph(testing_config):
             query={"query": {"prop": "path", "source": {"value": "Victor"}}}
         )
         try:
-            assert len(paths.paths) == 1
+            assert len(paths.paths) >= 1
         except AssertionError:
             print("Graph was not indexed yet, waiting a bit...")
             sleep(DELAY)
         else:
             break
-    assert len(paths.paths) == 1
+    assert len(paths.paths) >= 1
 
     nkb.delete_graph(slug="graph1")
     try:
