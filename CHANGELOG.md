@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.11 (unreleased)
+## 4.9.11 (2025-09-18)
 
 
 - Add reasoning to activity logs
