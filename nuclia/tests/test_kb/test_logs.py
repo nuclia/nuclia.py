@@ -22,7 +22,7 @@ def test_activity_logs_query(testing_config):
         pagination=Pagination(limit=10),
     )
     nkb = NucliaKB()
-    output = nkb.logs.query(type=EventType.CHAT, query=query)
+    output = nkb.logs.query(type=EventType.ASK, query=query)
     assert len(output.data) == 10
     assert output.has_more
 
@@ -38,7 +38,7 @@ def test_activity_logs_download(testing_config):
     )
     nkb = NucliaKB()
     output = nkb.logs.download(
-        type=EventType.CHAT, query=query, download_format=DownloadFormat.NDJSON
+        type=EventType.ASK, query=query, download_format=DownloadFormat.NDJSON
     )
     assert output.request_id
     assert output.download_url is None
@@ -56,7 +56,7 @@ async def test_activity_logs_query_async(testing_config):
         pagination=Pagination(limit=10),
     )
     nkb = AsyncNucliaKB()
-    output = await nkb.logs.query(type=EventType.CHAT, query=query)
+    output = await nkb.logs.query(type=EventType.ASK, query=query)
     assert len(output.data) == 10
     assert output.has_more
 
@@ -73,7 +73,7 @@ async def test_activity_logs_download_async(testing_config):
     )
     nkb = AsyncNucliaKB()
     output = await nkb.logs.download(
-        type=EventType.CHAT, query=query, download_format=DownloadFormat.NDJSON
+        type=EventType.ASK, query=query, download_format=DownloadFormat.NDJSON
     )
     assert output.request_id
     assert output.download_url is None
