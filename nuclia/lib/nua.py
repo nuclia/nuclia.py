@@ -16,12 +16,10 @@ from typing import (
 
 import aiofiles
 from deprecated import deprecated
-from learning.inference.predict.src.stashify_predict.models.generative_models import (
-    FootnoteCitationsGenerativeResponse,
-)
 from nuclia_models.common.consumption import Consumption, ConsumptionGenerative
 from nuclia_models.predict.generative_responses import (
     CitationsGenerativeResponse,
+    FootnoteCitationsGenerativeResponse,
     GenerativeChunk,
     GenerativeFullResponse,
     JSONGenerativeResponse,
