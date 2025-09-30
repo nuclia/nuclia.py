@@ -43,6 +43,7 @@ class AskAnswer:
     relations_result: Optional[Relations]
     find_result: Optional[KnowledgeboxFindResults]
     citations: Optional[Dict[str, Any]]
+    citation_footnote_to_context: Optional[Dict[str, str]]
     prequeries: Optional[Dict[str, KnowledgeboxFindResults]]
     timings: Optional[Dict[str, float]]
     tokens: Optional[Dict[str, int]]
@@ -240,6 +241,7 @@ class NucliaSearch:
                 best.id for best in ask_response.retrieval_best_matches
             ],
             citations=ask_response.citations,
+            citation_footnote_to_context=ask_response.citation_footnote_to_context,
             timings=None,
             tokens=None,
             object=ask_response.answer_json,
@@ -335,6 +337,7 @@ class NucliaSearch:
                 best.id for best in ask_response.retrieval_best_matches
             ],
             citations=ask_response.citations,
+            citation_footnote_to_context=ask_response.citation_footnote_to_context,
             timings=None,
             tokens=None,
             object=ask_response.answer_json,
@@ -547,6 +550,7 @@ class AsyncNucliaSearch:
             prequeries=None,
             retrieval_best_matches=None,
             citations=None,
+            citation_footnote_to_context=None,
             timings=None,
             tokens=None,
             object=None,
@@ -576,6 +580,10 @@ class AsyncNucliaSearch:
                 result.relations_result = ask_response_item.relations
             elif ask_response_item.type == "citations":
                 result.citations = ask_response_item.citations
+            elif ask_response_item.type == "footnote_citations":
+                result.citation_footnote_to_context = (
+                    ask_response_item.footnote_to_context
+                )
             elif ask_response_item.type == "metadata":
                 if ask_response_item.timings:
                     result.timings = ask_response_item.timings.model_dump()
@@ -705,6 +713,7 @@ class AsyncNucliaSearch:
             prequeries=None,
             retrieval_best_matches=None,
             citations=None,
+            citation_footnote_to_context=None,
             timings=None,
             tokens=None,
             object=None,
@@ -734,6 +743,10 @@ class AsyncNucliaSearch:
                 result.relations_result = ask_response_item.relations
             elif ask_response_item.type == "citations":
                 result.citations = ask_response_item.citations
+            elif ask_response_item.type == "footnote_citations":
+                result.citation_footnote_to_context = (
+                    ask_response_item.footnote_to_context
+                )
             elif ask_response_item.type == "metadata":
                 if ask_response_item.timings:
                     result.timings = ask_response_item.timings.model_dump()
