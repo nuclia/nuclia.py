@@ -154,7 +154,7 @@ class ChatModel(BaseModel):
     query_context_order: Dict[str, int] = {}
     truncate: Optional[bool] = True
     user_prompt: Optional[UserPrompt] = None
-    citations: bool | None | CitationsType = Field(
+    citations: Union[bool, None, CitationsType] = Field(
         default=None,
         description="Whether to include citations in the response. "
         "If set to None or False, no citations will be computed. "
