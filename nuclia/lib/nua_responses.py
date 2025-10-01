@@ -137,6 +137,12 @@ class Reasoning(BaseModel):
         return data
 
 
+class CitationsType(str, Enum):
+    NONE = "none"
+    DEFAULT = "default"
+    LLM_FOOTNOTES = "llm_footnotes"
+
+
 class ChatModel(BaseModel):
     question: str
     retrieval: bool = True
@@ -148,7 +154,13 @@ class ChatModel(BaseModel):
     query_context_order: Dict[str, int] = {}
     truncate: Optional[bool] = True
     user_prompt: Optional[UserPrompt] = None
-    citations: Optional[bool] = False
+    citations: Union[bool, None, CitationsType] = Field(
+        default=None,
+        description="Whether to include citations in the response. "
+        "If set to None or False, no citations will be computed. "
+        "If set to True or 'default', citations will be computed after answer generation and send as a separate `CitationsGenerativeResponse` chunk"
+        "If set to 'llm_footnotes', citations will be included in the LLM's response as markdown-styled footnotes. A `FootnoteCitationsGenerativeResponse` chunk will also be sent to map footnote ids to context keys in the `query_context`.",
+    )
     citation_threshold: Optional[float] = Field(
         default=None,
         description="If citations is set to True, this will be the similarity threshold. Value between 0 and 1, lower values will produce more citations. If not set, it will be set to the optimized threshold found by Nuclia.",

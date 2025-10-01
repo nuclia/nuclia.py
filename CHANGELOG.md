@@ -4,7 +4,7 @@
 ## 4.9.12 (unreleased)
 
 
-- Nothing changed yet.
+- Support LLM footnote citations
 
 
 ## 4.9.11 (2025-09-18)
