@@ -9,6 +9,7 @@ from nucliadb_models.graph.requests import (
 from nucliadb_models.search import (
     AskRequest,
     CatalogRequest,
+    CitationsType,
     CustomPrompt,
     FindRequest,
     Reasoning,
@@ -362,3 +363,36 @@ async def test_ask_with_reasoning(
     assert "Lamarr" in answer
     # Reasoning is not very consistent since the model decides when to use it
     # assert results.reasoning is not None
+
+
+@pytest.fixture(scope="function")
+def ask_example_with_citations() -> AskRequest:
+    return AskRequest(
+        query="Who is hedy Lamarr?",
+        citations=CitationsType.LLM_FOOTNOTES,
+        generative_model="chatgpt-azure-4o-mini",
+        max_tokens=1500,
+    )
+
+
+def test_ask_citation_footnote_to_context(testing_config, ask_example_with_citations):
+    search = NucliaSearch()
+    results = search.ask(query=ask_example_with_citations)
+
+    # Check that we get citation_footnote_to_context in the response
+    assert results.citation_footnote_to_context is not None
+    # The citation_footnote_to_context should be a dict mapping footnote IDs to context
+    assert isinstance(results.citation_footnote_to_context, dict)
+
+
+@pytest.mark.asyncio
+async def test_async_ask_citation_footnote_to_context(
+    testing_config, ask_example_with_citations
+):
+    search = AsyncNucliaSearch()
+    results = await search.ask(query=ask_example_with_citations)
+
+    # Check that we get citation_footnote_to_context in the response
+    assert results.citation_footnote_to_context is not None
+    # The citation_footnote_to_context should be a dict mapping footnote IDs to context
+    assert isinstance(results.citation_footnote_to_context, dict)
