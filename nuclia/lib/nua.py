@@ -19,6 +19,7 @@ from deprecated import deprecated
 from nuclia_models.common.consumption import Consumption, ConsumptionGenerative
 from nuclia_models.predict.generative_responses import (
     CitationsGenerativeResponse,
+    FootnoteCitationsGenerativeResponse,
     GenerativeChunk,
     GenerativeFullResponse,
     JSONGenerativeResponse,
@@ -277,6 +278,8 @@ class NuaClient:
                 result.timings = chunk.chunk.timings
             elif isinstance(chunk.chunk, CitationsGenerativeResponse):
                 result.citations = chunk.chunk.citations
+            elif isinstance(chunk.chunk, FootnoteCitationsGenerativeResponse):
+                result.citation_footnote_to_context = chunk.chunk.footnote_to_context
             elif isinstance(chunk.chunk, StatusGenerativeResponse):
                 result.code = chunk.chunk.code
             elif isinstance(chunk.chunk, ToolsGenerativeResponse):
@@ -679,6 +682,8 @@ class AsyncNuaClient:
                 result.timings = chunk.chunk.timings
             elif isinstance(chunk.chunk, CitationsGenerativeResponse):
                 result.citations = chunk.chunk.citations
+            elif isinstance(chunk.chunk, FootnoteCitationsGenerativeResponse):
+                result.citation_footnote_to_context = chunk.chunk.footnote_to_context
             elif isinstance(chunk.chunk, StatusGenerativeResponse):
                 result.code = chunk.chunk.code
             elif isinstance(chunk.chunk, ToolsGenerativeResponse):

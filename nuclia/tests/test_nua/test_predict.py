@@ -1,11 +1,18 @@
 import pytest
 from nuclia_models.predict.generative_responses import (
     ConsumptionGenerative,
+    FootnoteCitationsGenerativeResponse,
     TextGenerativeResponse,
 )
 from nuclia_models.predict.remi import RemiRequest
 
-from nuclia.lib.nua_responses import ChatModel, Reasoning, RerankModel, UserPrompt
+from nuclia.lib.nua_responses import (
+    ChatModel,
+    CitationsType,
+    Reasoning,
+    RerankModel,
+    UserPrompt,
+)
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
 
 
@@ -301,3 +308,58 @@ async def test_generative_with_reasoning(testing_config):
     assert "progress" in async_generated.answer, async_generated.answer
     # Reasoning is not very consistent since the model decides when to use it
     # assert "progress" in async_generated.reasoning, async_generated.reasoning
+
+
+@pytest.fixture(scope="function")
+def chat_example_md_citations() -> ChatModel:
+    return ChatModel(
+        question="What is Progress Agentic RAG, and what plans they provide?",
+        user_id="asd",
+        citations=CitationsType.LLM_FOOTNOTES,
+        query_context={
+            "2c6db015b370ec47abaf43aa704a16fd/f/2c6db015b370ec47abaf43aa704a16fd": "Progress Agentic RAG provides AI-powered search and knowledge management solutions.",
+            "d854cbe0da054e0da186d1a722015057/l/46abb334c7afaf128e7c1e0ce877b9bb": "**Progress Agentic RAG Plans Pricing**\n* Fly: $700/month\n* Growth: $1,750/month\n* Enterprise: Contact sales",
+        },
+        max_tokens=1500,
+    )
+
+
+def test_citation_footnote_to_context(testing_config, chat_example_md_citations):
+    np = NucliaPredict()
+    footnote_found = False
+    for stream in np.generate_stream(
+        chat_example_md_citations, model="chatgpt-azure-4o-mini"
+    ):
+        if isinstance(stream.chunk, FootnoteCitationsGenerativeResponse):
+            # Verify that footnote_to_context mapping exists
+            assert stream.chunk.footnote_to_context is not None
+            assert len(stream.chunk.footnote_to_context) > 0
+
+            # Verify that the footnote IDs map to context keys from query_context
+            for footnote_id, context_key in stream.chunk.footnote_to_context.items():
+                assert context_key in chat_example_md_citations.query_context
+                footnote_found = True
+
+    assert footnote_found, "FootnoteCitationsGenerativeResponse chunk should be present"
+
+
+@pytest.mark.asyncio
+async def test_async_citation_footnote_to_context(
+    testing_config, chat_example_md_citations
+):
+    np = AsyncNucliaPredict()
+    footnote_found = False
+    async for stream in np.generate_stream(
+        chat_example_md_citations, model="chatgpt-azure-4o-mini"
+    ):
+        if isinstance(stream.chunk, FootnoteCitationsGenerativeResponse):
+            # Verify that footnote_to_context mapping exists
+            assert stream.chunk.footnote_to_context is not None
+            assert len(stream.chunk.footnote_to_context) > 0
+
+            # Verify that the footnote IDs map to context keys from query_context
+            for footnote_id, context_key in stream.chunk.footnote_to_context.items():
+                assert context_key in chat_example_md_citations.query_context
+                footnote_found = True
+
+    assert footnote_found, "FootnoteCitationsGenerativeResponse chunk should be present"
