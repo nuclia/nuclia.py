@@ -379,10 +379,7 @@ def test_ask_citation_footnote_to_context(testing_config, ask_example_with_citat
     search = NucliaSearch()
     results = search.ask(query=ask_example_with_citations)
 
-    # Check that we get citation_footnote_to_context in the response
-    assert results.citation_footnote_to_context is not None
-    # The citation_footnote_to_context should be a dict mapping footnote IDs to context
-    assert isinstance(results.citation_footnote_to_context, dict)
+    assert results.citation_footnote_to_context, results.citation_footnote_to_context
 
 
 @pytest.mark.asyncio
@@ -392,7 +389,4 @@ async def test_async_ask_citation_footnote_to_context(
     search = AsyncNucliaSearch()
     results = await search.ask(query=ask_example_with_citations)
 
-    # Check that we get citation_footnote_to_context in the response
-    assert results.citation_footnote_to_context is not None
-    # The citation_footnote_to_context should be a dict mapping footnote IDs to context
-    assert isinstance(results.citation_footnote_to_context, dict)
+    assert results.citation_footnote_to_context, results.citation_footnote_to_context
