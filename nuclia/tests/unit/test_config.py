@@ -19,6 +19,7 @@ def test_extract_region(monkeypatch):
 
     assert extract_region("https://localhost:8000/api/v1") is None
 
+    assert extract_region("not a url") is None
     # Custom base domain
     monkeypatch.setattr("nuclia.config.CLOUD_ID", "example.com")
     assert extract_region("https://europe-1.example.com/api/v1") == "europe-1"
