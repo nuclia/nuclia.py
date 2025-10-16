@@ -92,13 +92,14 @@ class Selection(BaseModel):
     zone: Optional[str] = None
 
 
-def extract_region(url):
+def extract_region(url) -> Optional[str]:
     parsed = urlparse(url)
     hostname = parsed.hostname
     if hostname:
         parts = hostname.split(".")
         region = parts[0] if parts else None
         if region in [
+            "localhost",
             "rag",
             "nuclia",
             "stashify",
@@ -106,9 +107,9 @@ def extract_region(url):
             CLOUD_ID.split(".")[0],
         ]:
             # This means the URL is global, not regional
-            return ""
+            return None
         return region
-    return ""
+    return None
 
 
 class Config(BaseModel):
