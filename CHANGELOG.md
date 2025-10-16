@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.12 (unreleased)
+## 4.9.12 (2025-10-16)
 
 
 - Support LLM footnote citations
