@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from pydantic import BaseModel
 
@@ -89,6 +90,25 @@ class Selection(BaseModel):
     account: Optional[str] = None
     nucliadb: Optional[str] = None
     zone: Optional[str] = None
+
+
+def extract_region(url):
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if hostname:
+        parts = hostname.split(".")
+        region = parts[0] if parts else None
+        if region in [
+            "rag",
+            "nuclia",
+            "stashify",
+            "gcp-global-dev-1",
+            CLOUD_ID.split(".")[0],
+        ]:
+            # This means the URL is global, not regional
+            return ""
+        return region
+    return ""
 
 
 class Config(BaseModel):
@@ -181,11 +201,7 @@ class Config(BaseModel):
         title: Optional[str] = None,
     ):
         self._del_kbid(kbid)
-        region = (
-            None
-            if CLOUD_ID not in url
-            else url.split(CLOUD_ID)[0].split("/")[-1].strip(".")
-        )
+        region = extract_region(url)
         kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title, region=region)
         self.kbs_token.append(kb_obj)
 
