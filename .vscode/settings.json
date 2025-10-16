@@ -15,5 +15,7 @@
   ],
   "python.envFile": "${workspaceFolder}/.vscode/.env",
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "debugpy.debugJustMyCode": false,
+  "debug.allowBreakpointsEverywhere": true
 }

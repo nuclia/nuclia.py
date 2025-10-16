@@ -5,6 +5,7 @@
 
 
 - Support LLM footnote citations
+- Fix region parsing
 
 
 ## 4.9.11 (2025-09-18)
