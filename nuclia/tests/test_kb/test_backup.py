@@ -25,7 +25,7 @@ def test_backup(testing_config):
     assert backup.id in backup_ids
 
     # Restore the KB
-    new_kb_slug = "BackupTestSDK" + "".join(random.choices(string.ascii_letters, k=4))
+    new_kb_slug = "backuptestsdk" + "".join(random.choices(string.ascii_letters, k=4))
     with pytest.raises(Exception) as exc_info:
         _ = sdk.NucliaBackup().restore(
             restore=BackupRestore(
