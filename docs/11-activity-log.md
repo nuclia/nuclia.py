@@ -31,11 +31,12 @@ See the examples for more information
 ### Available Fields
 
 #### Common Fields (All Event Types)
-- `id`, `date`, `user_id`, `user_type`, `client_type`, `total_duration`, `audit_metadata`
+- `id`, `date`, `user_id`, `user_type`, `client_type`, `total_duration`, `audit_metadata`, `resource_id`, `nuclia_tokens`, `token_details`
 
 #### Event-Specific Fields
-- `SEARCH` events: Common fields + `question`, `resources_count`, `filter`, `learning_id`
-- `ASK` events: Common fields + Search fields + `rephrased_question`, `answer`, `retrieved_context`, `chat_history`, `feedback_good`, `feedback_comment`, `model`, `rag_strategies_names`, `rag_strategies`, `status`, `time_to_first_char`
+- `CHAT` events: Common fields + `question`, `answer`, `rephrased_question`, `learning_id`, `retrieved_context`, `chat_history`, `feedback_good`, `feedback_comment`, `feedback_good_all`, `feedback_good_any`, `feedback`, `model`, `rag_strategies_names`, `rag_strategies`, `status`, `generative_answer_first_chunk_time`, `generative_reasoning_first_chunk_time`, `generative_answer_time`, `remi_scores`, `user_request`, `reasoning`
+- `SEARCH` events: Common fields + `question`, `resources_count`, `filter`, `retrieval_rephrased_question`, `vectorset`, `security`, `min_score_bm25`, `min_score_semantic`, `result_per_page`, `retrieval_time`
+- `ASK` events: Search fields + Chat fields
 
 
 ### Query Examples
