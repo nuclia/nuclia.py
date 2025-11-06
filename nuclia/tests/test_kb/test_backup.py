@@ -25,7 +25,7 @@ def test_backup(testing_config):
     assert backup.id in backup_ids
 
     # Restore the KB
-    new_kb_slug = "backuptestsdk" + "".join(random.choices(string.ascii_letters, k=4))
+    new_kb_slug = "backuptestsdk" + "".join(random.choices(string.ascii_lowercase, k=4))
     with pytest.raises(Exception) as exc_info:
         _ = sdk.NucliaBackup().restore(
             restore=BackupRestore(
@@ -72,7 +72,7 @@ async def test_backup_async(testing_config):
     assert backup.id in backup_ids
 
     # Restore the KB
-    new_kb_slug = "backuptestsdk" + "".join(random.choices(string.ascii_letters, k=4))
+    new_kb_slug = "backuptestsdk" + "".join(random.choices(string.ascii_lowercase, k=4))
     with pytest.raises(Exception) as exc_info:
         _ = await sdk.AsyncNucliaBackup().restore(
             restore=BackupRestore(
