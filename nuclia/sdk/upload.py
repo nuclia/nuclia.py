@@ -82,10 +82,9 @@ class NucliaUpload:
         if blanklineSplitter:
             mimetype += "+blankline"
         is_new_resource = False
-        if rid is not None:
-            rid, is_new_resource = self._get_or_create_resource(
-                rid=rid, icon=mimetype, **kwargs
-            )
+        rid, is_new_resource = self._get_or_create_resource(
+            rid=rid, icon=mimetype, **kwargs
+        )
         if not field:
             field = uuid4().hex
         md5_hash = hashlib.md5()
