@@ -34,6 +34,7 @@ MEMBER = "/api/v1/user"
 ACCOUNTS = "/api/v1/accounts"
 ZONES = "/api/v1/zones"
 LIST_KBS = "/api/v1/account/{account}/kbs"
+LIST_AGENTS = "/api/v1/account/{account}/kbs?mode=agent"
 VERIFY_NUA = "/api/authorizer/info"
 PERSONAL_TOKENS = "/api/v1/user/pa_tokens"
 PERSONAL_TOKEN = "/api/v1/user/pa_token/{token_id}"
@@ -86,7 +87,10 @@ def print_config(config: Config):
             print(f"Default account:        {config.default.account}")
         if config.default.kbid:
             kb_obj = config.get_kb(config.default.kbid)
-            print(f"Default KNOWLEDGEBOX:  {kb_obj}\n")
+            print(f"Default KnowledgeBox:  {kb_obj}\n")
+        if config.default.agent_id:
+            agent_obj = config.get_agent(config.default.agent_id)
+            print(f"Default Retrieval Agent Orchestrator:           {agent_obj}\n")
 
 
 def print_nuas(config: Config):
@@ -131,7 +135,8 @@ class NucliaAuth(BaseNucliaAuth):
         self._show_user()
         print_config(self._config)
 
-        data = []
+        data_kbs = []
+        data_agents = []
         for account in self.accounts():
             for kb in self.kbs(account.id):
                 try:
@@ -161,7 +166,7 @@ class NucliaAuth(BaseNucliaAuth):
                 ):
                     default = "*"
 
-                data.append(
+                data_kbs.append(
                     [
                         default,
                         account.slug,
@@ -173,10 +178,52 @@ class NucliaAuth(BaseNucliaAuth):
                         role,
                     ]
                 )
+            for agent in self.agents(account.id):
+                try:
+                    agent_obj = self._config.get_agent(agent.id)
+                except StopIteration:
+                    agent_obj = None
+
+                arole: Optional[str] = ""
+                if (
+                    agent_obj is not None
+                    and agent_obj.region is not None
+                    and agent_obj.token is not None
+                ):
+                    permissions = self.client.get(
+                        get_regional_url(agent_obj.region, "/api/authorizer/info"),
+                        headers={
+                            "X-NUCLIA-SERVICEACCOUNT": f"Bearer {agent_obj.token}"
+                        },
+                    )
+                    if permissions.status_code == 200:
+                        arole = permissions.json().get("user", {}).get("role")
+                        if arole is not None:
+                            arole = arole.lstrip("S")
+
+                default = ""
+                if (
+                    self._config.default is not None
+                    and self._config.default.agent_id == agent.id
+                ):
+                    default = "*"
+
+                data_agents.append(
+                    [
+                        default,
+                        account.slug,
+                        agent.id,
+                        agent.slug,
+                        agent.title,
+                        agent.region,
+                        agent.url,
+                        arole,
+                    ]
+                )
 
         print(
             tabulate(
-                data,
+                data_kbs,
                 headers=[
                     "Default",
                     "Account ID",
@@ -185,6 +232,22 @@ class NucliaAuth(BaseNucliaAuth):
                     "KnowledgeBox Title",
                     "KnowledgeBox Region",
                     "KnowledgeBox URL",
+                    "Local Token Available",
+                ],
+            )
+        )
+        print()
+        print(
+            tabulate(
+                data_agents,
+                headers=[
+                    "Default",
+                    "Account ID",
+                    "Retrieval Agent ID",
+                    "Retrieval Agent slug",
+                    "Retrieval Agent Title",
+                    "Retrieval Agent Region",
+                    "Retrieval Agent URL",
                     "Local Token Available",
                 ],
             )
@@ -215,6 +278,34 @@ class NucliaAuth(BaseNucliaAuth):
         else:
             logger.error("Invalid service token")
         return kb.uuid if kb is not None else None
+
+    def agent(self, url: str, token: Optional[str] = None) -> Optional[str]:
+        url = url.strip("/")
+        agent = self.validate_kb(url, token)
+        if agent:
+            logger.info("Validated")
+            # Extract account ID if using service token
+            account_id = None
+            if token is not None:
+                from nuclia.config import extract_region
+
+                region = extract_region(url)
+                if region:
+                    account_id, _, _ = self.get_account_from_service_token(
+                        region, token
+                    )
+
+            self._config.set_agent_token(
+                url=url,
+                token=token,
+                title=agent.config.title if agent.config is not None else "",
+                agent_id=agent.uuid,
+                account_id=account_id,
+            )
+            self._config.set_default_agent(agent_id=agent.uuid)
+        else:
+            logger.error("Invalid service token")
+        return agent.uuid if agent is not None else None
 
     def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = self.validate_nua(token)
@@ -259,6 +350,34 @@ class NucliaAuth(BaseNucliaAuth):
             )
         else:
             return None, None, None, None
+
+    def get_account_from_service_token(
+        self, region: str, token: str
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """
+        Extract account ID, KB/agent ID, and role from a service account token (API key).
+
+        Args:
+            region: The region where the KB/agent is located (e.g., 'europe-1')
+            token: The service account token (API key)
+
+        Returns:
+            Tuple of (account_id, kb_id, role) or (None, None, None) if invalid
+        """
+        url = get_regional_url(region, "/api/authorizer/info")
+        resp = self.client.get(
+            url,
+            headers={"x-nuclia-serviceaccount": f"Bearer {token}"},
+        )
+        if resp.status_code == 200:
+            data = resp.json().get("user")
+            if data:
+                return (
+                    data.get("account_id"),
+                    data.get("kb_id"),
+                    data.get("role"),
+                )
+        return None, None, None
 
     def validate_kb(
         self, url: str, token: Optional[str] = None
@@ -363,12 +482,21 @@ class NucliaAuth(BaseNucliaAuth):
     def create_ephemeral_token(
         self, kbid: str, ttl: Optional[int] = None
     ) -> EphemeralToken:
-        kb_obj = self._config.get_kb(kbid)
+        # Try to get as KB first, then as agent
+        kb_obj = None
+        try:
+            kb_obj = self._config.get_kb(kbid)
+        except (StopIteration, KeyError):
+            try:
+                kb_obj = self._config.get_agent(kbid)
+            except (StopIteration, KeyError):
+                pass
+
         if kb_obj is None:
-            raise ValueError("KnowledgeBox not found")
+            raise ValueError("KnowledgeBox or Agent not found")
 
         if kb_obj.region is None:
-            raise ValueError("KnowledgeBox region not set")
+            raise ValueError("KnowledgeBox/Agent region not set")
 
         payload = {}
         if ttl is not None:
@@ -495,6 +623,40 @@ class NucliaAuth(BaseNucliaAuth):
                     result.append(kb_obj)
         return result
 
+    def agents(self, account: str) -> List[KnowledgeBox]:
+        result: List[KnowledgeBox] = []
+        zones = self.zones()
+        for zoneObj in zones:
+            zoneSlug = zoneObj.slug
+            if not zoneSlug:
+                continue
+            path = get_regional_url(zoneSlug, LIST_AGENTS.format(account=account))
+            try:
+                agents = self._request("GET", path)
+            except UserTokenExpired:
+                return []
+            except ConnectError:
+                logger.error(
+                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                )
+                continue
+            if agents is not None:
+                for agent in agents:
+                    url = get_regional_url(zoneSlug, f"/api/v1/agent/{agent['id']}")
+                    ra_obj = KnowledgeBox(
+                        url=url,
+                        id=agent["id"],
+                        slug=agent["slug"],
+                        title=agent["title"],
+                        account=account,
+                        region=zoneSlug,
+                    )
+                    result.append(ra_obj)
+        return result
+
+
+# TODO: Add agent methods to AsyncNucliaAuth
+
 
 class AsyncNucliaAuth(BaseNucliaAuth):
     client: AsyncClient
@@ -532,6 +694,34 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         else:
             logger.error("Invalid service token")
         return kb.uuid if kb is not None else None
+
+    async def agent(self, url: str, token: Optional[str] = None) -> Optional[str]:
+        url = url.strip("/")
+        agent = await self.validate_kb(url, token)
+        if agent:
+            logger.info("Validated")
+            # Extract account ID if using service token
+            account_id = None
+            if token is not None:
+                from nuclia.config import extract_region
+
+                region = extract_region(url)
+                if region:
+                    account_id, _, _ = await self.get_account_from_service_token(
+                        region, token
+                    )
+
+            self._config.set_agent_token(
+                url=url,
+                token=token,
+                title=agent.config.title if agent.config is not None else "",
+                agent_id=agent.uuid,
+                account_id=account_id,
+            )
+            self._config.set_default_agent(agent_id=agent.uuid)
+        else:
+            logger.error("Invalid service token")
+        return agent.uuid if agent is not None else None
 
     async def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = await self.validate_nua(token)
@@ -572,6 +762,34 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             )
         else:
             return None, None, None, None
+
+    async def get_account_from_service_token(
+        self, region: str, token: str
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """
+        Extract account ID, KB/agent ID, and role from a service account token (API key).
+
+        Args:
+            region: The region where the KB/agent is located (e.g., 'europe-1')
+            token: The service account token (API key)
+
+        Returns:
+            Tuple of (account_id, kb_id, role) or (None, None, None) if invalid
+        """
+        url = get_regional_url(region, "/api/authorizer/info")
+        resp = await self.client.get(
+            url,
+            headers={"x-nuclia-serviceaccount": f"Bearer {token}"},
+        )
+        if resp.status_code == 200:
+            data = resp.json().get("user")
+            if data:
+                return (
+                    data.get("account_id"),
+                    data.get("kb_id"),
+                    data.get("role"),
+                )
+        return None, None, None
 
     async def validate_kb(
         self, url: str, token: Optional[str] = None
@@ -766,12 +984,21 @@ class AsyncNucliaAuth(BaseNucliaAuth):
     async def create_ephemeral_token(
         self, kbid: str, ttl: Optional[int] = None
     ) -> EphemeralToken:
-        kb_obj = self._config.get_kb(kbid)
+        # Try to get as KB first, then as agent
+        kb_obj = None
+        try:
+            kb_obj = self._config.get_kb(kbid)
+        except (StopIteration, KeyError):
+            try:
+                kb_obj = self._config.get_agent(kbid)
+            except (StopIteration, KeyError):
+                pass
+
         if kb_obj is None:
-            raise ValueError("KnowledgeBox not found")
+            raise ValueError("KnowledgeBox or Agent not found")
 
         if kb_obj.region is None:
-            raise ValueError("KnowledgeBox region not set")
+            raise ValueError("KnowledgeBox/Agent region not set")
 
         payload = {}
         if ttl is not None:
@@ -782,3 +1009,35 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             json=payload,
         )
         return EphemeralToken(token=resp.json().get("token"))
+
+    async def agents(self, account: str, cached: bool = True) -> List[KnowledgeBox]:
+        _request = self._cached_request if cached else self._request
+        result: List[KnowledgeBox] = []
+        zones = await self.zones()
+        for zoneObj in zones:
+            zoneSlug = zoneObj.slug
+            if not zoneSlug:
+                continue
+            path = get_regional_url(zoneSlug, LIST_AGENTS.format(account=account))
+            try:
+                agents = await _request("GET", path)
+            except UserTokenExpired:
+                return []
+            except ConnectError:
+                logger.error(
+                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                )
+                continue
+            if agents is not None:
+                for agent in agents:
+                    url = get_regional_url(zoneSlug, f"/api/v1/agent/{agent['id']}")
+                    ra_obj = KnowledgeBox(
+                        url=url,
+                        id=agent["id"],
+                        slug=agent["slug"],
+                        title=agent["title"],
+                        account=account,
+                        region=zoneSlug,
+                    )
+                    result.append(ra_obj)
+        return result

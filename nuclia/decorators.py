@@ -13,6 +13,7 @@ from nuclia.data import (
     get_client,
 )
 from nuclia.exceptions import NotDefinedDefault, NucliaConnectionError
+from nuclia.lib.agent import AgentClient, AsyncAgentClient
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
 
@@ -297,3 +298,83 @@ def zone(func):
         return async_wrapper_checkout_zone
     else:
         return wrapper_checkout_zone
+
+
+def agent(func):
+    def _get_agent_config(agent_id, auth):
+        """Common logic to retrieve and validate agent configuration."""
+        if agent_id is None:
+            # Get default Agent
+            agent_id = auth._config.get_default_agent()
+
+        agent_obj = auth._config.get_agent(agent_id)
+        if agent_obj is None:
+            raise NotDefinedDefault()
+        if agent_obj.region is None or agent_obj.account is None:
+            raise ValueError(
+                f"Agent {agent_id} is missing required fields (region or account)"
+            )
+        return agent_id, agent_obj
+
+    def _create_agent_client(agent_id, agent_obj, auth, client_class):
+        """Common logic to create an agent client."""
+        return client_class(
+            region=agent_obj.region,
+            agent_id=agent_id,
+            api_key=agent_obj.token,
+            user_token=auth._config.token,
+            account_id=agent_obj.account,
+        )
+
+    @wraps(func)
+    def wrapper_checkout(*args, **kwargs):
+        if "ac" in kwargs:
+            return func(*args, **kwargs)
+
+        auth = get_auth()
+        agent_id, agent_obj = _get_agent_config(kwargs.get("agent_id"), auth)
+        ac = _create_agent_client(agent_id, agent_obj, auth, AgentClient)
+        kwargs["ac"] = ac
+
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except ConnectError:
+            raise NucliaConnectionError(f"Could not connect to {ac}")
+
+    @wraps(func)
+    async def async_wrapper_checkout(*args, **kwargs):
+        if "ac" in kwargs:
+            return await func(*args, **kwargs)
+
+        auth = get_async_auth()
+        agent_id, agent_obj = _get_agent_config(kwargs.get("agent_id"), auth)
+        ac = _create_agent_client(agent_id, agent_obj, auth, AsyncAgentClient)
+        kwargs["ac"] = ac
+
+        try:
+            result = await func(*args, **kwargs)
+            return result
+        except ConnectError:
+            raise NucliaConnectionError(f"Could not connect to {ac}")
+
+    @wraps(func)
+    async def async_generative_wrapper_checkout(*args, **kwargs):
+        if "ac" in kwargs:
+            async for value in func(*args, **kwargs):
+                yield value
+        else:
+            auth = get_async_auth()
+            agent_id, agent_obj = _get_agent_config(kwargs.get("agent_id"), auth)
+            ac = _create_agent_client(agent_id, agent_obj, auth, AsyncAgentClient)
+            kwargs["ac"] = ac
+
+            async for value in func(*args, **kwargs):
+                yield value
+
+    if inspect.isasyncgenfunction(func):
+        return async_generative_wrapper_checkout
+    elif asyncio.iscoroutinefunction(func):
+        return async_wrapper_checkout
+    else:
+        return wrapper_checkout
