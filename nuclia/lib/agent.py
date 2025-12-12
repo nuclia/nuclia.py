@@ -3,8 +3,10 @@ from typing import (
     AsyncGenerator,
     AsyncIterator,
     Generator,
+    Optional,
     Type,
     TypeVar,
+    Union,
     overload,
 )
 
@@ -43,7 +45,7 @@ class BaseAgentClient:
     agent_id: str
     account_id: str
     headers: dict[str, str]
-    user_token: str | None
+    user_token: Optional[str]
     url: str
     ws_url: str
 
@@ -52,9 +54,9 @@ class BaseAgentClient:
         region: str,
         agent_id: str,
         account_id: str,
-        api_key: str | None = None,
-        user_token: str | None = None,
-        headers: dict[str, str] | None = None,
+        api_key: Optional[str] = None,
+        user_token: Optional[str] = None,
+        headers: Optional[dict[str, str]] = None,
     ):
         self.region = region
         self.agent_id = agent_id
@@ -90,9 +92,9 @@ class AgentClient(BaseAgentClient):
         region: str,
         agent_id: str,
         account_id: str,
-        api_key: str | None = None,
-        user_token: str | None = None,
-        headers: dict[str, str] | None = None,
+        api_key: Optional[str] = None,
+        user_token: Optional[str] = None,
+        headers: Optional[dict[str, str]] = None,
     ):
         super().__init__(region, agent_id, account_id, api_key, user_token, headers)
         self.http_client = build_httpx_client(headers=self.headers, base_url=self.url)
@@ -103,9 +105,9 @@ class AgentClient(BaseAgentClient):
         method: str,
         url: str,
         output: None = None,
-        payload: dict | BaseModel | None = None,
-        params: dict | None = None,
-        extra_headers: dict[str, str] | None = None,
+        payload: Union[dict, BaseModel, None] = None,
+        params: Optional[dict] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
     ) -> dict: ...
 
@@ -115,9 +117,9 @@ class AgentClient(BaseAgentClient):
         method: str,
         url: str,
         output: Type[ConvertType],
-        payload: dict | BaseModel | None = None,
-        params: dict | None = None,
-        extra_headers: dict[str, str] | None = None,
+        payload: Union[dict, BaseModel, None] = None,
+        params: Optional[dict] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
     ) -> ConvertType: ...
 
@@ -125,12 +127,12 @@ class AgentClient(BaseAgentClient):
         self,
         method: str,
         url: str,
-        output: Type[ConvertType] | None = None,
-        payload: dict | BaseModel | None = None,
-        params: dict | None = None,
-        extra_headers: dict[str, str] | None = None,
+        output: Optional[Type[ConvertType]] = None,
+        payload: Union[dict, BaseModel, None] = None,
+        params: Optional[dict] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
-    ) -> ConvertType | dict:
+    ) -> Union[ConvertType, dict]:
         if isinstance(payload, BaseModel):
             payload = payload.model_dump(mode="json")
         resp = self.http_client.request(
@@ -209,7 +211,7 @@ class AgentClient(BaseAgentClient):
 
     def interact(
         self, session_uuid: str, question: str
-    ) -> Generator[AragAnswer, str | None, None]:
+    ) -> Generator[AragAnswer, Optional[str], None]:
         message = InteractionRequest(
             question=question, headers={}, operation=InteractionOperation.QUESTION
         ).model_dump_json()
@@ -243,9 +245,9 @@ class AsyncAgentClient(BaseAgentClient):
         region: str,
         agent_id: str,
         account_id: str,
-        api_key: str | None = None,
-        user_token: str | None = None,
-        headers: dict[str, str] | None = None,
+        api_key: Optional[str] = None,
+        user_token: Optional[str] = None,
+        headers: Optional[dict[str, str]] = None,
     ):
         super().__init__(region, agent_id, account_id, api_key, user_token, headers)
         self.http_client = build_httpx_async_client(
@@ -258,9 +260,9 @@ class AsyncAgentClient(BaseAgentClient):
         method: str,
         url: str,
         output: None = None,
-        payload: dict | BaseModel | None = None,
-        params: dict | None = None,
-        extra_headers: dict[str, str] | None = None,
+        payload: Union[dict, BaseModel, None] = None,
+        params: Optional[dict] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
     ) -> dict: ...
 
@@ -270,9 +272,9 @@ class AsyncAgentClient(BaseAgentClient):
         method: str,
         url: str,
         output: Type[ConvertType],
-        payload: dict | BaseModel | None = None,
-        params: dict | None = None,
-        extra_headers: dict[str, str] | None = None,
+        payload: Union[dict, BaseModel, None] = None,
+        params: Optional[dict] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
     ) -> ConvertType: ...
 
@@ -280,12 +282,12 @@ class AsyncAgentClient(BaseAgentClient):
         self,
         method: str,
         url: str,
-        output: Type[ConvertType] | None = None,
-        payload: dict | BaseModel | None = None,
-        params: dict | None = None,
-        extra_headers: dict[str, str] | None = None,
+        output: Optional[Type[ConvertType]] = None,
+        payload: Union[dict, BaseModel, None] = None,
+        params: Optional[dict] = None,
+        extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
-    ) -> ConvertType | dict:
+    ) -> Union[ConvertType, dict]:
         if isinstance(payload, BaseModel):
             payload = payload.model_dump(mode="json")
         resp = await self.http_client.request(

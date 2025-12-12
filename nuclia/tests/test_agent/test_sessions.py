@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Union
 from uuid import uuid4
 
 import pytest
@@ -13,7 +13,7 @@ from nuclia.tests.utils import maybe_await
 )
 async def test_sessions(
     testing_config,
-    agent_sessions_klass: Type[NucliaAgentSessions | AsyncNucliaAgentSessions],
+    agent_sessions_klass: Type[Union[NucliaAgentSessions, AsyncNucliaAgentSessions]],
 ):
     n_agent_sess = agent_sessions_klass()
 

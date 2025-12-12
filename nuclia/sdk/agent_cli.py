@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from nuclia_models.agent.interaction import AnswerOperation, AragAnswer
 from nuclia_models.agent.memory import Answer, Context, Step
@@ -176,7 +176,7 @@ class NucliaAgentCLI:
 
     def _handle_new_session(
         self, console: Console, ac: "AgentClient", agent_title: str
-    ) -> str | None:
+    ) -> Optional[str]:
         """Handle creating a new session."""
         session_name = console.input("[bold cyan]Session name:[/] ").strip()
         if session_name:
@@ -250,7 +250,7 @@ class NucliaAgentCLI:
 
     def _handle_change_session(
         self, console: Console, ac: "AgentClient", agent_title: str
-    ) -> str | None:
+    ) -> Optional[str]:
         """Handle changing to a different session."""
         new_session_uuid = console.input(
             "[bold cyan]Session UUID (or 'ephemeral'):[/] "
@@ -284,7 +284,7 @@ class NucliaAgentCLI:
 
     def _handle_command(
         self, command: str, console: Console, ac: "AgentClient", agent_title: str
-    ) -> tuple[bool, str | None]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Handle a CLI command.
 
@@ -405,7 +405,7 @@ class NucliaAgentCLI:
 
     def _process_response_operation(
         self, response: AragAnswer, spinner: Spinner
-    ) -> tuple[Panel | None, bool]:
+    ) -> tuple[Optional[Panel], bool]:
         """
         Process a single response operation and return the display element and whether to stop.
 
@@ -562,7 +562,7 @@ class NucliaAgentCLI:
     def _get_session_display_name(
         self,
         session_uuid: str,
-        session_titles: dict[str, str | None],
+        session_titles: dict[str, Optional[str]],
         ac: "AgentClient",
     ) -> str:
         """Get display name for a session, fetching it if needed."""
@@ -585,7 +585,7 @@ class NucliaAgentCLI:
         )
         session_uuid = "ephemeral"
         console = Console()
-        session_titles: dict[str, str | None] = {"ephemeral": "Ephemeral Session"}
+        session_titles: dict[str, Optional[str]] = {"ephemeral": "Ephemeral Session"}
 
         console.clear()
         self._print_welcome(console, agent_title)

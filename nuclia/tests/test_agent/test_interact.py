@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Union
 
 import pytest
 from nuclia_models.agent.interaction import AnswerOperation, AragAnswer
@@ -13,7 +13,7 @@ from nuclia.tests.utils import maybe_async_iterate
 )
 async def test_interact(
     testing_config,
-    agent_klass: Type[NucliaAgent | AsyncNucliaAgent],
+    agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     n_agent = agent_klass()
     responses: list[AragAnswer] = []
