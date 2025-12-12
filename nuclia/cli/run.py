@@ -9,6 +9,8 @@ from nuclia.data import get_auth
 from nuclia.exceptions import NeedUserToken, UserTokenExpired
 from nuclia.lib.utils import serialize
 from nuclia.sdk.accounts import NucliaAccounts
+from nuclia.sdk.agent import NucliaAgent
+from nuclia.sdk.agents import NucliaAgents
 from nuclia.sdk.backup import NucliaBackup
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
@@ -26,6 +28,8 @@ class NucliaCLI(object):
         self.zones = NucliaZones()
         self.kbs = self.knowledgeboxes = NucliaKBS()
         self.kb = self.knowledgebox = NucliaKB()
+        self.agents = NucliaAgents()
+        self.agent = NucliaAgent()
         self.nua = NucliaNUA()
         self.backup = NucliaBackup()
 

@@ -1,5 +1,5 @@
 import inspect
-from typing import Awaitable, TypeVar, Union
+from typing import AsyncIterator, Awaitable, Iterator, TypeVar, Union
 
 T = TypeVar("T")
 
@@ -14,3 +14,20 @@ async def maybe_await(aw_or_value: Union[Awaitable[T], T]) -> T:
         return await aw_or_value
     else:
         return aw_or_value
+
+
+async def maybe_async_iterate(
+    iterator: Union[AsyncIterator[T], Iterator[T]],
+) -> AsyncIterator[T]:
+    """Given an async iterator or a regular iterator, yield items in an async manner.
+    This is useful to test sync and async versions of the SDK using the same test functions.
+
+    """
+    if isinstance(iterator, AsyncIterator):
+        # It's an async iterator
+        async for item in iterator:
+            yield item
+    else:
+        # It's a regular iterator
+        for item in iterator:
+            yield item

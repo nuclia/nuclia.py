@@ -12,11 +12,15 @@ if BASE_DOMAIN == "stashify.cloud":
     TESTING_ACCOUNT_SLUG = "eric-cicd"
     TESTING_KBID = "3fc11430-e1d5-45c7-86de-86d8efdd2cac"
     TESTING_KB = "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_KBID
+    TESTING_AGENT_ID = "3d9ab1b7-da33-4709-bc95-03d30c989f56"
+    TESTING_AGENT = "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_AGENT_ID
 else:
     IS_PROD = True
     TESTING_ACCOUNT_SLUG = "nuclia"
     TESTING_KBID = "18ab102c-a7db-4a35-b894-c20422b3b9f0"
     TESTING_KB = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_KBID
+    TESTING_AGENT_ID = ""  # TODO: Add prod agent
+    TESTING_AGENT = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_AGENT_ID
 
 
 @pytest.fixture(scope="module")
@@ -35,7 +39,12 @@ def testing_kb():
 
 
 @pytest.fixture(scope="module")
-def testing_config(testing_kb, testing_nua, testing_user):
+def testing_agent():
+    return os.environ.get("GA_TESTING_AGENT_TOKEN")
+
+
+@pytest.fixture(scope="module")
+def testing_config(testing_kb, testing_nua, testing_user, testing_agent):
     os.environ["TESTING"] = "True"
     with tempfile.NamedTemporaryFile() as temp_file:
         temp_file.write(b"{}")
@@ -44,11 +53,12 @@ def testing_config(testing_kb, testing_nua, testing_user):
         nuclia_auth = NucliaAuth()
         nuclia_auth.set_user_token(testing_user)
         nuclia_auth.kb(TESTING_KB, testing_kb)
+        nuclia_auth.agent(TESTING_AGENT, testing_agent)
         client_id = nuclia_auth.nua(testing_nua)
         assert client_id
         nuclia_auth._config.set_default_kb(TESTING_KBID)
         nuclia_auth._config.set_default_nua(client_id)
-
+        nuclia_auth._config.set_default_agent(TESTING_AGENT_ID)
         yield
         reset_config_file()
 

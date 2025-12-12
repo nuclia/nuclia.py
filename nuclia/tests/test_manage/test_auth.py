@@ -50,6 +50,33 @@ def test_auth_ephemeral_token(testing_config, testing_kb):
     assert token.token is not None
 
 
+def test_get_account_from_service_token(testing_kb: str):
+    na = NucliaAuth()
+    region = "europe-1"
+
+    account_id, kb_id, role = na.get_account_from_service_token(region, testing_kb)
+
+    assert account_id is not None
+    assert kb_id is not None
+    assert role is not None
+    assert kb_id == TESTING_KBID
+
+
+@pytest.mark.asyncio
+async def test_get_account_from_service_token_async(testing_kb: str):
+    na = AsyncNucliaAuth()
+    region = "europe-1"
+
+    account_id, kb_id, role = await na.get_account_from_service_token(
+        region, testing_kb
+    )
+
+    assert account_id is not None
+    assert kb_id is not None
+    assert role is not None
+    assert kb_id == TESTING_KBID
+
+
 @pytest.mark.asyncio
 async def test_auth_ephemeral_token_async(testing_config, testing_kb):
     na = AsyncNucliaAuth()

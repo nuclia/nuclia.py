@@ -6,6 +6,7 @@ import httpx
 import requests
 from httpx import HTTPStatusError
 from httpx import Response as HttpxResponse
+from nuclia_models.agent.interaction import AnswerOperation, AragAnswer
 from nuclia_models.worker.tasks import TaskDefinition, TaskList
 from nucliadb_models.resource import KnowledgeBoxList, ResourceList
 from nucliadb_models.search import SyncAskResponse
@@ -22,6 +23,8 @@ from nuclia.exceptions import (
 from nuclia.lib.models import ActivityLogsOutput
 
 USER_AGENT = f"nuclia.py/{importlib.metadata.version('nuclia')}"
+
+MAX_TITLE_LEN = 50
 
 
 def handle_http_sync_errors(response):
@@ -82,12 +85,28 @@ def _raise_for_status(status_code: int, content: str, response=None, request=Non
 
 
 def serialize(obj):
+    # Serialize each item in the iterator separately
+    if hasattr(obj, "__iter__") and hasattr(obj, "__next__"):
+        for i, item in enumerate(obj):
+            serialized_item = serialize(item)
+            if serialized_item:
+                print(f"{item.__class__.__name__} {i}")
+                print(serialized_item)
+                print()
+        return ""
+
     if isinstance(obj, ResourceList):
         data = []
         for resource in obj.resources:
             status = resource.metadata.status if resource.metadata is not None else ""
+
+            cropped_title = (
+                resource.title
+                if not resource.title or len(resource.title) < MAX_TITLE_LEN
+                else resource.title[: MAX_TITLE_LEN - 3] + "..."
+            )
             data.append(
-                [resource.id, resource.icon, resource.title, status, resource.slug]
+                [resource.id, resource.icon, cropped_title, status, resource.slug]
             )
         return tabulate(
             data,
@@ -104,7 +123,7 @@ def serialize(obj):
         )
 
     if isinstance(obj, TaskDefinition):
-        return json.dumps(obj.validation, indent=2)
+        return json.dumps(obj.validation, indent=2, ensure_ascii=False)
 
     if isinstance(obj, TaskList):
         output = ""
@@ -163,7 +182,9 @@ def serialize(obj):
         if obj.status != "success":
             response = f"ERROR: {obj.error_details}"
         elif obj.answer_json is not None:
-            response = f"JSON: {json.dumps(obj.answer_json, indent=2)} \n"
+            response = (
+                f"JSON: {json.dumps(obj.answer_json, indent=2, ensure_ascii=False)} \n"
+            )
         else:
             response = f"Answer: {obj.answer} \n"
 
@@ -182,7 +203,14 @@ def serialize(obj):
 
     if isinstance(obj, ActivityLogsOutput):
         obj = obj.model_dump(exclude_unset=True)
-
+    if isinstance(obj, AragAnswer):
+        # Return formatted JSON string for CLI output
+        arag_answer_dict = obj.model_dump(exclude_unset=True, exclude_none=True)
+        # Show name instead of value so it is more understandable
+        arag_answer_dict["operation"] = AnswerOperation(
+            arag_answer_dict["operation"]
+        ).name
+        return json.dumps(arag_answer_dict, indent=2, ensure_ascii=False)
     return obj
 
 
