@@ -5,6 +5,7 @@
 
 
 - Allow passing resource creation metadata to sync upload method
+- Support for Retrieval Agents Orchestrator 
 
 
 ## 4.9.12 (2025-10-16)
