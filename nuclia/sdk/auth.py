@@ -655,9 +655,6 @@ class NucliaAuth(BaseNucliaAuth):
         return result
 
 
-# TODO: Add agent methods to AsyncNucliaAuth
-
-
 class AsyncNucliaAuth(BaseNucliaAuth):
     client: AsyncClient
 
