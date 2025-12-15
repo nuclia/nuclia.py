@@ -14,6 +14,7 @@ from rich.table import Table
 from nuclia.data import get_auth
 from nuclia.decorators import agent
 from nuclia.lib.agent import AgentClient
+from nuclia.sdk.agent_sessions import NucliaAgentSessions
 
 if TYPE_CHECKING:
     from nuclia.lib.agent import AgentClient
@@ -46,17 +47,16 @@ MAX_CONTEXT_DISPLAY_LENGTH = 300
 class NucliaAgentCLI:
     # underscore so that it does not show up in the CLI commands
     _session: "NucliaAgentSessions"
+    _console: Optional[Console] = None
 
     @property
     def _auth(self) -> "NucliaAuth":
         auth = get_auth()
         return auth
 
-    def __init__(self) -> None:
-        # Lazy import to avoid circular dependency
-        from nuclia.sdk.agent_sessions import NucliaAgentSessions
-
+    def __init__(self, console: Optional[Console] = None) -> None:
         self._session = NucliaAgentSessions()
+        self._console = console
 
     def _build_step_display(self, step: Step) -> Table:
         """Build a table for displaying a processing step."""
@@ -584,7 +584,7 @@ class NucliaAgentCLI:
             agent_config.title if agent_config and agent_config.title else "Agent"
         )
         session_uuid = "ephemeral"
-        console = Console()
+        console = self._console or Console()
         session_titles: dict[str, Optional[str]] = {"ephemeral": "Ephemeral Session"}
 
         console.clear()

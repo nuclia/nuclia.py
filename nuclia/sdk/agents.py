@@ -7,7 +7,7 @@ from nuclia.decorators import account, accounts, zone
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 AGENTS_ENDPOINT = "/api/v1/account/{account}/kbs?mode=agent"
-AGENT_ENDPOINT = "/api/v1/account/{account}/agent/{agent}"
+AGENT_ENDPOINT = "/api/v1/account/{account}/kb/{agent}"
 
 
 class NucliaAgents:
