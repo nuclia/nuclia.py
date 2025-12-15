@@ -19,7 +19,7 @@ else:
     TESTING_ACCOUNT_SLUG = "nuclia"
     TESTING_KBID = "18ab102c-a7db-4a35-b894-c20422b3b9f0"
     TESTING_KB = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_KBID
-    TESTING_AGENT_ID = ""  # TODO: Add prod agent
+    TESTING_AGENT_ID = "6ce34422-ee0d-4077-9bc5-3845fe4d34f4"
     TESTING_AGENT = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_AGENT_ID
 
 
