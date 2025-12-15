@@ -26,7 +26,7 @@ The nuclia.py library provides several ways to interact with your Retrieval Agen
 
 ## Listing Available Agents
 
-Discover what retrieval agents you have access to.
+Discover what Retrieval Agents Orchestrators you have access to.
 
 - CLI:
 
@@ -91,7 +91,7 @@ This sets the default agent for all subsequent operations.
 
 ## Interactive CLI (Recommended)
 
-The interactive CLI provides a beautiful, real-time interface for conversing with your retrieval agent.
+The interactive CLI provides a beautiful, real-time interface for conversing with your Retrieval Agents Orchestrator.
 
 ### Starting the Interactive CLI
 
