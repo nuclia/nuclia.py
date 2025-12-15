@@ -2,6 +2,7 @@
 
 from typing import Type, Union
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from rich.console import Console
@@ -20,7 +21,7 @@ async def test_cli_interact_simple_question(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with a simple question and exit."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     # Simulate user asking a question and then exiting
@@ -46,7 +47,7 @@ async def test_cli_interact_help_command(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with help command."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     with patch.object(console, "input", side_effect=["/help", "/exit"]):
@@ -69,7 +70,7 @@ async def test_cli_interact_empty_input(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact handles empty input gracefully."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     with patch.object(console, "input", side_effect=["", "  ", "/exit"]):
@@ -90,7 +91,7 @@ async def test_cli_interact_unknown_command(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact handles unknown commands."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     with patch.object(console, "input", side_effect=["/unknown_command", "/exit"]):
@@ -110,7 +111,7 @@ async def test_cli_interact_clear_command(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with clear command."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     with patch.object(console, "input", side_effect=["/clear", "/exit"]):
@@ -131,7 +132,7 @@ async def test_cli_interact_list_sessions(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with list sessions command."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     with patch.object(console, "input", side_effect=["/list_sessions", "/exit"]):
@@ -152,7 +153,7 @@ async def test_cli_interact_keyboard_interrupt(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact handles keyboard interrupt gracefully."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     with patch.object(console, "input", side_effect=KeyboardInterrupt()):
@@ -173,7 +174,7 @@ async def test_cli_interact_multiple_questions(
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with multiple questions in sequence."""
-    console = Console(record=True, width=120)
+    console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
 
     with patch.object(
@@ -192,3 +193,42 @@ async def test_cli_interact_multiple_questions(
     # Should have processed both questions
     assert "Eric" in output or "What is Eric" in output
     assert "Goodbye" in output
+
+
+@pytest.mark.parametrize(
+    "agent_klass",
+    [NucliaAgent, AsyncNucliaAgent],
+)
+async def test_cli_interact_session_workflow(
+    testing_config,
+    agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
+):
+    """Test complete session workflow: create, list, use, switch."""
+    console = Console(record=True, force_terminal=False, width=120)
+    cli = NucliaAgentCLI(console=console)
+
+    session_name = f"nuclia-py-cli-test-{uuid4().hex}"
+    with patch.object(
+        console,
+        "input",
+        side_effect=[
+            "/new_session",
+            session_name,
+            "What is Eric known for?",
+            "/list_sessions",
+            "/change_session",
+            "ephemeral",
+            "What does he enjoy?",
+            "/exit",
+        ],
+    ):
+        await maybe_await(cli.interact())
+
+    output = console.export_text()
+    assert "Nuclia Agent CLI" in output
+    # Should show session creation
+    assert session_name in output or "created" in output.lower()
+    # Should process both questions
+    assert "humor" in output
+    # Should show session list
+    assert "list" in output.lower() or "sessions" in output.lower()

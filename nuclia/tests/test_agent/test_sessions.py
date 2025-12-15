@@ -1,3 +1,4 @@
+import asyncio
 from typing import Type, Union
 from uuid import uuid4
 
@@ -31,5 +32,7 @@ async def test_sessions(
 
     # Delete session
     await maybe_await(n_agent_sess.delete(uuid))
+    # Wait a bit for deletion to propagate
+    await asyncio.sleep(1)
     with pytest.raises(Exception):
         await maybe_await(n_agent_sess.get(uuid))
