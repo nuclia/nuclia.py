@@ -26,9 +26,18 @@ async def test_sessions(
     session = await maybe_await(n_agent_sess.get(uuid))
     assert session.title == session_name
 
-    # List sessions
-    sessions = await maybe_await(n_agent_sess.list())
-    assert any(s.id == uuid for s in sessions.resources)
+    # List sessions, scan all pages since the endpoint does not support sorting by creation date
+    last = False
+    found = False
+    p = 0
+    while not last:
+        sessions = await maybe_await(n_agent_sess.list(page_size=100, page=p))
+        last = sessions.pagination.last
+        p += 1
+        found = any(s.id == uuid for s in sessions.resources)
+        if found:
+            break
+    assert found
 
     # Delete session
     await maybe_await(n_agent_sess.delete(uuid))

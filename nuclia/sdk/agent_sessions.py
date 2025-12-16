@@ -38,9 +38,9 @@ class AsyncNucliaAgentSessions:
         return await ac.delete_session(session_uuid)
 
     @agent
-    async def list(self, **kwargs) -> ResourceList:
+    async def list(self, page: int = 0, page_size: int = 20, **kwargs) -> ResourceList:
         ac: AsyncAgentClient = kwargs["ac"]
-        return await ac.get_sessions()
+        return await ac.get_sessions(page=page, page_size=page_size)
 
     @agent
     async def get(self, session_uuid: str, **kwargs) -> Resource:

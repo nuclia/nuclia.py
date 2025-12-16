@@ -75,7 +75,7 @@ Discover what Retrieval Agents Orchestrators you have access to.
 - CLI:
 
   ```sh
-  nuclia agents default [AGENT_SLUG]
+  nuclia agents default [AGENT_SLUG or AGENT_UUID]
   ```
 
 - SDK:
@@ -84,7 +84,7 @@ Discover what Retrieval Agents Orchestrators you have access to.
   from nuclia.sdk.agents import NucliaAgents
 
   agents = NucliaAgents()
-  agents.default("my-agent-slug")
+  agents.default("my-agent")
   ```
 
 This sets the default agent for all subsequent operations.

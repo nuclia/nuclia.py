@@ -139,8 +139,7 @@ async def test_cli_interact_list_sessions(
         await maybe_await(cli.interact())
 
     output = console.export_text()
-    # Should show sessions list or message about no sessions
-    assert "Nuclia Agent CLI" in output
+    assert "Available Sessions" in output
     assert "Goodbye" in output
 
 
@@ -219,6 +218,8 @@ async def test_cli_interact_session_workflow(
             "/change_session",
             "ephemeral",
             "What does he enjoy?",
+            "/delete_session",
+            session_name,
             "/exit",
         ],
     ):
