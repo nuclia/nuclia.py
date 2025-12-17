@@ -31,7 +31,8 @@ dependencies = [
     "backoff",
     "deprecated",
     "tabulate",
-    "websockets"
+    "websockets",
+    "rich"
 ]
 
 [dependency-groups]
