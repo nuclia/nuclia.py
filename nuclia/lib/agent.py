@@ -27,7 +27,6 @@ from websockets.asyncio.client import ClientConnection as AsyncClientConnection
 from websockets.asyncio.client import connect as async_connect
 from websockets.sync.client import connect
 
-from nuclia import REGIONAL
 from nuclia.exceptions import RaoAPIException
 from nuclia.lib.utils import (
     USER_AGENT,
@@ -58,6 +57,9 @@ class BaseAgentClient:
         user_token: Optional[str] = None,
         headers: Optional[dict[str, str]] = None,
     ):
+        # Import here otherwise we might use outdated values
+        from nuclia import REGIONAL
+
         self.region = region
         self.agent_id = agent_id
         self.account_id = account_id
