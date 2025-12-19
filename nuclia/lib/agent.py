@@ -212,7 +212,7 @@ class AgentClient(BaseAgentClient):
             yield websocket
 
     def interact(
-        self, session_uuid: str, question: str, headers: dict[str, str] | None = None
+        self, session_uuid: str, question: str, headers: Optional[dict[str, str]] = None
     ) -> Generator[AragAnswer, Optional[str], None]:
         message = InteractionRequest(
             question=question,
@@ -373,7 +373,7 @@ class AsyncAgentClient(BaseAgentClient):
             yield websocket
 
     async def interact(
-        self, session_uuid: str, question: str, headers: dict[str, str] | None = None
+        self, session_uuid: str, question: str, headers: Optional[dict[str, str]] = None
     ) -> AsyncIterator[AragAnswer]:
         message = InteractionRequest(
             question=question,

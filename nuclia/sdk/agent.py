@@ -1,7 +1,4 @@
-from typing import (
-    AsyncIterator,
-    Iterator,
-)
+from typing import AsyncIterator, Iterator, Optional
 
 from nuclia_models.agent.interaction import AragAnswer
 
@@ -31,7 +28,7 @@ class NucliaAgent:
         self,
         question: str,
         session_uuid: str = "ephemeral",
-        headers: dict[str, str] | None = None,
+        headers: Optional[dict[str, str]] = None,
         **kwargs,
     ) -> Iterator[AragAnswer]:
         ac: AgentClient = kwargs["ac"]
@@ -55,7 +52,7 @@ class AsyncNucliaAgent:
         self,
         question: str,
         session_uuid: str = "ephemeral",
-        headers: dict[str, str] | None = None,
+        headers: Optional[dict[str, str]] = None,
         **kwargs,
     ) -> AsyncIterator[AragAnswer]:
         ac: AsyncAgentClient = kwargs["ac"]
