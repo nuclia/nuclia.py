@@ -28,10 +28,14 @@ class NucliaAgent:
 
     @agent
     def interact(
-        self, question: str, session_uuid: str = "ephemeral", **kwargs
+        self,
+        question: str,
+        session_uuid: str = "ephemeral",
+        headers: dict[str, str] | None = None,
+        **kwargs,
     ) -> Iterator[AragAnswer]:
         ac: AgentClient = kwargs["ac"]
-        for response in ac.interact(session_uuid, question):
+        for response in ac.interact(session_uuid, question, headers=headers):
             yield response
 
 
@@ -48,8 +52,12 @@ class AsyncNucliaAgent:
 
     @agent
     async def interact(
-        self, question: str, session_uuid: str = "ephemeral", **kwargs
+        self,
+        question: str,
+        session_uuid: str = "ephemeral",
+        headers: dict[str, str] | None = None,
+        **kwargs,
     ) -> AsyncIterator[AragAnswer]:
         ac: AsyncAgentClient = kwargs["ac"]
-        async for response in ac.interact(session_uuid, question):
+        async for response in ac.interact(session_uuid, question, headers=headers):
             yield response

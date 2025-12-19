@@ -21,6 +21,7 @@ async def test_interact(
         n_agent.interact(
             session_uuid="ephemeral",
             question="What is Eric known for?",
+            headers={"X-Custom-Header": "value"},
         )
     ):
         responses.append(message)

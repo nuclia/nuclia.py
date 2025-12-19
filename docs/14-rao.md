@@ -125,7 +125,7 @@ The CLI supports several commands (prefix with `/`):
 | `/help` | Show available commands |
 | `/new_session` | Create a new persistent session |
 | `/list_sessions` | List all your sessions |
-| `/change_session` | Switch to a different session |
+| `/change_session` | Switch to a different session, use 'ephemeral' for a temporary session |
 | `/clear` | Clear the screen |
 | `/exit` | Exit the CLI |
 
@@ -206,33 +206,19 @@ Sessions allow you to maintain conversation context across multiple interactions
   agent.session.delete(session_uuid)
   ```
 
-### Ephemeral Sessions
+## Interaction
 
-Use `"ephemeral"` as the session UUID for temporary conversations that don't persist:
-
-- CLI:
-
-  ```sh
-  nuclia agent interact --session_uuid="ephemeral" --question="What is AI?"
-  ```
-
-- SDK:
-
-  ```python
-  from nuclia.sdk.agent import NucliaAgent
-
-  agent = NucliaAgent()
-  for response in agent.interact(session_uuid="ephemeral", question="What is AI?"):
-      if response.answer:
-          print(response.answer)
-  ```
-
-## Programmatic Interaction
-
-Use the SDK to build custom applications with streaming responses.
+Aside from the interactive CLI, you can interact with your Retrieval Agents Orchestrator with the simple CLI or programmatically using the SDK.
 
 ### Basic Interaction
 
+
+**CLI:**
+```bash
+nuclia agent interact "What is Eric known for?"
+```
+
+**SDK:**
 ```python
 from nuclia.sdk.agent import NucliaAgent
 
@@ -240,7 +226,6 @@ agent = NucliaAgent()
 
 # Iterate over streaming responses
 for response in agent.interact(
-    session_uuid="ephemeral",
     question="What is Eric known for?"
 ):
     if response.operation == "ANSWER" and response.answer:
@@ -249,8 +234,19 @@ for response in agent.interact(
         print(f"Processing: {response.step.module}")
 ```
 
+Not supplying a `session_uuid` when calling `interact` will use an ephemeral session by default. To maintain context, provide a persistent session UUID.
+
 ### Using Persistent Sessions
 
+**CLI:**
+```bash
+nuclia agent sessions new "Customer Support Chat"
+# Note the session UUID returned
+nuclia agent interact "What are your business hours?" --session_uuid="SESSION_UUID"
+nuclia agent interact "Are you open on weekends?" --session_uuid="SESSION_UUID"
+```
+
+**SDK:**
 ```python
 from nuclia.sdk.agent import NucliaAgent
 
@@ -320,7 +316,7 @@ from nuclia_models.agent.interaction import AnswerOperation
 
 agent = NucliaAgent()
 
-for response in agent.interact(session_uuid="ephemeral", question="Tell me about AI"):
+for response in agent.interact(question="Tell me about AI"):
     if response.operation == AnswerOperation.START:
         print("Starting...")
     
@@ -353,7 +349,6 @@ agent = NucliaAgent()
 
 # Iterate over all messages
 for message in agent.interact(
-    session_uuid="ephemeral",
     question="What is RAO?"
 ):
     # message is an AragAnswer object with all raw data
@@ -374,7 +369,7 @@ from nuclia.sdk.agent import NucliaAgent
 from nuclia_models.agent.interaction import AnswerOperation
 
 agent = NucliaAgent()
-generator = agent.interact(session_uuid="ephemeral", question="Help me with X")
+generator = agent.interact(question="Help me with X")
 
 for response in generator:
     if response.operation == AnswerOperation.AGENT_REQUEST:
@@ -395,7 +390,7 @@ from nuclia.exceptions import RaoAPIException
 agent = NucliaAgent()
 
 try:
-    for response in agent.interact(session_uuid="ephemeral", question="Hello?"):
+    for response in agent.interact(question="Hello?"):
         if response.exception:
             print(f"Agent error: {response.exception.detail}")
         elif response.answer:
@@ -406,10 +401,34 @@ except Exception as e:
     print(f"Unexpected error: {e}")
 ```
 
+### Passing Custom Headers to MCP
+
+If your Retrieval Agents Orchestrator requires custom headers for MCP Agents, you can pass them as follows:
+
+**CLI:**
+```bash
+nuclia agent interact "What is AI?" --headers '{"X-Custom-Header": "value"}'
+```
+
+**SDK:**
+```python
+from nuclia.sdk.agent import NucliaAgent
+
+agent = NucliaAgent()
+for response in agent.interact(
+    question="What is AI?",
+    headers={"X-Custom-Header": "value"}
+):
+    if response.answer:
+        print(response.answer)
+```
+
+Please ensure that the 'Allowed Headers' configuration in your MCP agent includes any custom headers you wish to use.
+
 ## Best Practices
 
 1. **Use Sessions for Context**: Create sessions when you need multi-turn conversations with context retention
-2. **Use Ephemeral for One-offs**: Use `"ephemeral"` session for single questions that don't need context
+2. **Use Ephemeral Sessions for One-offs**: Don't supply a session UUID for using agents in a stateless manner.
 3. **Stream for UX**: Process responses as they arrive for better user experience
 4. **Handle All Operations**: Check for different operation types (START, ANSWER, DONE, ERROR) when processing responses
 5. **Clean Up Sessions**: Delete sessions when done to avoid clutter
