@@ -37,7 +37,7 @@ _DEBUG_HTTPX_REQUESTS = os.environ.get("DEBUG_HTTPX_REQUESTS", "false").lower() 
 
 if _DEBUG_HTTPX_REQUESTS:
     import httpx
-    from wrapt import wrap_function_wrapper
+    from wrapt import wrap_function_wrapper  # type: ignore
 
     def sync_wrapper(wrapped, instance: httpx.HTTPTransport, args, kwargs):
         print(f"[httpx::handle_request] {args[0].method} {args[0].url}")
