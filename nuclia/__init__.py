@@ -26,3 +26,28 @@ def get_list_parameter(param: Optional[List[str]]) -> List[str]:
 
 def is_nuclia_hosted(url: str):
     return BASE_DOMAIN in urlparse(url).netloc
+
+
+# HACK used to debug in CI. Remove once the issue is solved
+
+_DEBUG_HTTPX_REQUESTS = os.environ.get("DEBUG_HTTPX_REQUESTS", "false").lower() in {
+    "true",
+    "1",
+}
+
+if _DEBUG_HTTPX_REQUESTS:
+    import httpx
+    from wrapt import wrap_function_wrapper
+
+    def sync_wrapper(wrapped, instance: httpx.HTTPTransport, args, kwargs):
+        print(f"[httpx::handle_request] {args[0].method} {args[0].url}")
+        return wrapped(*args, **kwargs)
+
+    async def async_wrapper(wrapped, instance: httpx.AsyncHTTPTransport, args, kwargs):
+        print(f"[httpx::handle_async_request] {args[0].method} {args[0].url}")
+        return await wrapped(*args, **kwargs)
+
+    wrap_function_wrapper("httpx", "HTTPTransport.handle_request", sync_wrapper)
+    wrap_function_wrapper(
+        "httpx", "AsyncHTTPTransport.handle_async_request", async_wrapper
+    )
