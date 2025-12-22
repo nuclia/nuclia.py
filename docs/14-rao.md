@@ -123,7 +123,7 @@ The CLI supports several commands (prefix with `/`):
 | Command | Description |
 |---------|-------------|
 | `/help` | Show available commands |
-| `/new_session` | Create a new persistent session (only for a Retrieval Agent Orchestrator with memory)|
+| `/new_session` | Create a new persistent session |
 | `/list_sessions` | List all your sessions |
 | `/change_session` | Switch to a different session, use 'ephemeral' for a temporary session |
 | `/clear` | Clear the screen |
