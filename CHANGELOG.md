@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.13 (unreleased)
+## 4.9.13 (2025-12-22)
 
 
 - Allow passing resource creation metadata to sync upload method
