@@ -42,3 +42,4 @@ pip install nuclia --upgrade
 - [Query & download activity logs](11-activity-log.md)
 - [Agents: Automate Tasks for Better Search Performance](12-da-agents.md)
 - [AI Agents](13-ai-agents.md)
+- [Retrieval Agents Orchestrator](14-rao.md)

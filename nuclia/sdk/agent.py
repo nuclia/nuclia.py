@@ -1,60 +1,60 @@
-from typing import List, Optional
+from typing import AsyncIterator, Iterator, Optional
 
-from nucliadb_models.search import AskRequest
+from nuclia_models.agent.interaction import AragAnswer
 
-
-class Agent:
-    prompt: str
-    filters: List[str]
-
-    def __init__(self, prompt: str, filters: List[str]):
-        self.prompt = prompt
-        self.filters = filters
-        from nuclia.sdk import NucliaSearch
-
-        self.search = NucliaSearch()
-
-    def ask(self, text: str) -> str:
-        ask_req = AskRequest(query=text, prompt=self.prompt, filters=self.filters)
-        answer = self.search.ask(query=ask_req)
-        return answer.answer.decode()
+from nuclia.data import get_auth
+from nuclia.decorators import agent
+from nuclia.lib.agent import AgentClient, AsyncAgentClient
+from nuclia.sdk.agent_cli import NucliaAgentCLI
+from nuclia.sdk.agent_sessions import AsyncNucliaAgentSessions, NucliaAgentSessions
+from nuclia.sdk.auth import NucliaAuth
 
 
 class NucliaAgent:
-    def __init__(self):
-        from nuclia.sdk import NucliaPredict
+    session: NucliaAgentSessions
+    cli: NucliaAgentCLI
 
-        self.predict = NucliaPredict()
+    @property
+    def _auth(self) -> NucliaAuth:
+        auth = get_auth()
+        return auth
 
-    def generate_prompt(
-        self, text: str, agent_definition: str, model: Optional[str] = None
-    ) -> str:
-        user_prompt = self.predict.generate(
-            f"""Define a prompt for an agent that will answer questions about this topic: {agent_definition}
-                taking into account the following guidelines:
-                {text}
-                IMPORTANT:
-                It does not need to be a perfect prompt, even if you do not have enough information, return a prompt.
-                PROMPT:""",
-            model,
-        ).answer.replace("Prompt: ", "")[:-1]
+    def __init__(self) -> None:
+        self.session = NucliaAgentSessions()
+        self.cli = NucliaAgentCLI()
 
-        agent_prompt = (
-            "Answer the following question based on the provided context: \n[START OF CONTEXT]\n{context}\n[END OF CONTEXT] Question: "  # noqa
-            + user_prompt
-            + " {question}"
-        )  # noqa
+    @agent
+    def interact(
+        self,
+        question: str,
+        session_uuid: str = "ephemeral",
+        headers: Optional[dict[str, str]] = None,
+        **kwargs,
+    ) -> Iterator[AragAnswer]:
+        ac: AgentClient = kwargs["ac"]
+        for response in ac.interact(session_uuid, question, headers=headers):
+            yield response
 
-        return agent_prompt
 
-    def generate_agent(
-        self, topic: str, agent_definition: str = "agent", model: Optional[str] = None
-    ) -> Agent:
-        agent_prompt = self.generate_prompt(topic, agent_definition, model)
+class AsyncNucliaAgent:
+    session: "AsyncNucliaAgentSessions"
 
-        tokens = self.predict.tokens(topic)
-        filters = []
-        for token in tokens.tokens:
-            filters.append(f"/e/{token.ner}/{token.text}")
+    @property
+    def _auth(self) -> NucliaAuth:
+        auth = get_auth()
+        return auth
 
-        return Agent(prompt=agent_prompt, filters=filters)
+    def __init__(self) -> None:
+        self.session = AsyncNucliaAgentSessions()
+
+    @agent
+    async def interact(
+        self,
+        question: str,
+        session_uuid: str = "ephemeral",
+        headers: Optional[dict[str, str]] = None,
+        **kwargs,
+    ) -> AsyncIterator[AragAnswer]:
+        ac: AsyncAgentClient = kwargs["ac"]
+        async for response in ac.interact(session_uuid, question, headers=headers):
+            yield response
