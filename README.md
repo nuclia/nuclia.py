@@ -37,3 +37,7 @@ nuclia auth nua --key ZZZZ
 ## Documentation
 
 You can find the documentation [here](https://github.com/nuclia/nuclia.py/tree/main/docs/01-README.md)
+
+## For internal use
+
+Find more information on the internal CI setup [here](https://github.com/nuclia/internal/tree/main/ci/nucliapy.md)

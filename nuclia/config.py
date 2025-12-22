@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Sequence
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -87,6 +87,7 @@ class Role(str, Enum):
 class Selection(BaseModel):
     nua: Optional[str] = None
     kbid: Optional[str] = None
+    agent_id: Optional[str] = None
     account: Optional[str] = None
     nucliadb: Optional[str] = None
     zone: Optional[str] = None
@@ -116,6 +117,8 @@ class Config(BaseModel):
     accounts: Optional[List[Account]] = []
     kbs: Optional[List[KnowledgeBox]] = []
     kbs_token: List[KnowledgeBox] = []
+    agents: Optional[List[KnowledgeBox]] = []
+    agents_token: List[KnowledgeBox] = []
     nuas_token: List[NuaKey] = []
     zones: Optional[List[Zone]] = []
     default: Optional[Selection] = Selection()
@@ -145,6 +148,26 @@ class Config(BaseModel):
                 filter(lambda x: x.id == kbid, self.kbs if self.kbs is not None else [])
             )
         return kb_obj
+
+    def get_agent(self, agent_id: str) -> Optional[KnowledgeBox]:
+        try:
+            agent_obj = next(
+                filter(
+                    lambda x: x.id == agent_id,
+                    self.agents_token if self.agents_token is not None else [],
+                )
+            )
+        except StopIteration:
+            try:
+                agent_obj = next(
+                    filter(
+                        lambda x: x.id == agent_id,
+                        self.agents if self.agents is not None else [],
+                    )
+                )
+            except StopIteration:
+                agent_obj = None
+        return agent_obj
 
     def set_user_token(self, code: str):
         self.token = code
@@ -212,6 +235,45 @@ class Config(BaseModel):
 
         self.save()
 
+    def set_agent_token(
+        self,
+        url: str,
+        agent_id: str,
+        token: Optional[str] = None,
+        title: Optional[str] = None,
+        account_id: Optional[str] = None,
+    ):
+        # Remove existing agent with same ID
+        try:
+            while True:
+                agent_obj = next(
+                    filter(
+                        lambda x: x.id == agent_id,
+                        self.agents_token if self.agents_token is not None else [],
+                    )
+                )
+                if self.agents_token is not None:
+                    self.agents_token.remove(agent_obj)
+        except StopIteration:
+            pass
+
+        region = extract_region(url)
+        agent_obj = KnowledgeBox(
+            id=agent_id,
+            url=url,
+            token=token,
+            title=title,
+            region=region,
+            account=account_id,
+        )
+        self.agents_token.append(agent_obj)
+
+        if self.default is None:
+            self.default = Selection()
+            self.default.agent_id = agent_id
+
+        self.save()
+
     def get_default_nucliadb(self) -> Optional[str]:
         if self.default is None or self.default.nucliadb is None:
             raise NotDefinedDefault()
@@ -274,6 +336,24 @@ class Config(BaseModel):
             self.default.kbid = None
         self.save()
 
+    def get_default_agent(self) -> str:
+        if self.default is None or self.default.agent_id is None:
+            raise NotDefinedDefault()
+        return self.default.agent_id
+
+    def set_default_agent(self, agent_id: str):
+        if self.default is None:
+            self.default = Selection()
+        self.default.agent_id = agent_id
+        self.save()
+
+    def unset_default_agent(self, agent_id: str):
+        if self.default is None:
+            self.default = Selection()
+        if self.default.agent_id == agent_id:
+            self.default.agent_id = None
+        self.save()
+
     def save(self):
         if not os.path.exists(os.path.expanduser(CONFIG_PATH)):
             os.makedirs(os.path.expanduser(CONFIG_DIR), exist_ok=True)
@@ -300,7 +380,7 @@ def read_config() -> Config:
     return config
 
 
-def retrieve(kbs: List[KnowledgeBox], kb: str) -> Optional[KnowledgeBox]:
+def retrieve(kbs: Sequence[KnowledgeBox], kb: str) -> Optional[KnowledgeBox]:
     kb_obj: Optional[KnowledgeBox] = None
     try:
         kb_obj = next(filter(lambda x: x.slug == kb, kbs))
