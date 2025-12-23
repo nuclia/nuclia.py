@@ -372,6 +372,7 @@ class NuaClient:
         self,
         request: RemiRequest,
         extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 120,
     ) -> RemiResponse:
         endpoint = f"{self.url}{REMI_PREDICT}"
         return self._request(
@@ -380,6 +381,7 @@ class NuaClient:
             extra_headers=extra_headers,
             payload=request.model_dump(),
             output=RemiResponse,
+            timeout=timeout,
         )
 
     def process_file(self, path: str, kbid: str = "default") -> PushResponseV2:
@@ -774,6 +776,7 @@ class AsyncNuaClient:
         self,
         request: RemiRequest,
         extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 120,
     ) -> RemiResponse:
         endpoint = f"{self.url}{REMI_PREDICT}"
         return await self._request(
@@ -782,6 +785,7 @@ class AsyncNuaClient:
             payload=request.model_dump(),
             output=RemiResponse,
             extra_headers=extra_headers,
+            timeout=timeout,
         )
 
     async def generate_retrieval(
