@@ -4,7 +4,7 @@
 ## 4.9.14 (unreleased)
 
 
-- Nothing changed yet.
+- Fix agent session list (sync version)
 
 
 ## 4.9.13 (2025-12-22)
