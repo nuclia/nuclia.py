@@ -16,9 +16,9 @@ class NucliaAgentSessions:
         return ac.delete_session(session_uuid)
 
     @agent
-    def list(self, **kwargs) -> ResourceList:
+    def list(self, page: int = 0, page_size: int = 20, **kwargs) -> ResourceList:
         ac: AgentClient = kwargs["ac"]
-        return ac.get_sessions()
+        return ac.get_sessions(page=page, page_size=page_size)
 
     @agent
     def get(self, session_uuid: str, **kwargs) -> Resource:
