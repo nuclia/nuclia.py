@@ -18,4 +18,5 @@ test-cov:
 		--cov-config=.coveragerc \
 		--cov-report=xml \
 		--cov-append \
+        -s -rfE -vv \
 		nuclia/

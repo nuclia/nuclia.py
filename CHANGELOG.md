@@ -1,10 +1,16 @@
 # Changelog
 
 
-## 4.9.14 (unreleased)
+## 4.9.15 (unreleased)
 
 
 - Add timeout on Remi
+
+
+## 4.9.14 (2025-12-23)
+
+
+- Fix agent session list (sync version)
 
 
 ## 4.9.13 (2025-12-22)
