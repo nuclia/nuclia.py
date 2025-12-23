@@ -4,7 +4,7 @@
 ## 4.9.14 (unreleased)
 
 
-- Nothing changed yet.
+- Add timeout on Remi
 
 
 ## 4.9.13 (2025-12-22)
