@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.14 (unreleased)
+## 4.9.14 (2025-12-23)
 
 
 - Fix agent session list (sync version)
