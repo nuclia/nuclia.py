@@ -129,9 +129,13 @@ The CLI supports several commands (prefix with `/`):
 | `/clear` | Clear the screen |
 | `/exit` | Exit the CLI |
 
+Please note that all commands related to sessions require a Retrieval Agent Orchestrator with the option **Agent with memory** enabled during creation.
+
 ## Session Management
 
 Sessions allow you to maintain conversation context across multiple interactions.
+
+> This feature will only be available if you checked **Agent with memory** during the creation of your Retrieval Agents Orchestrator.
 
 ### Creating a Session
 
