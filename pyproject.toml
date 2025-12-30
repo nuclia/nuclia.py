@@ -25,7 +25,7 @@ dependencies = [
     "prompt_toolkit",
     "nucliadb_sdk>=6.7.2,<7",
     "nucliadb_models>=6.9.0,<7",
-    "nuclia-models>=0.51.0",
+    "nuclia-models>=0.52.1",
     "tqdm",
     "aiofiles",
     "backoff",

@@ -189,6 +189,10 @@ class ChatModel(BaseModel):
             "Set to True to enable default reasoning, False to disable, or provide a Reasoning object for custom options."
         ),
     )
+    image_generation: bool = Field(
+        default=False,
+        description="Whether to enable image generation in the response.",
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
