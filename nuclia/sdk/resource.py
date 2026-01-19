@@ -153,6 +153,22 @@ class NucliaResource:
         return res
 
     @kb
+    def exists(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ) -> bool:
+        ndb: NucliaDBClient = kwargs["ndb"]
+        url = _resource_head_url(kbid=ndb.kbid, rid=rid, slug=slug)
+        resp = ndb.ndb.session.head(url)
+        if resp.status_code == 404:
+            return False
+        resp.raise_for_status()
+        return True
+
+    @kb
     @pretty
     def get(
         self,
@@ -334,6 +350,22 @@ class AsyncNucliaResource:
         return rid
 
     @kb
+    async def exists(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ) -> bool:
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        url = _resource_head_url(kbid=ndb.kbid, rid=rid, slug=slug)
+        resp = await ndb.ndb.session.head(url)
+        if resp.status_code == 404:
+            return False
+        resp.raise_for_status()
+        return True
+
+    @kb
     @pretty
     async def get(
         self,
@@ -493,3 +525,15 @@ class AsyncNucliaResource:
             await ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
         else:
             raise ValueError("Either rid or slug must be provided")
+
+
+def _resource_head_url(
+    *, kbid: str, rid: Optional[str] = None, slug: Optional[str] = None
+) -> str:
+    if rid:
+        url = "v1/kb/{kbid}/resource/{rid}".format(kbid=kbid, rid=rid)
+    elif slug:
+        url = "v1/kb/{kbid}/slug/{slug}".format(kbid=kbid, slug=slug)
+    else:
+        raise ValueError("Either rid or slug must be provided")
+    return url
