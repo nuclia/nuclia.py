@@ -167,6 +167,7 @@ class NuaClient:
 
             else:
                 # Read the full error body and raise an appropriate exception
+                response.read()
                 error_content = response.content
                 raise RuntimeError(
                     f"Stream request failed with status {response.status_code}: {error_content.decode('utf-8')}"
