@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.16 (unreleased)
+## 4.9.16 (2026-01-20)
 
 
 - Add exists method to resource
