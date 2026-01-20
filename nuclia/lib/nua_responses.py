@@ -143,6 +143,23 @@ class CitationsType(str, Enum):
     LLM_FOOTNOTES = "llm_footnotes"
 
 
+class ToolChoiceAuto(BaseModel):
+    type: Literal["auto"] = "auto"
+
+
+class ToolChoiceNone(BaseModel):
+    type: Literal["none"] = "none"
+
+
+class ToolChoiceRequired(BaseModel):
+    type: Literal["required"] = "required"
+
+
+class ToolChoiceForced(BaseModel):
+    type: Literal["forced"] = "forced"
+    name: str
+
+
 class ChatModel(BaseModel):
     question: str
     retrieval: bool = True
@@ -181,6 +198,20 @@ class ChatModel(BaseModel):
     )
     tools: List[Tool] = Field(
         default_factory=list, description="List of tools to choose"
+    )
+    tool_choice: Union[
+        ToolChoiceAuto, ToolChoiceNone, ToolChoiceRequired, ToolChoiceForced
+    ] = Field(
+        default=ToolChoiceRequired(),
+        discriminator="type",
+        description=(
+            "Tool choice strategy. "
+            "`auto`: The model decides whether to use a tool or not based on the prompt and available tools. "
+            "`required` (default): A tool must be used."
+            "`none`: Disables tool usage even if tools are provided."
+            "`forced`: Forces the use of a specific tool provided in `name`."
+            "Important: Not all model providers support all tool choice strategies, its a best effort feature."
+        ),
     )
     reasoning: Union[Reasoning, bool] = Field(
         default=False,
