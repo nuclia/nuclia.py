@@ -14,6 +14,7 @@ from nuclia.lib.nua_responses import (
     UserPrompt,
 )
 from nuclia.sdk.predict import AsyncNucliaPredict, NucliaPredict
+from nuclia.tests.utils import maybe_await
 
 
 def test_predict(testing_config):
@@ -363,3 +364,25 @@ async def test_async_citation_footnote_to_context(
                 footnote_found = True
 
     assert footnote_found, "FootnoteCitationsGenerativeResponse chunk should be present"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client_class", [NucliaPredict, AsyncNucliaPredict])
+async def test_image_generation_support(testing_config, client_class):
+    client = client_class()
+    generated = await maybe_await(
+        client.generate(
+            ChatModel(
+                question="Generate an image of a futuristic city skyline at sunset with flying cars",
+                retrieval=False,
+                user_id="Nuclia PY CLI",
+                generative_model="gemini-2.5-flash-image",
+                max_tokens=4000,
+                user_prompt=UserPrompt(prompt="{question}"),
+            ),
+        )
+    )
+    assert len(generated.images) > 0
+    for image in generated.images:
+        assert image.content_type.startswith("image/")
+        assert len(image.b64encoded) > 100

@@ -4,7 +4,7 @@
 ## 4.9.17 (unreleased)
 
 
-- Nothing changed yet.
+- Support image generation for NUA
 
 
 ## 4.9.16 (2026-01-20)
