@@ -87,7 +87,7 @@ class NucliaUpload:
         )
         if not field:
             field = uuid4().hex
-        md5_hash = hashlib.md5()
+        md5_hash = hashlib.md5(usedforsecurity=False)
 
         with open(path, "rb") as upload_file:
             md5_hash.update(upload_file.read())
@@ -419,7 +419,7 @@ class AsyncNucliaUpload:
         )
         if not field:
             field = uuid4().hex
-        md5_hash = hashlib.md5()
+        md5_hash = hashlib.md5(usedforsecurity=False)
 
         async with aiofiles.open(path, "rb") as upload_file:
             md5_hash.update(await upload_file.read())
