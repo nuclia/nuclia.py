@@ -5,6 +5,7 @@
 
 
 - Add exists method to resource
+- Add support for `tool_choice` in ChatModel
 
 
 ## 4.9.15 (2025-12-23)
