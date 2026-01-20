@@ -8,8 +8,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - '**/uv.lock'
 
 jobs:
   blackduck-sca-scan:
