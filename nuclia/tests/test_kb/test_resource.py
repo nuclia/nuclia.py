@@ -23,7 +23,12 @@ def test_resource(testing_config):
     except NotFoundError:
         pass
 
+    assert not nresource.exists(slug="res1")
+
     res_id = nresource.create(slug="res1")
+
+    assert nresource.exists(slug="res1")
+    assert nresource.exists(rid=res_id)
 
     res = nresource.get(rid=res_id)
     assert res
@@ -181,6 +186,8 @@ async def test_resource_crud_by_id(
     except NotFoundError:
         pass
 
+    assert not await maybe_await(nresource.exists(slug=slug))
+
     rid = await maybe_await(
         nresource.create(
             slug=slug,
@@ -188,6 +195,10 @@ async def test_resource_crud_by_id(
             texts={"mytext": {"body": "testing is essential for a reliable software"}},
         )
     )
+
+    assert await maybe_await(nresource.exists(slug=slug))
+    assert await maybe_await(nresource.exists(rid=rid))
+
     res = await maybe_await(nresource.get(rid=rid))
     assert res.title == "Testing"
 
