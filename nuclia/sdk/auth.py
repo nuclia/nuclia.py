@@ -425,7 +425,6 @@ class NucliaAuth(BaseNucliaAuth):
         )
         if resp.status_code == 200:
             data = resp.json()
-        if data is not None:
             return RetrievalAgentOrchestratorObj.model_validate(data)
         else:
             return None
@@ -855,7 +854,6 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         )
         if resp.status_code == 200:
             data = resp.json()
-        if data is not None:
             return RetrievalAgentOrchestratorObj.model_validate(data)
         else:
             return None
