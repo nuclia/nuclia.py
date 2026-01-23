@@ -16,10 +16,17 @@ from nuclia.tests.utils import maybe_await
     "agent_klass",
     [NucliaAgent, AsyncNucliaAgent],
 )
+@pytest.mark.parametrize(
+    "agent_fixture_name",
+    ["use_agent", "use_agent_no_mem"],
+)
 async def test_cli_interact_simple_question(
     testing_config,
+    request,
+    agent_fixture_name: str,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
+    request.getfixturevalue(agent_fixture_name)
     """Test CLI interact with a simple question and exit."""
     console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
@@ -44,6 +51,7 @@ async def test_cli_interact_simple_question(
 )
 async def test_cli_interact_help_command(
     testing_config,
+    use_agent,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with help command."""
@@ -67,6 +75,7 @@ async def test_cli_interact_help_command(
 )
 async def test_cli_interact_empty_input(
     testing_config,
+    use_agent,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact handles empty input gracefully."""
@@ -88,6 +97,7 @@ async def test_cli_interact_empty_input(
 )
 async def test_cli_interact_unknown_command(
     testing_config,
+    use_agent,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact handles unknown commands."""
@@ -108,6 +118,7 @@ async def test_cli_interact_unknown_command(
 )
 async def test_cli_interact_clear_command(
     testing_config,
+    use_agent,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with clear command."""
@@ -129,6 +140,7 @@ async def test_cli_interact_clear_command(
 )
 async def test_cli_interact_list_sessions(
     testing_config,
+    use_agent,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact with list sessions command."""
@@ -149,6 +161,7 @@ async def test_cli_interact_list_sessions(
 )
 async def test_cli_interact_keyboard_interrupt(
     testing_config,
+    use_agent,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test CLI interact handles keyboard interrupt gracefully."""
@@ -168,10 +181,17 @@ async def test_cli_interact_keyboard_interrupt(
     "agent_klass",
     [NucliaAgent, AsyncNucliaAgent],
 )
+@pytest.mark.parametrize(
+    "agent_fixture_name",
+    ["use_agent", "use_agent_no_mem"],
+)
 async def test_cli_interact_multiple_questions(
     testing_config,
+    request,
+    agent_fixture_name: str,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
+    request.getfixturevalue(agent_fixture_name)
     """Test CLI interact with multiple questions in sequence."""
     console = Console(record=True, force_terminal=False, width=120)
     cli = NucliaAgentCLI(console=console)
@@ -200,6 +220,7 @@ async def test_cli_interact_multiple_questions(
 )
 async def test_cli_interact_session_workflow(
     testing_config,
+    use_agent,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
     """Test complete session workflow: create, list, use, switch."""
@@ -213,7 +234,7 @@ async def test_cli_interact_session_workflow(
         side_effect=[
             "/new_session",
             session_name,
-            "What is Eric known for?",
+            "Does Eric have a great sense of humor?",
             "/list_sessions",
             "/change_session",
             "ephemeral",
@@ -230,6 +251,6 @@ async def test_cli_interact_session_workflow(
     # Should show session creation
     assert session_name in output or "created" in output.lower()
     # Should process both questions
-    assert "humor" in output
+    assert "yes" in output.lower()
     # Should show session list
     assert "list" in output.lower() or "sessions" in output.lower()

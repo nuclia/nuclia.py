@@ -27,6 +27,16 @@ class KnowledgeBox(BaseModel):
         return f"{origin:20} {'(' + self.account + ')' if self.account else ''} {self.slug if self.slug else ''}"
 
 
+class RetrievalAgentOrchestratorObj(BaseModel):
+    """Minimal representation of the Backend-stored data for a Retrieval Agent Orchestrator"""
+
+    id: str
+    slug: str
+    account_id: str
+    zone: str
+    title: str
+
+
 class RetrievalAgentOrchestrator(BaseModel):
     id: str
     account: str

@@ -21,6 +21,7 @@ from nuclia.config import (
     PersonalTokenCreate,
     PersonalTokenItem,
     RetrievalAgentOrchestrator,
+    RetrievalAgentOrchestratorObj,
     User,
     Zone,
     retrieve_account,
@@ -286,7 +287,7 @@ class NucliaAuth(BaseNucliaAuth):
         self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
     ) -> Optional[str]:
         agent = self.validate_agent(
-            account_id=account_id, agent_id=agent_id, token=token
+            account_id=account_id, agent_id=agent_id, region=region, token=token
         )
         # For now we validate kb to assess if the agent has memory or not
         memory = False
@@ -300,14 +301,14 @@ class NucliaAuth(BaseNucliaAuth):
 
             self._config.set_agent_token(
                 region=region,
-                agent_id=agent.uuid,
+                agent_id=agent.id,
                 memory=memory,
                 account_id=account_id,
                 token=token,
-                title=agent.config.title if agent.config is not None else "",
+                title=agent.title,
             )
-            self._config.set_default_agent(agent_id=agent.uuid)
-            return agent.uuid
+            self._config.set_default_agent(agent_id=agent.id)
+            return agent.id
         else:
             logger.error("Invalid service token")
             return None
@@ -415,17 +416,17 @@ class NucliaAuth(BaseNucliaAuth):
             return None
 
     def validate_agent(
-        self, account_id: str, agent_id: str, token: Optional[str] = None
-    ) -> Optional[KnowledgeBoxObj]:
+        self, account_id: str, agent_id: str, region: str, token: Optional[str] = None
+    ) -> Optional[RetrievalAgentOrchestratorObj]:
         url = VALIDATE_AGENT.format(account=account_id, agent_id=agent_id)
         resp = self.client.get(
-            url,
+            get_regional_url(region, url),
             headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
         )
         if resp.status_code == 200:
             data = resp.json()
         if data is not None:
-            return KnowledgeBoxObj.model_validate(data)
+            return RetrievalAgentOrchestratorObj.model_validate(data)
         else:
             return None
 
@@ -720,7 +721,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
     ) -> Optional[str]:
         agent = await self.validate_agent(
-            account_id=account_id, agent_id=agent_id, token=token
+            account_id=account_id, agent_id=agent_id, region=region, token=token
         )
         # For now we validate kb to assess if the agent has memory or not
         memory = False
@@ -734,14 +735,14 @@ class AsyncNucliaAuth(BaseNucliaAuth):
 
             self._config.set_agent_token(
                 region=region,
-                agent_id=agent.uuid,
+                agent_id=agent.id,
                 memory=memory,
                 account_id=account_id,
                 token=token,
-                title=agent.config.title if agent.config is not None else "",
+                title=agent.title,
             )
-            self._config.set_default_agent(agent_id=agent.uuid)
-            return agent.uuid
+            self._config.set_default_agent(agent_id=agent.id)
+            return agent.id
         else:
             logger.error("Invalid service token")
             return None
@@ -845,17 +846,17 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             return None
 
     async def validate_agent(
-        self, account_id: str, agent_id: str, token: Optional[str] = None
-    ) -> Optional[KnowledgeBoxObj]:
+        self, account_id: str, agent_id: str, region: str, token: Optional[str] = None
+    ) -> Optional[RetrievalAgentOrchestratorObj]:
         url = VALIDATE_AGENT.format(account=account_id, agent_id=agent_id)
         resp = await self.client.get(
-            url,
+            get_regional_url(region, url),
             headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
         )
         if resp.status_code == 200:
             data = resp.json()
         if data is not None:
-            return KnowledgeBoxObj.model_validate(data)
+            return RetrievalAgentOrchestratorObj.model_validate(data)
         else:
             return None
 
