@@ -1,10 +1,17 @@
 # Changelog
 
 
-## 4.9.16 (unreleased)
+## 4.9.17 (unreleased)
 
 
-- Nothing changed yet.
+- Fix error handling for incorrect model names in NUA
+
+
+## 4.9.16 (2026-01-20)
+
+
+- Add exists method to resource
+- Add support for `tool_choice` in ChatModel
 
 
 ## 4.9.15 (2025-12-23)

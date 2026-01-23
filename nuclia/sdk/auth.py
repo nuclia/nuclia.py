@@ -268,7 +268,7 @@ class NucliaAuth(BaseNucliaAuth):
     def kb(self, url: str, token: Optional[str] = None) -> Optional[str]:
         url = url.strip("/")
         kb = self.validate_kb(url, token)
-        if kb:
+        if kb is not None:
             logger.info("Validated")
             self._config.set_kb_token(
                 url=url,
@@ -277,9 +277,10 @@ class NucliaAuth(BaseNucliaAuth):
                 kbid=kb.uuid,
             )
             self._config.set_default_kb(kbid=kb.uuid)
+            return kb.uuid
         else:
             logger.error("Invalid service token")
-        return kb.uuid if kb is not None else None
+            return None
 
     def agent(
         self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
@@ -306,9 +307,10 @@ class NucliaAuth(BaseNucliaAuth):
                 title=agent.config.title if agent.config is not None else "",
             )
             self._config.set_default_agent(agent_id=agent.uuid)
+            return agent.uuid
         else:
             logger.error("Invalid service token")
-        return None if agent is None else agent.uuid
+            return None
 
     def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = self.validate_nua(token)
@@ -700,7 +702,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
     async def kb(self, url: str, token: Optional[str] = None) -> Optional[str]:
         url = url.strip("/")
         kb = await self.validate_kb(url, token)
-        if kb:
+        if kb is not None:
             logger.info("Validated")
             self._config.set_kb_token(
                 url=url,
@@ -709,9 +711,10 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 kbid=kb.uuid,
             )
             self._config.set_default_kb(kbid=kb.uuid)
+            return kb.uuid
         else:
             logger.error("Invalid service token")
-        return kb.uuid if kb is not None else None
+            return None
 
     async def agent(
         self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
@@ -738,9 +741,10 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 title=agent.config.title if agent.config is not None else "",
             )
             self._config.set_default_agent(agent_id=agent.uuid)
+            return agent.uuid
         else:
             logger.error("Invalid service token")
-        return None if agent is None else agent.uuid
+            return None
 
     async def nua(self, token: str) -> Optional[str]:
         client_id, account_type, account, base_region = await self.validate_nua(token)
