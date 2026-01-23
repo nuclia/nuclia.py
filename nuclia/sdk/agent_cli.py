@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from nuclia_models.agent.interaction import AnswerOperation, AragAnswer
 from nuclia_models.agent.memory import Answer, Context, Step
@@ -576,7 +576,7 @@ class NucliaAgentCLI:
         return session_titles.get(session_uuid) or session_uuid[:8]
 
     @agent
-    def interact(self, **kwargs):
+    def interact(self, **kwargs: Any) -> None:
         """Main interactive CLI loop."""
         ac: AgentClient = kwargs["ac"]
         agent_config = self._auth._config.get_agent(ac.agent_id)

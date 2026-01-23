@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Sequence, overload
+from typing import List, Optional, Sequence, Union, overload
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -416,9 +416,9 @@ def retrieve(
 
 
 def retrieve(
-    kbs: Sequence[KnowledgeBox | RetrievalAgentOrchestrator], kb: str
-) -> Optional[KnowledgeBox | RetrievalAgentOrchestrator]:
-    kb_obj: Optional[KnowledgeBox | RetrievalAgentOrchestrator] = None
+    kbs: Sequence[Union[KnowledgeBox, RetrievalAgentOrchestrator]], kb: str
+) -> Optional[Union[KnowledgeBox, RetrievalAgentOrchestrator]]:
+    kb_obj: Optional[Union[KnowledgeBox, RetrievalAgentOrchestrator]] = None
     try:
         kb_obj = next(filter(lambda x: x.slug == kb, kbs))
     except StopIteration:
