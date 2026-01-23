@@ -23,8 +23,7 @@ if BASE_DOMAIN == "stashify.cloud":
 else:
     IS_PROD = True
     TESTING_ACCOUNT_SLUG = "nuclia"
-    # TODO: Recheck
-    TESTING_ACCOUNT_ID = ""
+    TESTING_ACCOUNT_ID = "4f9285c7-7151-4431-94e6-3f1fb0d66aca"
     TESTING_KBID = "18ab102c-a7db-4a35-b894-c20422b3b9f0"
     TESTING_KB = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_KBID
     TESTING_AGENT_ID = "6ce34422-ee0d-4077-9bc5-3845fe4d34f4"

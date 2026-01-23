@@ -5,6 +5,7 @@
 
 
 - Fix error handling for incorrect model names in NUA
+- Support for Retrieval Agents Orchestrators without memory.
 
 
 ## 4.9.16 (2026-01-20)
