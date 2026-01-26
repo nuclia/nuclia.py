@@ -177,13 +177,13 @@ class AgentClient(BaseAgentClient):
 
     def delete_session(self, session_uuid: str) -> None:
         self._request(
-            "DELETE", f"/api/v1/kb/{self.agent_id}/agent/session/{session_uuid}"
+            "DELETE", f"/api/v1/agent/{self.agent_id}/sessions/{session_uuid}"
         )
 
     def get_sessions(self, page: int = 0, page_size=20) -> ResourceList:
         return self._request(
             "GET",
-            f"/api/v1/kb/{self.agent_id}/agent/sessions",
+            f"/api/v1/agent/{self.agent_id}/sessions",
             output=ResourceList,
             params={"page": page, "page_size": page_size},
         )
@@ -191,13 +191,14 @@ class AgentClient(BaseAgentClient):
     def get_session(self, session_uuid: str) -> Resource:
         return self._request(
             "GET",
-            f"/api/v1/kb/{self.agent_id}/agent/session/{session_uuid}",
+            f"/api/v1/agent/{self.agent_id}/sessions/{session_uuid}",
             output=Resource,
         )
 
     def get_ephemeral_token(self, session_uuid: str) -> str:
         resp = self._request(
             "POST",
+            # This might be changed to /api/v1/agent/{self.agent_id}/... in the future
             f"/api/v1/account/{self.account_id}/kb/{self.agent_id}/ephemeral_tokens",
             payload={"agent_session": session_uuid},
         )

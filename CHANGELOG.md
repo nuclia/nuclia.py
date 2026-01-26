@@ -6,6 +6,7 @@
 
 - Fix error handling for incorrect model names in NUA
 - Support for Retrieval Agents Orchestrators without memory.
+- Use /api/v1/agent/{agent_id}/ endpoints across the sdk for Retrieval Agent Orchestrators.
 
 
 ## 4.9.16 (2026-01-20)
