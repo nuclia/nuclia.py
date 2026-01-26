@@ -3,7 +3,7 @@
 
 ## 4.9.17 (unreleased)
 
-
+- Cache requests to global accounts endpoint
 - Fix error handling for incorrect model names in NUA
 
 
