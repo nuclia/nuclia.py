@@ -39,6 +39,7 @@ LIST_KBS = "/api/v1/account/{account}/kbs"
 LIST_AGENTS = "/api/v1/account/{account}/kbs?mode=agent"
 LIST_AGENTS_NO_MEM = "/api/v1/account/{account}/kbs?mode=agent_no_memory"
 VALIDATE_AGENT = "/api/v1/account/{account}/kb/{agent_id}"
+VALIDATE_AGENT_MEMORY = "/api/v1/kb/{agent_id}"
 VERIFY_NUA = "/api/authorizer/info"
 PERSONAL_TOKENS = "/api/v1/user/pa_tokens"
 PERSONAL_TOKEN = "/api/v1/user/pa_token/{token_id}"
@@ -292,7 +293,10 @@ class NucliaAuth(BaseNucliaAuth):
         # For now we validate kb to assess if the agent has memory or not
         memory = False
         kb_check = self.validate_kb(
-            url=get_regional_url(region, f"/api/v1/kb/{agent_id}"), token=token
+            url=get_regional_url(
+                region, VALIDATE_AGENT_MEMORY.format(agent_id=agent_id)
+            ),
+            token=token,
         )
         if kb_check is not None:
             memory = True
@@ -725,7 +729,10 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         # For now we validate kb to assess if the agent has memory or not
         memory = False
         kb_check = await self.validate_kb(
-            url=get_regional_url(region, f"/api/v1/kb/{agent_id}"), token=token
+            url=get_regional_url(
+                region, VALIDATE_AGENT_MEMORY.format(agent_id=agent_id)
+            ),
+            token=token,
         )
         if kb_check is not None:
             memory = True
