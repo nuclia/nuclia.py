@@ -14,6 +14,7 @@ from nuclia.tests.utils import maybe_await
 )
 async def test_sessions(
     testing_config,
+    use_agent,
     agent_sessions_klass: Type[Union[NucliaAgentSessions, AsyncNucliaAgentSessions]],
 ):
     n_agent_sess = agent_sessions_klass()

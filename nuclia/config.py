@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union, overload
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -25,6 +25,31 @@ class KnowledgeBox(BaseModel):
     def __str__(self):
         origin = self.region + " " + self.id if self.region else "LOCAL " + self.url
         return f"{origin:20} {'(' + self.account + ')' if self.account else ''} {self.slug if self.slug else ''}"
+
+
+class RetrievalAgentOrchestratorObj(BaseModel):
+    """Minimal representation of the Backend-stored data for a Retrieval Agent Orchestrator"""
+
+    id: str
+    slug: str
+    account_id: str
+    zone: str
+    title: str
+
+
+class RetrievalAgentOrchestrator(BaseModel):
+    id: str
+    account: str
+    region: str
+    # Set a default so we can deserialize older configs
+    memory: bool = True
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    token: Optional[str] = None
+
+    def __str__(self):
+        _type = "with Memory" if self.memory else "without Memory"
+        return f"{_type:14} - {self.region} {self.id:20} ({self.account}) {self.slug if self.slug else ''}"
 
 
 class User(BaseModel):
@@ -117,8 +142,8 @@ class Config(BaseModel):
     accounts: Optional[List[Account]] = []
     kbs: Optional[List[KnowledgeBox]] = []
     kbs_token: List[KnowledgeBox] = []
-    agents: Optional[List[KnowledgeBox]] = []
-    agents_token: List[KnowledgeBox] = []
+    agents: Optional[List[RetrievalAgentOrchestrator]] = []
+    agents_token: List[RetrievalAgentOrchestrator] = []
     nuas_token: List[NuaKey] = []
     zones: Optional[List[Zone]] = []
     default: Optional[Selection] = Selection()
@@ -149,7 +174,7 @@ class Config(BaseModel):
             )
         return kb_obj
 
-    def get_agent(self, agent_id: str) -> Optional[KnowledgeBox]:
+    def get_agent(self, agent_id: str) -> Optional[RetrievalAgentOrchestrator]:
         try:
             agent_obj = next(
                 filter(
@@ -237,11 +262,12 @@ class Config(BaseModel):
 
     def set_agent_token(
         self,
-        url: str,
+        region: str,
         agent_id: str,
+        memory: bool,
+        account_id: str,
         token: Optional[str] = None,
         title: Optional[str] = None,
-        account_id: Optional[str] = None,
     ):
         # Remove existing agent with same ID
         try:
@@ -257,14 +283,13 @@ class Config(BaseModel):
         except StopIteration:
             pass
 
-        region = extract_region(url)
-        agent_obj = KnowledgeBox(
+        agent_obj = RetrievalAgentOrchestrator(
             id=agent_id,
-            url=url,
-            token=token,
-            title=title,
-            region=region,
             account=account_id,
+            region=region,
+            memory=memory,
+            title=title,
+            token=token,
         )
         self.agents_token.append(agent_obj)
 
@@ -380,8 +405,20 @@ def read_config() -> Config:
     return config
 
 
-def retrieve(kbs: Sequence[KnowledgeBox], kb: str) -> Optional[KnowledgeBox]:
-    kb_obj: Optional[KnowledgeBox] = None
+@overload
+def retrieve(kbs: Sequence[KnowledgeBox], kb: str) -> Optional[KnowledgeBox]: ...
+
+
+@overload
+def retrieve(
+    kbs: Sequence[RetrievalAgentOrchestrator], kb: str
+) -> Optional[RetrievalAgentOrchestrator]: ...
+
+
+def retrieve(
+    kbs: Sequence[Union[KnowledgeBox, RetrievalAgentOrchestrator]], kb: str
+) -> Optional[Union[KnowledgeBox, RetrievalAgentOrchestrator]]:
+    kb_obj: Optional[Union[KnowledgeBox, RetrievalAgentOrchestrator]] = None
     try:
         kb_obj = next(filter(lambda x: x.slug == kb, kbs))
     except StopIteration:

@@ -4,7 +4,7 @@ import datetime
 import json
 import webbrowser
 from time import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from httpx import AsyncClient, Client, ConnectError
 from nucliadb_models.resource import KnowledgeBoxObj
@@ -20,6 +20,8 @@ from nuclia.config import (
     KnowledgeBox,
     PersonalTokenCreate,
     PersonalTokenItem,
+    RetrievalAgentOrchestrator,
+    RetrievalAgentOrchestratorObj,
     User,
     Zone,
     retrieve_account,
@@ -35,6 +37,9 @@ ACCOUNTS = "/api/v1/accounts"
 ZONES = "/api/v1/zones"
 LIST_KBS = "/api/v1/account/{account}/kbs"
 LIST_AGENTS = "/api/v1/account/{account}/kbs?mode=agent"
+LIST_AGENTS_NO_MEM = "/api/v1/account/{account}/kbs?mode=agent_no_memory"
+VALIDATE_AGENT = "/api/v1/account/{account}/kb/{agent_id}"
+VALIDATE_AGENT_MEMORY = "/api/v1/kb/{agent_id}"
 VERIFY_NUA = "/api/authorizer/info"
 PERSONAL_TOKENS = "/api/v1/user/pa_tokens"
 PERSONAL_TOKEN = "/api/v1/user/pa_token/{token_id}"
@@ -216,7 +221,6 @@ class NucliaAuth(BaseNucliaAuth):
                         agent.slug,
                         agent.title,
                         agent.region,
-                        agent.url,
                         arole,
                     ]
                 )
@@ -280,31 +284,35 @@ class NucliaAuth(BaseNucliaAuth):
             logger.error("Invalid service token")
             return None
 
-    def agent(self, url: str, token: Optional[str] = None) -> Optional[str]:
-        url = url.strip("/")
-        agent = self.validate_kb(url, token)
-        if agent is not None:
+    def agent(
+        self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
+    ) -> Optional[str]:
+        agent = self.validate_agent(
+            account_id=account_id, agent_id=agent_id, region=region, token=token
+        )
+        # For now we validate kb to assess if the agent has memory or not
+        memory = False
+        kb_check = self.validate_kb(
+            url=get_regional_url(
+                region, VALIDATE_AGENT_MEMORY.format(agent_id=agent_id)
+            ),
+            token=token,
+        )
+        if kb_check is not None:
+            memory = True
+        if agent:
             logger.info("Validated")
-            # Extract account ID if using service token
-            account_id = None
-            if token is not None:
-                from nuclia.config import extract_region
-
-                region = extract_region(url)
-                if region:
-                    account_id, _, _ = self.get_account_from_service_token(
-                        region, token
-                    )
 
             self._config.set_agent_token(
-                url=url,
-                token=token,
-                title=agent.config.title if agent.config is not None else "",
-                agent_id=agent.uuid,
+                region=region,
+                agent_id=agent.id,
+                memory=memory,
                 account_id=account_id,
+                token=token,
+                title=agent.title,
             )
-            self._config.set_default_agent(agent_id=agent.uuid)
-            return agent.uuid
+            self._config.set_default_agent(agent_id=agent.id)
+            return agent.id
         else:
             logger.error("Invalid service token")
             return None
@@ -411,6 +419,20 @@ class NucliaAuth(BaseNucliaAuth):
         else:
             return None
 
+    def validate_agent(
+        self, account_id: str, agent_id: str, region: str, token: Optional[str] = None
+    ) -> Optional[RetrievalAgentOrchestratorObj]:
+        url = VALIDATE_AGENT.format(account=account_id, agent_id=agent_id)
+        resp = self.client.get(
+            get_regional_url(region, url),
+            headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return RetrievalAgentOrchestratorObj.model_validate(data)
+        else:
+            return None
+
     def get_user(self) -> User:
         resp = self._request("GET", get_global_url(MEMBER))
         assert resp
@@ -485,7 +507,7 @@ class NucliaAuth(BaseNucliaAuth):
         self, kbid: str, ttl: Optional[int] = None
     ) -> EphemeralToken:
         # Try to get as KB first, then as agent
-        kb_obj = None
+        kb_obj: Union[RetrievalAgentOrchestrator, KnowledgeBox, None] = None
         try:
             kb_obj = self._config.get_kb(kbid)
         except (StopIteration, KeyError):
@@ -625,35 +647,38 @@ class NucliaAuth(BaseNucliaAuth):
                     result.append(kb_obj)
         return result
 
-    def agents(self, account: str) -> List[KnowledgeBox]:
-        result: List[KnowledgeBox] = []
+    def agents(self, account: str) -> List[RetrievalAgentOrchestrator]:
+        result: List[RetrievalAgentOrchestrator] = []
         zones = self.zones()
         for zoneObj in zones:
             zoneSlug = zoneObj.slug
             if not zoneSlug:
                 continue
-            path = get_regional_url(zoneSlug, LIST_AGENTS.format(account=account))
-            try:
-                agents = self._request("GET", path)
-            except UserTokenExpired:
-                return []
-            except ConnectError:
-                logger.error(
-                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
-                )
-                continue
-            if agents is not None:
-                for agent in agents:
-                    url = get_regional_url(zoneSlug, f"/api/v1/agent/{agent['id']}")
-                    ra_obj = KnowledgeBox(
-                        url=url,
-                        id=agent["id"],
-                        slug=agent["slug"],
-                        title=agent["title"],
-                        account=account,
-                        region=zoneSlug,
+            for has_memory, url_template in (
+                (True, LIST_AGENTS),
+                (False, LIST_AGENTS_NO_MEM),
+            ):
+                path = get_regional_url(zoneSlug, url_template.format(account=account))
+                try:
+                    agents = self._request("GET", path)
+                except UserTokenExpired:
+                    return []
+                except ConnectError:
+                    logger.error(
+                        f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                     )
-                    result.append(ra_obj)
+                    continue
+                if agents is not None:
+                    for agent in agents:
+                        ra_obj = RetrievalAgentOrchestrator(
+                            id=agent["id"],
+                            account=account,
+                            memory=has_memory,
+                            title=agent["title"],
+                            slug=agent["slug"],
+                            region=zoneSlug,
+                        )
+                        result.append(ra_obj)
         return result
 
 
@@ -695,31 +720,35 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             logger.error("Invalid service token")
             return None
 
-    async def agent(self, url: str, token: Optional[str] = None) -> Optional[str]:
-        url = url.strip("/")
-        agent = await self.validate_kb(url, token)
-        if agent is not None:
+    async def agent(
+        self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
+    ) -> Optional[str]:
+        agent = await self.validate_agent(
+            account_id=account_id, agent_id=agent_id, region=region, token=token
+        )
+        # For now we validate kb to assess if the agent has memory or not
+        memory = False
+        kb_check = await self.validate_kb(
+            url=get_regional_url(
+                region, VALIDATE_AGENT_MEMORY.format(agent_id=agent_id)
+            ),
+            token=token,
+        )
+        if kb_check is not None:
+            memory = True
+        if agent:
             logger.info("Validated")
-            # Extract account ID if using service token
-            account_id = None
-            if token is not None:
-                from nuclia.config import extract_region
-
-                region = extract_region(url)
-                if region:
-                    account_id, _, _ = await self.get_account_from_service_token(
-                        region, token
-                    )
 
             self._config.set_agent_token(
-                url=url,
-                token=token,
-                title=agent.config.title if agent.config is not None else "",
-                agent_id=agent.uuid,
+                region=region,
+                agent_id=agent.id,
+                memory=memory,
                 account_id=account_id,
+                token=token,
+                title=agent.title,
             )
-            self._config.set_default_agent(agent_id=agent.uuid)
-            return agent.uuid
+            self._config.set_default_agent(agent_id=agent.id)
+            return agent.id
         else:
             logger.error("Invalid service token")
             return None
@@ -819,6 +848,20 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 data = resp.json()
         if data is not None:
             return KnowledgeBoxObj.model_validate(data)
+        else:
+            return None
+
+    async def validate_agent(
+        self, account_id: str, agent_id: str, region: str, token: Optional[str] = None
+    ) -> Optional[RetrievalAgentOrchestratorObj]:
+        url = VALIDATE_AGENT.format(account=account_id, agent_id=agent_id)
+        resp = await self.client.get(
+            get_regional_url(region, url),
+            headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return RetrievalAgentOrchestratorObj.model_validate(data)
         else:
             return None
 
@@ -986,7 +1029,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         self, kbid: str, ttl: Optional[int] = None
     ) -> EphemeralToken:
         # Try to get as KB first, then as agent
-        kb_obj = None
+        kb_obj: Union[RetrievalAgentOrchestrator, KnowledgeBox, None] = None
         try:
             kb_obj = self._config.get_kb(kbid)
         except (StopIteration, KeyError):
@@ -1011,34 +1054,39 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         )
         return EphemeralToken(token=resp.json().get("token"))
 
-    async def agents(self, account: str, cached: bool = True) -> List[KnowledgeBox]:
+    async def agents(
+        self, account: str, cached: bool = True
+    ) -> List[RetrievalAgentOrchestrator]:
         _request = self._cached_request if cached else self._request
-        result: List[KnowledgeBox] = []
+        result: List[RetrievalAgentOrchestrator] = []
         zones = await self.zones()
         for zoneObj in zones:
             zoneSlug = zoneObj.slug
             if not zoneSlug:
                 continue
-            path = get_regional_url(zoneSlug, LIST_AGENTS.format(account=account))
-            try:
-                agents = await _request("GET", path)
-            except UserTokenExpired:
-                return []
-            except ConnectError:
-                logger.error(
-                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
-                )
-                continue
-            if agents is not None:
-                for agent in agents:
-                    url = get_regional_url(zoneSlug, f"/api/v1/agent/{agent['id']}")
-                    ra_obj = KnowledgeBox(
-                        url=url,
-                        id=agent["id"],
-                        slug=agent["slug"],
-                        title=agent["title"],
-                        account=account,
-                        region=zoneSlug,
+            for has_memory, url_template in (
+                (True, LIST_AGENTS),
+                (False, LIST_AGENTS_NO_MEM),
+            ):
+                path = get_regional_url(zoneSlug, url_template.format(account=account))
+                try:
+                    agents = await _request("GET", path)
+                except UserTokenExpired:
+                    return []
+                except ConnectError:
+                    logger.error(
+                        f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                     )
-                    result.append(ra_obj)
+                    continue
+                if agents is not None:
+                    for agent in agents:
+                        ra_obj = RetrievalAgentOrchestrator(
+                            id=agent["id"],
+                            account=account,
+                            memory=has_memory,
+                            title=agent["title"],
+                            slug=agent["slug"],
+                            region=zoneSlug,
+                        )
+                        result.append(ra_obj)
         return result
