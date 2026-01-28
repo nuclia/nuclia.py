@@ -41,7 +41,7 @@ jobs:
       - name: Test
         run: |
           source .venv/bin/activate
-          BASE_NUCLIA_DOMAIN="stashify.cloud" GA_TESTING_SERVICE_TOKEN="${{secrets.STAGE_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{secrets.STAGE_TESTING_TOKEN }}" GA_TESTING_NUA="${{secrets.TEST_EUROPE1_STASHIFY_NUA }}" GA_TESTING_AGENT_TOKEN="${{secrets.STAGE_TESTING_AGENT_TOKEN }}" DEBUG_HTTPX_REQUESTS="true" make test-cov
+          BASE_NUCLIA_DOMAIN="stashify.cloud" GA_TESTING_SERVICE_TOKEN="${{secrets.STAGE_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{secrets.STAGE_TESTING_TOKEN }}" GA_TESTING_NUA="${{secrets.TEST_EUROPE1_STASHIFY_NUA }}" GA_TESTING_AGENT_TOKEN="${{secrets.STAGE_TESTING_AGENT_TOKEN }}" GA_TESTING_AGENT_NO_MEM_TOKEN="${{secrets.STAGE_TESTING_AGENT_NO_MEM_TOKEN }}" DEBUG_HTTPX_REQUESTS="true" make test-cov
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

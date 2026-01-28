@@ -3,7 +3,7 @@ import os
 import tempfile
 import time
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Any, AsyncIterator, Iterator, List, Optional, Union
 
 from deprecated import deprecated
 from nucliadb_models import Notification
@@ -322,7 +322,7 @@ class NucliaKB:
         )
 
     @kb
-    def notifications(self, **kwargs):
+    def notifications(self, **kwargs) -> Iterator[Notification]:
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.notifications()
         for notification in response.iter_lines():
@@ -762,7 +762,7 @@ class AsyncNucliaKB:
         return SummarizedModel.model_validate(resp.json())
 
     @kb
-    async def notifications(self, **kwargs):
+    async def notifications(self, **kwargs) -> AsyncIterator[Notification]:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         response = await ndb.notifications()
         async for notification in response.aiter_lines():

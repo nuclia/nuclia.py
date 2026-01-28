@@ -6,7 +6,7 @@ dist
 tmp
 _tmp
 data
-.env
+.env*
 venv
 .venv
 .DS_Store
