@@ -4,7 +4,7 @@
 ## 4.9.18 (unreleased)
 
 
-- Nothing changed yet.
+- Be able to set file language on file uploads
 
 
 ## 4.9.17 (2026-01-27)
