@@ -95,5 +95,9 @@ async def test_upload_with_language(
     )
     res = nresource.get(rid=rid, show=["values"])
     assert res.title == slug
+    assert res.data is not None
+    assert res.data.files is not None
+    assert len(res.data.files) == 1, "Expected exactly one file to be uploaded"
     file: FileFieldData = res.data.files.popitem()[1]
+    assert file.value is not None
     assert file.value.language == "en"
