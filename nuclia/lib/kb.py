@@ -287,6 +287,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         content_type: str = "application/octet-stream",
         extract_strategy: Optional[str] = None,
         split_strategy: Optional[str] = None,
+        language: Optional[str] = None,
     ):
         if self.writer_session is None:
             raise Exception("KB not configured")
@@ -297,17 +298,12 @@ class NucliaDBClient(BaseNucliaDBClient):
             url = TUS_UPLOAD_RESOURCE_URL.format(rid=rid, field=field)
         else:
             url = TUS_UPLOAD_URL
-        encoded_filename = base64.b64encode(filename.encode()).decode()
         headers = {
             "upload-length": str(size),
             "tus-resumable": "1.0.0",
-            "upload-metadata": f"filename {encoded_filename}",
+            "upload-metadata": build_upload_metadata(filename, md5, language),
             "content-type": content_type,
         }
-        if md5 is not None:
-            headers["upload-metadata"] += (
-                f",md5 {base64.b64encode(md5.encode()).decode()}"
-            )
         if extract_strategy is not None:
             headers["x-extract-strategy"] = extract_strategy
 
@@ -699,6 +695,7 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         content_type: str = "application/octet-stream",
         extract_strategy: Optional[str] = None,
         split_strategy: Optional[str] = None,
+        language: Optional[str] = None,
     ):
         if self.writer_session is None:
             raise Exception("KB not configured")
@@ -709,17 +706,13 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
             url = TUS_UPLOAD_RESOURCE_URL.format(rid=rid, field=field)
         else:
             url = TUS_UPLOAD_URL
-        encoded_filename = base64.b64encode(filename.encode()).decode()
+
         headers = {
             "upload-length": str(size),
             "tus-resumable": "1.0.0",
-            "upload-metadata": f"filename {encoded_filename}",
+            "upload-metadata": build_upload_metadata(filename, md5, language),
             "content-type": content_type,
         }
-        if md5 is not None:
-            headers["upload-metadata"] += (
-                f",md5 {base64.b64encode(md5.encode()).decode()}"
-            )
         if extract_strategy is not None:
             headers["x-extract-strategy"] = extract_strategy
         if split_strategy is not None:
@@ -982,3 +975,20 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         )
         await handle_http_async_errors(response)
         return response
+
+
+def build_upload_metadata(
+    filename: str,
+    md5: Optional[str] = None,
+    language: Optional[str] = None,
+) -> str:
+    parts = []
+    for key, value in [
+        ("filename", filename),
+        ("md5", md5),
+        ("language", language),
+    ]:
+        if value is not None:
+            encoded_value = base64.b64encode(value.encode()).decode()
+            parts.append(f"{key} {encoded_value}")
+    return ",".join(parts)

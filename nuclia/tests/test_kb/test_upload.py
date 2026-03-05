@@ -2,6 +2,7 @@ import os
 from typing import Type, Union
 
 import pytest
+from nucliadb_models.resource import FileFieldData
 from nucliadb_sdk.v2.exceptions import NotFoundError
 
 from nuclia.sdk.kb import AsyncNucliaUpload, NucliaUpload
@@ -66,3 +67,37 @@ async def test_upload_with_labels(
     assert labels
     assert labels[0].labelset == "a"
     assert labels[0].label == "b"
+
+
+@pytest.mark.parametrize(
+    "nupload_klass",
+    [NucliaUpload, AsyncNucliaUpload],
+)
+async def test_upload_with_language(
+    testing_config,
+    nupload_klass: Union[Type[NucliaUpload], Type[AsyncNucliaUpload]],
+):
+    nupload = nupload_klass()
+    nresource = NucliaResource()
+    slug = "upload_with_language"
+
+    try:
+        nresource.delete(slug=slug)
+    except NotFoundError:
+        pass
+
+    rid = await maybe_await(
+        nupload.file(
+            path=f"{os.path.dirname(__file__)}/test_upload.py",
+            slug=slug,
+            language="en",
+        )
+    )
+    res = nresource.get(rid=rid, show=["values"])
+    assert res.title == slug
+    assert res.data is not None
+    assert res.data.files is not None
+    assert len(res.data.files) == 1, "Expected exactly one file to be uploaded"
+    file: FileFieldData = res.data.files.popitem()[1]
+    assert file.value is not None
+    assert file.value.language == "en"
