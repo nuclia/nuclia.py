@@ -401,6 +401,7 @@ class AsyncNucliaUpload:
         blanklineSplitter: Optional[bool] = False,
         extract_strategy: Optional[str] = None,
         split_strategy: Optional[str] = None,
+        language: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
