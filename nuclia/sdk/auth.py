@@ -620,11 +620,11 @@ class NucliaAuth(BaseNucliaAuth):
         result: List[KnowledgeBox] = []
         zones = self.zones()
         for zoneObj in zones:
-            if zone is not None and zoneObj.slug != zone:
-                # If a specific zone is provided, skip other zones
-                continue
             zoneSlug = zoneObj.slug
             if not zoneSlug:
+                continue
+            if zone is not None and zoneSlug != zone:
+                # If a specific zone is provided, skip other zones
                 continue
             path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
             try:
@@ -650,12 +650,17 @@ class NucliaAuth(BaseNucliaAuth):
                     result.append(kb_obj)
         return result
 
-    def agents(self, account: str) -> List[RetrievalAgentOrchestrator]:
+    def agents(
+        self, account: str, zone: Optional[str] = None
+    ) -> List[RetrievalAgentOrchestrator]:
         result: List[RetrievalAgentOrchestrator] = []
         zones = self.zones()
         for zoneObj in zones:
             zoneSlug = zoneObj.slug
             if not zoneSlug:
+                continue
+            if zone is not None and zoneSlug != zone:
+                # If a specific zone is provided, skip other zones
                 continue
             for has_memory, url_template in (
                 (True, LIST_AGENTS),
@@ -1003,11 +1008,11 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         result: List[KnowledgeBox] = []
         zones = await self.zones()
         for zoneObj in zones:
-            if zone is not None and zoneObj.slug != zone:
-                # If a specific zone is provided, skip other zones
-                continue
             zoneSlug = zoneObj.slug
             if not zoneSlug:
+                continue
+            if zone is not None and zoneSlug != zone:
+                # If a specific zone is provided, skip other zones
                 continue
             path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
             try:
@@ -1063,7 +1068,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         return EphemeralToken(token=resp.json().get("token"))
 
     async def agents(
-        self, account: str, cached: bool = True
+        self, account: str, cached: bool = True, zone: Optional[str] = None
     ) -> List[RetrievalAgentOrchestrator]:
         _request = self._cached_request if cached else self._request
         result: List[RetrievalAgentOrchestrator] = []
@@ -1071,6 +1076,9 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         for zoneObj in zones:
             zoneSlug = zoneObj.slug
             if not zoneSlug:
+                continue
+            if zone is not None and zoneSlug != zone:
+                # If a specific zone is provided, skip other zones
                 continue
             for has_memory, url_template in (
                 (True, LIST_AGENTS),
