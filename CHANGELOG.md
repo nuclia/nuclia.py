@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.18 (unreleased)
+## 4.9.18 (2026-03-06)
 
 
 - Be able to get all kbs and agents in a specific zone
