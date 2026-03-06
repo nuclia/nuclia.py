@@ -156,6 +156,13 @@ async def test_async_auth_kbs(testing_config):
     # Should return a list (may be empty depending on account)
     assert isinstance(kbs, list)
 
+    # Test with zone filter (if there are any zones available)
+    zones = await na.zones()
+    if zones:
+        zone_slug = zones[0].slug
+        kbs_with_zone = await na.kbs(accounts[0].id, zone=zone_slug)
+        assert isinstance(kbs_with_zone, list)
+
 
 @pytest.mark.asyncio
 async def test_async_auth_agents(testing_config):

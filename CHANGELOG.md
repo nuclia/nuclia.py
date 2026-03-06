@@ -4,6 +4,7 @@
 ## 4.9.18 (unreleased)
 
 
+- Be able to get all kbs in a specific zone
 - Be able to set file language on file uploads
 
 

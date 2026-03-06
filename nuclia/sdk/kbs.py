@@ -92,7 +92,7 @@ class NucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = self._auth.kbs(kwargs["account_id"])
+            kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -117,7 +117,7 @@ class NucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = self._auth.kbs(kwargs["account_id"])
+            kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -226,7 +226,7 @@ class AsyncNucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"], cached=False)
+            kbs = await self._auth.kbs(kwargs["account_id"], cached=False, zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -251,7 +251,7 @@ class AsyncNucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"], cached=False)
+            kbs = await self._auth.kbs(kwargs["account_id"], cached=False, zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
