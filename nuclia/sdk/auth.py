@@ -616,7 +616,7 @@ class NucliaAuth(BaseNucliaAuth):
         self._config.save()
         return result
 
-    def kbs(self, account: str, zone: str | None = None) -> List[KnowledgeBox]:
+    def kbs(self, account: str, zone: Optional[str] = None) -> List[KnowledgeBox]:
         result: List[KnowledgeBox] = []
         zones = self.zones()
         for zoneObj in zones:
@@ -997,7 +997,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         return result
 
     async def kbs(
-        self, account: str, cached: bool = True, zone: str | None = None
+        self, account: str, cached: bool = True, zone: Optional[str] = None
     ) -> List[KnowledgeBox]:
         _request = self._cached_request if cached else self._request
         result: List[KnowledgeBox] = []
