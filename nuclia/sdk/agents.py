@@ -61,7 +61,7 @@ class NucliaAgents:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            agents = self._auth.agents(kwargs["account_id"])
+            agents = self._auth.agents(kwargs["account_id"], zone=zone)
             agent_obj = retrieve(agents, slug)
             if not agent_obj:
                 raise ValueError("Retrieval Agent not found")
@@ -141,7 +141,7 @@ class AsyncNucliaAgents:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            agents = await self._auth.agents(kwargs["account_id"])
+            agents = await self._auth.agents(kwargs["account_id"], zone=zone)
             agent_obj = retrieve(agents, slug)
             if not agent_obj:
                 raise ValueError("Retrieval Agent not found")
