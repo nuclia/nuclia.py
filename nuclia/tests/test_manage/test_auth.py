@@ -152,16 +152,18 @@ async def test_async_auth_kbs(testing_config):
     na = AsyncNucliaAuth()
     accounts = await na.accounts()
     assert len(accounts) > 0
-    kbs = await na.kbs(accounts[0].id)
-    # Should return a list (may be empty depending on account)
-    assert isinstance(kbs, list)
+    account_id = accounts[0].id
 
     # Test with zone filter (if there are any zones available)
     zones = await na.zones()
     if zones:
         zone_slug = zones[0].slug
-        kbs_with_zone = await na.kbs(accounts[0].id, zone=zone_slug)
+        kbs_with_zone = await na.kbs(account_id, zone=zone_slug)
         assert isinstance(kbs_with_zone, list)
+
+    kbs = await na.kbs(account_id)
+    # Should return a list (may be empty depending on account)
+    assert isinstance(kbs, list)
 
 
 @pytest.mark.asyncio
@@ -169,7 +171,16 @@ async def test_async_auth_agents(testing_config):
     na = AsyncNucliaAuth()
     accounts = await na.accounts()
     assert len(accounts) > 0
-    agents = await na.agents(accounts[0].id)
+    account_id = accounts[0].id
+
+    # Test with zone filter (if there are any zones available)
+    zones = await na.zones()
+    if zones:
+        zone_slug = zones[0].slug
+        agents_with_zone = await na.agents(account_id, zone=zone_slug)
+        assert isinstance(agents_with_zone, list)
+
+    agents = await na.agents(account_id)
     # Should return a list (may be empty depending on account)
     assert isinstance(agents, list)
 
