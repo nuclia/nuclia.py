@@ -220,6 +220,10 @@ class ChatModel(BaseModel):
             "Set to True to enable default reasoning, False to disable, or provide a Reasoning object for custom options."
         ),
     )
+    seed: Optional[int] = Field(
+        default=None,
+        description="Seed use for the generative model for a deterministic output.",
+    )
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
