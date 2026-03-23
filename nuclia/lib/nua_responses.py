@@ -221,6 +221,11 @@ class ChatModel(BaseModel):
         ),
     )
 
+    seed: Optional[int] = Field(
+        default=None,
+        description="Seed use for the generative model for a deterministic output.",
+    )
+
     @model_validator(mode="after")
     def validate_model(self) -> Self:
         if self.prefer_markdown is True and self.json_schema is not None:
