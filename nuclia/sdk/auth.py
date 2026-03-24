@@ -636,6 +636,11 @@ class NucliaAuth(BaseNucliaAuth):
                     f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                 )
                 continue
+            except Exception as e:
+                logger.error(
+                    f"Error fetching KBs from zone {zoneSlug}: {e}, skipping zone"
+                )
+                continue
             if kbs is not None:
                 for kb in kbs:
                     url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
@@ -674,6 +679,11 @@ class NucliaAuth(BaseNucliaAuth):
                 except ConnectError:
                     logger.error(
                         f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                    )
+                    continue
+                except Exception as e:
+                    logger.error(
+                        f"Error fetching agents from zone {zoneSlug}: {e}, skipping zone"
                     )
                     continue
                 if agents is not None:
@@ -1024,6 +1034,11 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                     f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
                 )
                 continue
+            except Exception as e:
+                logger.error(
+                    f"Error fetching KBs from zone {zoneSlug}: {e}, skipping zone"
+                )
+                continue
             if kbs is not None:
                 for kb in kbs:
                     url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
@@ -1092,6 +1107,11 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 except ConnectError:
                     logger.error(
                         f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                    )
+                    continue
+                except Exception as e:
+                    logger.error(
+                        f"Error fetching agents from zone {zoneSlug}: {e}, skipping zone"
                     )
                     continue
                 if agents is not None:
