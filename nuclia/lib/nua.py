@@ -15,6 +15,7 @@ from typing import (
 )
 
 import aiofiles
+import backoff
 from deprecated import deprecated
 from nuclia_models.common.consumption import Consumption, ConsumptionGenerative
 from nuclia_models.predict.generative_responses import (
@@ -480,6 +481,10 @@ class NuaClient:
         )
 
 
+class RetriableRequestException(NuaAPIException):
+    pass
+
+
 class AsyncNuaClient:
     def __init__(
         self,
@@ -508,6 +513,12 @@ class AsyncNuaClient:
             headers=self.stream_headers, base_url=self.url
         )
 
+    @backoff.on_exception(
+        backoff.expo,
+        (RetriableRequestException,),
+        max_time=60,
+        jitter=backoff.full_jitter,
+    )
     async def _request(
         self,
         method: str,
@@ -520,7 +531,11 @@ class AsyncNuaClient:
         resp = await self.client.request(
             method, url, json=payload, timeout=timeout, headers=extra_headers
         )
-        if resp.status_code != 200:
+        if resp.status_code == 429:
+            raise RetriableRequestException(
+                code=resp.status_code, detail=resp.content.decode()
+            )
+        elif resp.status_code != 200:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
         try:
             data = output.model_validate(resp.json())
@@ -528,6 +543,12 @@ class AsyncNuaClient:
             data = output.model_validate(resp.content)
         return data
 
+    @backoff.on_exception(
+        backoff.expo,
+        (RetriableRequestException,),
+        max_time=60,
+        jitter=backoff.full_jitter,
+    )
     async def _stream(
         self,
         method: str,
@@ -543,6 +564,14 @@ class AsyncNuaClient:
             timeout=timeout,
             headers=extra_headers,
         ) as response:
+            if response.status_code == 429:
+                raise RetriableRequestException(
+                    code=response.status_code, detail=response.content.decode()
+                )
+            elif response.status_code != 200:
+                raise NuaAPIException(
+                    code=response.status_code, detail=response.content.decode()
+                )
             if response.headers.get("transfer-encoding") == "chunked":
                 async for json_body in response.aiter_lines():
                     try:

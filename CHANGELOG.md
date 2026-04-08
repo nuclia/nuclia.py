@@ -4,7 +4,7 @@
 ## 4.9.19 (unreleased)
 
 
-- Nothing changed yet.
+- Retry 429 responses from NUA API.
 
 
 ## 4.9.18 (2026-03-06)
