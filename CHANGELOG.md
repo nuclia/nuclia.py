@@ -4,6 +4,7 @@
 ## 4.9.19 (unreleased)
 
 
+- Add seed on ChatModel
 - Retry 429 responses from NUA API.
 
 
