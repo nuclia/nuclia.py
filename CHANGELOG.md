@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.19 (unreleased)
+## 4.9.19 (2026-04-14)
 
 
 - Add seed on ChatModel
