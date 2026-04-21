@@ -1,10 +1,17 @@
 # Changelog
 
 
-## 4.9.20 (unreleased)
+## 4.9.21 (unreleased)
 
 
 - Add KB Owner NucliaDB role
+
+
+## 4.9.20 (2026-04-21)
+
+
+- Fix NUA client error handling
+- Retry 512 errors
 
 
 ## 4.9.19 (2026-04-14)
