@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.20 (unreleased)
+## 4.9.20 (2026-04-21)
 
 
 - Fix NUA client error handling
