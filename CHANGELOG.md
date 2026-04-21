@@ -4,7 +4,7 @@
 ## 4.9.20 (unreleased)
 
 
-- Nothing changed yet.
+- Add KB Owner NucliaDB role
 
 
 ## 4.9.19 (2026-04-14)
