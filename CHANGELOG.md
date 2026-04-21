@@ -4,7 +4,8 @@
 ## 4.9.20 (unreleased)
 
 
-- Nothing changed yet.
+- Fix NUA client error handling
+- Retry 512 errors
 
 
 ## 4.9.19 (2026-04-14)
