@@ -1,7 +1,9 @@
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from nucliadb_protos.writer_pb2 import BrokerMessage  # type: ignore[import-not-found]
+    from nucliadb_protos.writer_pb2 import (
+        BrokerMessage,  # type: ignore[import-not-found]
+    )
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua

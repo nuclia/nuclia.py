@@ -238,7 +238,11 @@ class NucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        if file_field.value is None or file_field.value.file is None or file_field.value.file.uri is None:
+        if (
+            file_field.value is None
+            or file_field.value.file is None
+            or file_field.value.file.uri is None
+        ):
             raise ValueError(f"File field {file_id} has no download URI")
         url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
         download = requests.get(url, stream=True, headers=ndb.headers)
@@ -440,7 +444,11 @@ class AsyncNucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        if file_field.value is None or file_field.value.file is None or file_field.value.file.uri is None:
+        if (
+            file_field.value is None
+            or file_field.value.file is None
+            or file_field.value.file.uri is None
+        ):
             raise ValueError(f"File field {file_id} has no download URI")
         url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
         download = requests.get(url, stream=True, headers=ndb.headers)

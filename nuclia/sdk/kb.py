@@ -375,21 +375,33 @@ class NucliaKB:
                 data["conversations"] = dict(
                     zip(
                         res.data.conversations.keys(),
-                        [dict(v.value) for v in res.data.conversations.values() if v.value is not None],
+                        [
+                            dict(v.value)
+                            for v in res.data.conversations.values()
+                            if v.value is not None
+                        ],
                     )
                 )
             if res.data.links:
                 data["links"] = dict(
                     zip(
                         res.data.links.keys(),
-                        [dict(v.value) for v in res.data.links.values() if v.value is not None],
+                        [
+                            dict(v.value)
+                            for v in res.data.links.values()
+                            if v.value is not None
+                        ],
                     )
                 )
             if res.data.texts:
                 data["texts"] = dict(
                     zip(
                         res.data.texts.keys(),
-                        [dict(v.value) for v in res.data.texts.values() if v.value is not None],
+                        [
+                            dict(v.value)
+                            for v in res.data.texts.values()
+                            if v.value is not None
+                        ],
                     )
                 )
             if res.data.files:
@@ -815,21 +827,33 @@ class AsyncNucliaKB:
                 data["conversations"] = dict(
                     zip(
                         res.data.conversations.keys(),
-                        [dict(v.value) for v in res.data.conversations.values() if v.value is not None],
+                        [
+                            dict(v.value)
+                            for v in res.data.conversations.values()
+                            if v.value is not None
+                        ],
                     )
                 )
             if res.data.links:
                 data["links"] = dict(
                     zip(
                         res.data.links.keys(),
-                        [dict(v.value) for v in res.data.links.values() if v.value is not None],
+                        [
+                            dict(v.value)
+                            for v in res.data.links.values()
+                            if v.value is not None
+                        ],
                     )
                 )
             if res.data.texts:
                 data["texts"] = dict(
                     zip(
                         res.data.texts.keys(),
-                        [dict(v.value) for v in res.data.texts.values() if v.value is not None],
+                        [
+                            dict(v.value)
+                            for v in res.data.texts.values()
+                            if v.value is not None
+                        ],
                     )
                 )
             if res.data.files:

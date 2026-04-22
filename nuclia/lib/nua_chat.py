@@ -4,8 +4,14 @@ from datetime import datetime, timezone
 
 try:
     from litellm import CustomLLM  # type: ignore[import-not-found]
-    from litellm.llms.custom_httpx.http_handler import HTTPHandler  # type: ignore[import-not-found]
-    from litellm.utils import Choices, Message, ModelResponse  # type: ignore[import-not-found]
+    from litellm.llms.custom_httpx.http_handler import (
+        HTTPHandler,  # type: ignore[import-not-found]
+    )
+    from litellm.utils import (  # type: ignore[import-not-found]
+        Choices,
+        Message,
+        ModelResponse,
+    )
 except ImportError:
     raise ImportError(
         "The 'litellm' library is required to use this functionality. "

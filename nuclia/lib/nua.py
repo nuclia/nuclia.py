@@ -64,7 +64,9 @@ from nuclia.lib.nua_responses import (
 from nuclia.lib.utils import build_httpx_async_client, build_httpx_client
 
 if TYPE_CHECKING:
-    from nucliadb_protos.writer_pb2 import BrokerMessage  # type: ignore[import-not-found]
+    from nucliadb_protos.writer_pb2 import (
+        BrokerMessage,  # type: ignore[import-not-found]
+    )
 
 MB = 1024 * 1024
 CHUNK_SIZE = 10 * MB
