@@ -5,6 +5,8 @@
 
 
 - Add KB Owner NucliaDB role
+- Update nucliadb_sdk
+- Requires python>=3.10
 
 
 ## 4.9.20 (2026-04-21)
