@@ -357,7 +357,7 @@ class NucliaKB:
             )
         else:
             raise ValueError("Either rid or slug must be provided")
-        data = {
+        data: dict[str, Any] = {
             "kbid": destination,
             "slug": res.slug,
             "title": res.title,
@@ -369,35 +369,36 @@ class NucliaKB:
             "fieldmetadata": res.fieldmetadata,
             "security": res.security,
         }
-        files_to_upload = []
-        if res.data.conversations:
-            data["conversations"] = dict(
-                zip(
-                    res.data.conversations.keys(),
-                    [dict(v.value) for v in res.data.conversations.values()],
+        files_to_upload: list[dict[str, Any]] = []
+        if res.data is not None:
+            if res.data.conversations:
+                data["conversations"] = dict(
+                    zip(
+                        res.data.conversations.keys(),
+                        [dict(v.value) for v in res.data.conversations.values() if v.value is not None],
+                    )
                 )
-            )
-        if res.data.links:
-            data["links"] = dict(
-                zip(
-                    res.data.links.keys(),
-                    [dict(v.value) for v in res.data.links.values()],
+            if res.data.links:
+                data["links"] = dict(
+                    zip(
+                        res.data.links.keys(),
+                        [dict(v.value) for v in res.data.links.values() if v.value is not None],
+                    )
                 )
-            )
-        if res.data.texts:
-            data["texts"] = dict(
-                zip(
-                    res.data.texts.keys(),
-                    [dict(v.value) for v in res.data.texts.values()],
+            if res.data.texts:
+                data["texts"] = dict(
+                    zip(
+                        res.data.texts.keys(),
+                        [dict(v.value) for v in res.data.texts.values() if v.value is not None],
+                    )
                 )
-            )
-        if res.data.files:
-            remote_files = {}
-            for file_id, file in res.data.files.items():
-                if file.value.external:
-                    remote_files[file_id] = file.value
-                else:
-                    files_to_upload.append({"id": file_id, "data": file.value})
+            if res.data.files:
+                remote_files = {}
+                for file_id, file in res.data.files.items():
+                    if file.value is not None and file.value.external:
+                        remote_files[file_id] = file.value
+                    elif file.value is not None:
+                        files_to_upload.append({"id": file_id, "data": file.value})
         destination_kb = get_client(destination)
         if override:
             try:
@@ -796,7 +797,7 @@ class AsyncNucliaKB:
             )
         else:
             raise ValueError("Either rid or slug must be provided")
-        data = {
+        data: dict[str, Any] = {
             "kbid": destination,
             "slug": res.slug,
             "title": res.title,
@@ -808,35 +809,36 @@ class AsyncNucliaKB:
             "fieldmetadata": res.fieldmetadata,
             "security": res.security,
         }
-        files_to_upload = []
-        if res.data.conversations:
-            data["conversations"] = dict(
-                zip(
-                    res.data.conversations.keys(),
-                    [dict(v.value) for v in res.data.conversations.values()],
+        files_to_upload: list[dict[str, Any]] = []
+        if res.data is not None:
+            if res.data.conversations:
+                data["conversations"] = dict(
+                    zip(
+                        res.data.conversations.keys(),
+                        [dict(v.value) for v in res.data.conversations.values() if v.value is not None],
+                    )
                 )
-            )
-        if res.data.links:
-            data["links"] = dict(
-                zip(
-                    res.data.links.keys(),
-                    [dict(v.value) for v in res.data.links.values()],
+            if res.data.links:
+                data["links"] = dict(
+                    zip(
+                        res.data.links.keys(),
+                        [dict(v.value) for v in res.data.links.values() if v.value is not None],
+                    )
                 )
-            )
-        if res.data.texts:
-            data["texts"] = dict(
-                zip(
-                    res.data.texts.keys(),
-                    [dict(v.value) for v in res.data.texts.values()],
+            if res.data.texts:
+                data["texts"] = dict(
+                    zip(
+                        res.data.texts.keys(),
+                        [dict(v.value) for v in res.data.texts.values() if v.value is not None],
+                    )
                 )
-            )
-        if res.data.files:
-            remote_files = {}
-            for file_id, file in res.data.files.items():
-                if file.value.external:
-                    remote_files[file_id] = file.value
-                else:
-                    files_to_upload.append({"id": file_id, "data": file.value})
+            if res.data.files:
+                remote_files = {}
+                for file_id, file in res.data.files.items():
+                    if file.value is not None and file.value.external:
+                        remote_files[file_id] = file.value
+                    elif file.value is not None:
+                        files_to_upload.append({"id": file_id, "data": file.value})
         destination_kb = await get_async_client(destination)
         failed = False
         try:
