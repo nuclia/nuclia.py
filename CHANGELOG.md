@@ -4,7 +4,7 @@
 ## 4.9.21 (unreleased)
 
 
-- Nothing changed yet.
+- Fix reading response data in NUA errors
 
 
 ## 4.9.20 (2026-04-21)
