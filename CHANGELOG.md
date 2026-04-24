@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.21 (unreleased)
+## 4.9.21 (2026-04-24)
 
 
 - Fix reading response data in NUA errors
