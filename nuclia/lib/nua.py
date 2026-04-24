@@ -566,11 +566,13 @@ class AsyncNuaClient:
         ) as response:
             if response.status_code in (429, 512):
                 raise RetriableRequestException(
-                    code=response.status_code, detail=response.content.decode()
+                    code=response.status_code,
+                    detail=(await response.aread()).decode(errors="ignore"),
                 )
             elif response.status_code > 299:
                 raise NuaAPIException(
-                    code=response.status_code, detail=response.content.decode()
+                    code=response.status_code,
+                    detail=(await response.aread()).decode(errors="ignore"),
                 )
             if response.headers.get("transfer-encoding") == "chunked":
                 async for json_body in response.aiter_lines():
