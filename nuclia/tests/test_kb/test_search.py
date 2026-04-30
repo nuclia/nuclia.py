@@ -132,6 +132,8 @@ async def test_ask(
 
     maybe_results = search.ask(query=query)
     results = await maybe_await(maybe_results)
+    titles = [r.title for r in results.find_result.resources.values()]
+    assert "Lamarr Lesson plan.pdf" in titles
     answer = results.answer.decode()
     assert "Lamarr" in answer, answer
 
