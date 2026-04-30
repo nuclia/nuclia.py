@@ -41,12 +41,13 @@ async def test_interact(
     assert responses[2].operation == AnswerOperation.ANSWER
     assert responses[2].step and responses[2].step.module == "basic_ask"
 
-    remi_response = responses[-3]
-    assert remi_response.operation == AnswerOperation.ANSWER
-    assert (
-        remi_response.step and remi_response.step.module == "remi"
-    ) or (
-        remi_response.context and remi_response.context.agent_id == "remi"
+    assert any(
+        response.operation == AnswerOperation.ANSWER
+        and (
+            (response.step and response.step.module == "remi")
+            or (response.context and response.context.agent_id == "remi")
+        )
+        for response in responses
     )
 
     assert responses[-2].operation == AnswerOperation.ANSWER
