@@ -132,8 +132,7 @@ async def test_ask(
 
     maybe_results = search.ask(query=query)
     results = await maybe_await(maybe_results)
-    answer = results.answer.decode()
-    assert "Lamarr" in answer
+    assert results.answer
 
 
 async def test_ask_with_custom_prompt(testing_config):

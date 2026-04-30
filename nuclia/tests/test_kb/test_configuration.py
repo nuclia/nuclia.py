@@ -3,10 +3,6 @@ from nucliadb_sdk.v2 import exceptions as nucliadb_exceptions
 
 from nuclia.sdk.kb import AsyncNucliaKB, NucliaKB
 
-ConfigurationValidationError: type[Exception] = getattr(
-    nucliadb_exceptions, "UnprocessableEntity", nucliadb_exceptions.UnknownError
-)
-
 
 def test_configuration(testing_config):
     kb = NucliaKB()
@@ -14,7 +10,7 @@ def test_configuration(testing_config):
 
     # Should raise a 422 error because the configuration payload is invalid,
     # but it's ok as we are only testing the library here.
-    with pytest.raises(ConfigurationValidationError) as err:
+    with pytest.raises(nucliadb_exceptions.ClientError) as err:
         kb.update_configuration(
             generative_model="foobar",
             semantic_model="bar",
@@ -22,6 +18,7 @@ def test_configuration(testing_config):
             anonymization_model="I do not exist either",
             ner_model="neither do I",
         )
+    assert err.value.__class__.__name__ in {"UnprocessableEntity", "UnknownError"}
     assert "semantic_model" in str(err.value) or "422" in str(err.value)
 
 
@@ -32,7 +29,7 @@ async def test_configuration_async(testing_config):
 
     # Should raise a 422 error because the configuration payload is invalid,
     # but it's ok as we are only testing the library here.
-    with pytest.raises(ConfigurationValidationError) as err:
+    with pytest.raises(nucliadb_exceptions.ClientError) as err:
         await kb.update_configuration(
             generative_model="foobar",
             semantic_model="bar",
@@ -40,4 +37,5 @@ async def test_configuration_async(testing_config):
             anonymization_model="I do not exist either",
             ner_model="neither do I",
         )
+    assert err.value.__class__.__name__ in {"UnprocessableEntity", "UnknownError"}
     assert "semantic_model" in str(err.value) or "422" in str(err.value)
