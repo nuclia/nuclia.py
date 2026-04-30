@@ -45,7 +45,7 @@ async def test_interact(
         response
         for response in responses
         if (response.step and response.step.module == "remi")
-        or (response.context and response.context.agent_id == "remi")
+        or (response.context and response.context.agent == "remi")
     )
     assert remi_response.operation == AnswerOperation.ANSWER
 
