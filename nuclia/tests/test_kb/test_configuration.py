@@ -1,7 +1,11 @@
 import pytest
-from nucliadb_sdk.v2.exceptions import UnprocessableEntity
+from nucliadb_sdk.v2 import exceptions as nucliadb_exceptions
 
 from nuclia.sdk.kb import AsyncNucliaKB, NucliaKB
+
+UnprocessableEntity: type[Exception] = getattr(
+    nucliadb_exceptions, "UnprocessableEntity"
+)
 
 
 def test_configuration(testing_config):
