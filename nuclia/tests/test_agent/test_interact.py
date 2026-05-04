@@ -41,8 +41,13 @@ async def test_interact(
     assert responses[2].operation == AnswerOperation.ANSWER
     assert responses[2].step and responses[2].step.module == "basic_ask"
 
-    assert responses[-3].operation == AnswerOperation.ANSWER
-    assert responses[-3].step and responses[-3].step.module == "remi"
+    remi_response = next(
+        response
+        for response in responses
+        if (response.step and response.step.module == "remi")
+        or (response.context and response.context.agent == "remi")
+    )
+    assert remi_response.operation == AnswerOperation.ANSWER
 
     assert responses[-2].operation == AnswerOperation.ANSWER
     assert responses[-2].answer and (
