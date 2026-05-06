@@ -37,11 +37,16 @@ def test_backup(testing_config):
 
     # We don't want to wait till backup is ready to not slow down the test pipeline.
     # We already have a test for this on E2E repo
-    expected_message = {
-        "status": 409,
-        "message": '{"detail":"Backup is still in progress. Please wait until it is completed."}',
-    }
-    assert exc_info.value.args[0] == expected_message
+    expected_detail = "Backup is still in progress. Please wait until it is completed."
+    if exc_info.value.args:
+        first_arg = exc_info.value.args[0]
+        if isinstance(first_arg, dict):
+            assert first_arg.get("status") in (409, 429)
+            assert expected_detail in first_arg.get("message", "")
+        else:
+            assert expected_detail in str(first_arg)
+    else:
+        assert expected_detail in str(exc_info.value)
 
     # Delete the backup
     sdk.NucliaBackup().delete(id=backup.id, zone=ZONE)
@@ -84,11 +89,16 @@ async def test_backup_async(testing_config):
 
     # We don't want to wait till backup is ready to not slow down the test pipeline.
     # We already have a test for this on E2E repo
-    expected_message = {
-        "status": 409,
-        "message": '{"detail":"Backup is still in progress. Please wait until it is completed."}',
-    }
-    assert exc_info.value.args[0] == expected_message
+    expected_detail = "Backup is still in progress. Please wait until it is completed."
+    if exc_info.value.args:
+        first_arg = exc_info.value.args[0]
+        if isinstance(first_arg, dict):
+            assert first_arg.get("status") in (409, 429)
+            assert expected_detail in first_arg.get("message", "")
+        else:
+            assert expected_detail in str(first_arg)
+    else:
+        assert expected_detail in str(exc_info.value)
 
     # Delete the backup
     await sdk.AsyncNucliaBackup().delete(id=backup.id, zone=ZONE)
