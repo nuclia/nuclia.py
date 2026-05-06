@@ -299,6 +299,10 @@ def zone(func):
     def wrapper_checkout_zone(*args, **kwargs):
         bound = inspect.signature(func).bind_partial(*args, **kwargs)
         zone = bound.arguments.get("zone")
+        if zone is None:
+            extra_kwargs = bound.arguments.get("kwargs", {})
+            if isinstance(extra_kwargs, dict):
+                zone = extra_kwargs.get("zone")
         if not zone:
             auth = get_auth()
             kwargs["zone"] = auth._config.get_default_zone()
@@ -307,6 +311,10 @@ def zone(func):
     async def async_wrapper_checkout_zone(*args, **kwargs):
         bound = inspect.signature(func).bind_partial(*args, **kwargs)
         zone = bound.arguments.get("zone")
+        if zone is None:
+            extra_kwargs = bound.arguments.get("kwargs", {})
+            if isinstance(extra_kwargs, dict):
+                zone = extra_kwargs.get("zone")
         if not zone:
             auth = get_async_auth()
             kwargs["zone"] = auth._config.get_default_zone()
