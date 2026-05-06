@@ -53,8 +53,17 @@ def kb(func):
             ndb = await get_async_client(kbid)
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
+            if api_key is None:
+                user_token = auth._config.token
+            else:
+                user_token = None
+
             ndb = AsyncNucliaDBClient(
-                environment=Environment.CLOUD, url=url, api_key=api_key, region=region
+                environment=Environment.CLOUD,
+                url=url,
+                api_key=api_key,
+                user_token=user_token,
+                region=region,
             )
         else:
             ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=url)
@@ -80,8 +89,17 @@ def kb(func):
             ndb = get_client(kbid)
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
+            if api_key is None:
+                user_token = auth._config.token
+            else:
+                user_token = None
+
             ndb = NucliaDBClient(
-                environment=Environment.CLOUD, url=url, api_key=api_key, region=region
+                environment=Environment.CLOUD,
+                url=url,
+                api_key=api_key,
+                user_token=user_token,
+                region=region,
             )
         else:
             ndb = NucliaDBClient(environment=Environment.OSS, url=url)
@@ -109,10 +127,15 @@ def kb(func):
                 ndb = await get_async_client(kbid)
             elif url.find(BASE_DOMAIN) >= 0:
                 region = url.split(".")[0].split("/")[-1]
+                if api_key is None:
+                    user_token = auth._config.token
+                else:
+                    user_token = None
                 ndb = AsyncNucliaDBClient(
                     environment=Environment.CLOUD,
                     url=url,
                     api_key=api_key,
+                    user_token=user_token,
                     region=region,
                 )
             else:
