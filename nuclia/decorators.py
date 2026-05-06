@@ -297,14 +297,16 @@ def pretty(func):
 def zone(func):
     @wraps(func)
     def wrapper_checkout_zone(*args, **kwargs):
-        zone = kwargs.get("zone")
+        bound = inspect.signature(func).bind_partial(*args, **kwargs)
+        zone = bound.arguments.get("zone")
         if not zone:
             auth = get_auth()
             kwargs["zone"] = auth._config.get_default_zone()
         return func(*args, **kwargs)
 
     async def async_wrapper_checkout_zone(*args, **kwargs):
-        zone = kwargs.get("zone")
+        bound = inspect.signature(func).bind_partial(*args, **kwargs)
+        zone = bound.arguments.get("zone")
         if not zone:
             auth = get_async_auth()
             kwargs["zone"] = auth._config.get_default_zone()

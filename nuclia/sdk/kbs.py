@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from nuclia import get_regional_url
-from nuclia.config import retrieve, retrieve_account
+from nuclia.config import extract_region, retrieve, retrieve_account
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import account, accounts, zone
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
@@ -20,6 +20,22 @@ class NucliaKBS:
         if self._auth._config.token:
             return self._auth._request(method, path, data)
         return self._auth._nua_request(method, path, data)
+
+    def _resolve_management_zone(self, zone: Optional[str]) -> str:
+        if self._auth._config.token:
+            if not zone:
+                raise ValueError("zone is required")
+            return zone
+
+        nua_obj = self._auth._config.get_nua(self._auth._config.get_default_nua())
+        nua_zone = extract_region(nua_obj.region)
+        if not nua_zone:
+            raise ValueError("zone is required")
+        if zone and zone != nua_zone:
+            raise ValueError(
+                f"NUA key is scoped to zone '{nua_zone}'. Remove --zone or use --zone {nua_zone}."
+            )
+        return nua_zone
 
     @accounts
     def list(self, account: Optional[str] = None):
@@ -80,8 +96,7 @@ class NucliaKBS:
     ):
         if not slug:
             raise ValueError("slug is required.")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(zone)
         path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
         data = {
             "slug": slug,
@@ -104,9 +119,7 @@ class NucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
@@ -132,9 +145,7 @@ class NucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
@@ -180,6 +191,22 @@ class AsyncNucliaKBS:
         if self._auth._config.token:
             return await self._auth._request(method, path, data)
         return await self._auth._nua_request(method, path, data)
+
+    def _resolve_management_zone(self, zone: Optional[str]) -> str:
+        if self._auth._config.token:
+            if not zone:
+                raise ValueError("zone is required")
+            return zone
+
+        nua_obj = self._auth._config.get_nua(self._auth._config.get_default_nua())
+        nua_zone = extract_region(nua_obj.region)
+        if not nua_zone:
+            raise ValueError("zone is required")
+        if zone and zone != nua_zone:
+            raise ValueError(
+                f"NUA key is scoped to zone '{nua_zone}'. Remove --zone or use --zone {nua_zone}."
+            )
+        return nua_zone
 
     @accounts
     async def list(self, account: Optional[str] = None):
@@ -240,8 +267,7 @@ class AsyncNucliaKBS:
     ):
         if not slug:
             raise ValueError("slug is required.")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(zone)
         path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
         data = {
             "slug": slug,
@@ -264,9 +290,7 @@ class AsyncNucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
@@ -294,9 +318,7 @@ class AsyncNucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
