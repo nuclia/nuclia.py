@@ -16,6 +16,11 @@ class NucliaKBS:
         auth = get_auth()
         return auth
 
+    def _management_request(self, method: str, path: str, data: Optional[Dict] = None):
+        if self._auth._config.token:
+            return self._auth._request(method, path, data)
+        return self._auth._nua_request(method, path, data)
+
     @accounts
     def list(self, account: Optional[str] = None):
         if account is None:
@@ -28,6 +33,13 @@ class NucliaKBS:
             for account_obj in accounts:
                 if account_obj.slug is not None:
                     result.extend(self._auth.kbs(account_obj.id))
+
+            if not accounts and self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                result.extend(self._auth.kbs_nua(nua_obj.account))
+
             self._auth._config.kbs = result
             self._auth._config.save()
 
@@ -42,9 +54,15 @@ class NucliaKBS:
             matching_account = retrieve_account(
                 self._auth._config.accounts or [], account
             )
-            if not matching_account:
-                raise ValueError("Account not found")
-            return self._auth.kbs(matching_account.id)
+            if matching_account:
+                return self._auth.kbs(matching_account.id)
+            if self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                if account == nua_obj.account:
+                    return self._auth.kbs_nua(nua_obj.account)
+            raise ValueError("Account not found")
 
     @accounts
     @account
@@ -74,7 +92,7 @@ class NucliaKBS:
             "title": title or slug,
             "zone": zone,
         }
-        self._auth._request("POST", path, data)
+        self._management_request("POST", path, data)
         return self.get(slug, account_id=kwargs["account_id"], zone=zone)
 
     @accounts
@@ -92,7 +110,10 @@ class NucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            if self._auth._config.token:
+                kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            else:
+                kbs = self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -100,7 +121,7 @@ class NucliaKBS:
         path = get_regional_url(
             zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
         )
-        return self._auth._request("GET", path)
+        return self._management_request("GET", path)
 
     @accounts
     @account
@@ -117,7 +138,10 @@ class NucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            if self._auth._config.token:
+                kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            else:
+                kbs = self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -125,7 +149,7 @@ class NucliaKBS:
         path = get_regional_url(
             zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
         )
-        return self._auth._request("DELETE", path)
+        return self._management_request("DELETE", path)
 
     def default(self, kb: str):
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []
@@ -150,6 +174,13 @@ class AsyncNucliaKBS:
         auth = get_async_auth()
         return auth
 
+    async def _management_request(
+        self, method: str, path: str, data: Optional[Dict] = None
+    ):
+        if self._auth._config.token:
+            return await self._auth._request(method, path, data)
+        return await self._auth._nua_request(method, path, data)
+
     @accounts
     async def list(self, account: Optional[str] = None):
         if account is None:
@@ -162,6 +193,13 @@ class AsyncNucliaKBS:
             for account_obj in accounts:
                 if account_obj.slug is not None:
                     result.extend(await self._auth.kbs(account_obj.id, cached=False))
+
+            if not accounts and self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                result.extend(await self._auth.kbs_nua(nua_obj.account))
+
             self._auth._config.kbs = result
             self._auth._config.save()
 
@@ -176,9 +214,15 @@ class AsyncNucliaKBS:
             matching_account = retrieve_account(
                 self._auth._config.accounts or [], account
             )
-            if not matching_account:
-                raise ValueError("Account not found")
-            return await self._auth.kbs(matching_account.id, cached=False)
+            if matching_account:
+                return await self._auth.kbs(matching_account.id, cached=False)
+            if self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                if account == nua_obj.account:
+                    return await self._auth.kbs_nua(nua_obj.account)
+            raise ValueError("Account not found")
 
     @accounts
     @account
@@ -208,7 +252,7 @@ class AsyncNucliaKBS:
             "title": title or slug,
             "zone": zone,
         }
-        await self._auth._request("POST", path, data)
+        await self._management_request("POST", path, data)
         return await self.get(slug, account_id=kwargs["account_id"], zone=zone)
 
     @accounts
@@ -226,7 +270,12 @@ class AsyncNucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"], cached=False, zone=zone)
+            if self._auth._config.token:
+                kbs = await self._auth.kbs(
+                    kwargs["account_id"], cached=False, zone=zone
+                )
+            else:
+                kbs = await self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -234,7 +283,7 @@ class AsyncNucliaKBS:
         path = get_regional_url(
             zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
         )
-        return await self._auth._request("GET", path)
+        return await self._management_request("GET", path)
 
     @accounts
     @account
@@ -251,7 +300,12 @@ class AsyncNucliaKBS:
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"], cached=False, zone=zone)
+            if self._auth._config.token:
+                kbs = await self._auth.kbs(
+                    kwargs["account_id"], cached=False, zone=zone
+                )
+            else:
+                kbs = await self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
@@ -259,7 +313,7 @@ class AsyncNucliaKBS:
         path = get_regional_url(
             zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
         )
-        return await self._auth._request("DELETE", path)
+        return await self._management_request("DELETE", path)
 
     async def default(self, kb: str):
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []

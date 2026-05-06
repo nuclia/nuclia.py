@@ -12,7 +12,7 @@ from nuclia.data import (
     get_auth,
     get_client,
 )
-from nuclia.exceptions import NotDefinedDefault, NucliaConnectionError
+from nuclia.exceptions import NeedUserToken, NotDefinedDefault, NucliaConnectionError
 from nuclia.lib.agent import AgentClient, AsyncAgentClient
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
@@ -22,12 +22,20 @@ def accounts(func):
     @wraps(func)
     def wrapper_checkout_accounts(*args, **kwargs):
         auth = get_auth()
-        auth.accounts()
+        try:
+            auth.accounts()
+        except NeedUserToken:
+            if not auth._config.nuas_token:
+                raise
         return func(*args, **kwargs)
 
     async def async_wrapper_checkout_accounts(*args, **kwargs):
         auth = get_async_auth()
-        await auth.accounts(cached=True)
+        try:
+            await auth.accounts(cached=True)
+        except NeedUserToken:
+            if not auth._config.nuas_token:
+                raise
         result = await func(*args, **kwargs)
         return result
 
@@ -224,10 +232,14 @@ def account(func):
         account_id = kwargs.get("account_id")
         auth = get_auth()
         if account_id is None and account_slug is None:
-            account_slug = auth._config.get_default_account()
-            if account_slug is None:
-                raise NotDefinedDefault()
-            kwargs["account"] = account_slug
+            try:
+                account_slug = auth._config.get_default_account()
+                kwargs["account"] = account_slug
+            except NotDefinedDefault:
+                nua_id = auth._config.get_default_nua()
+                nua_obj = auth._config.get_nua(nua_id)
+                kwargs["account_id"] = nua_obj.account
+                account_id = nua_obj.account
         if account_id is None:
             account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id
@@ -238,10 +250,14 @@ def account(func):
         account_id = kwargs.get("account_id")
         auth = get_async_auth()
         if account_id is None and account_slug is None:
-            account_slug = auth._config.get_default_account()
-            if account_slug is None:
-                raise NotDefinedDefault()
-            kwargs["account"] = account_slug
+            try:
+                account_slug = auth._config.get_default_account()
+                kwargs["account"] = account_slug
+            except NotDefinedDefault:
+                nua_id = auth._config.get_default_nua()
+                nua_obj = auth._config.get_nua(nua_id)
+                kwargs["account_id"] = nua_obj.account
+                account_id = nua_obj.account
         if account_id is None:
             account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id

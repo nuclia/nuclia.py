@@ -14,6 +14,12 @@ def test_list_kbs(testing_config):
     assert TESTING_KBID in [kb.id for kb in all]
 
 
+def test_list_kbs_with_nua(testing_nua_config):
+    kbs = NucliaKBS()
+    all = kbs.list()
+    assert len(all) > 0
+
+
 @pytest.mark.asyncio
 async def test_async_list_kbs(testing_config):
     kbs = AsyncNucliaKBS()
