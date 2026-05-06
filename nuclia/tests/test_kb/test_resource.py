@@ -203,7 +203,11 @@ async def test_resource_crud_by_id(
     assert res.title == "Testing"
 
     await maybe_await(nresource.update(rid=rid, title="Reliability"))
-    res = await maybe_await(nresource.get(rid=rid))
+    for _ in range(6):
+        res = await maybe_await(nresource.get(rid=rid))
+        if res.title == "Reliability":
+            break
+        sleep(0.5)
     assert res.title == "Reliability"
 
     await maybe_await(nresource.delete(rid=rid))
@@ -243,7 +247,11 @@ async def test_resource_crud_by_slug(
     assert res.title == "Testing"
 
     await maybe_await(nresource.update(slug=slug, title="Reliability"))
-    res = await maybe_await(nresource.get(slug=slug))
+    for _ in range(6):
+        res = await maybe_await(nresource.get(slug=slug))
+        if res.title == "Reliability":
+            break
+        sleep(0.5)
     assert res.title == "Reliability"
 
     await maybe_await(nresource.delete(slug=slug))
