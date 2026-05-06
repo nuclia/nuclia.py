@@ -588,8 +588,6 @@ class NucliaAuth(BaseNucliaAuth):
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
-        else:
-            raise Exception({"status": resp.status_code, "message": resp.text})
 
     def _nua_request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
@@ -616,8 +614,6 @@ class NucliaAuth(BaseNucliaAuth):
             return None
         elif resp.status_code == 403 or resp.status_code == 401:
             raise UserTokenExpired()
-        else:
-            raise Exception({"status": resp.status_code, "message": resp.text})
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
 
