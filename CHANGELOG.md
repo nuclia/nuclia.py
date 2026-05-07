@@ -4,7 +4,7 @@
 ## 4.9.22 (unreleased)
 
 
-- Nothing changed yet.
+- Enable to access kb enabled functions with the personal token defined on the config
 
 
 ## 4.9.21 (2026-04-24)
