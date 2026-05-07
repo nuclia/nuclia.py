@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.22 (unreleased)
+## 4.9.22 (2026-05-07)
 
 
 - Enable to access kb enabled functions with the personal token defined on the config
