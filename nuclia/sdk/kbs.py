@@ -41,16 +41,16 @@ class NucliaKBS:
     def list(self, account: Optional[str] = None):
         if account is None:
             result = []
-            accounts = (
-                self._auth._config.accounts
-                if self._auth._config.accounts is not None
-                else []
-            )
-            for account_obj in accounts:
-                if account_obj.slug is not None:
-                    result.extend(self._auth.kbs(account_obj.id))
-
-            if not accounts and self._auth._config.nuas_token:
+            if self._auth._config.token:
+                accounts = (
+                    self._auth._config.accounts
+                    if self._auth._config.accounts is not None
+                    else []
+                )
+                for account_obj in accounts:
+                    if account_obj.slug is not None:
+                        result.extend(self._auth.kbs(account_obj.id))
+            elif self._auth._config.nuas_token:
                 nua_obj = self._auth._config.get_nua(
                     self._auth._config.get_default_nua()
                 )
@@ -67,12 +67,13 @@ class NucliaKBS:
             )
             return result
         else:
-            matching_account = retrieve_account(
-                self._auth._config.accounts or [], account
-            )
-            if matching_account:
-                return self._auth.kbs(matching_account.id)
-            if self._auth._config.nuas_token:
+            if self._auth._config.token:
+                matching_account = retrieve_account(
+                    self._auth._config.accounts or [], account
+                )
+                if matching_account:
+                    return self._auth.kbs(matching_account.id)
+            elif self._auth._config.nuas_token:
                 nua_obj = self._auth._config.get_nua(
                     self._auth._config.get_default_nua()
                 )
@@ -212,16 +213,16 @@ class AsyncNucliaKBS:
     async def list(self, account: Optional[str] = None):
         if account is None:
             result = []
-            accounts = (
-                self._auth._config.accounts
-                if self._auth._config.accounts is not None
-                else []
-            )
-            for account_obj in accounts:
-                if account_obj.slug is not None:
-                    result.extend(await self._auth.kbs(account_obj.id, cached=False))
-
-            if not accounts and self._auth._config.nuas_token:
+            if self._auth._config.token:
+                accounts = (
+                    self._auth._config.accounts
+                    if self._auth._config.accounts is not None
+                    else []
+                )
+                for account_obj in accounts:
+                    if account_obj.slug is not None:
+                        result.extend(await self._auth.kbs(account_obj.id, cached=False))
+            elif self._auth._config.nuas_token:
                 nua_obj = self._auth._config.get_nua(
                     self._auth._config.get_default_nua()
                 )
@@ -238,12 +239,13 @@ class AsyncNucliaKBS:
             )
             return result
         else:
-            matching_account = retrieve_account(
-                self._auth._config.accounts or [], account
-            )
-            if matching_account:
-                return await self._auth.kbs(matching_account.id, cached=False)
-            if self._auth._config.nuas_token:
+            if self._auth._config.token:
+                matching_account = retrieve_account(
+                    self._auth._config.accounts or [], account
+                )
+                if matching_account:
+                    return await self._auth.kbs(matching_account.id, cached=False)
+            elif self._auth._config.nuas_token:
                 nua_obj = self._auth._config.get_nua(
                     self._auth._config.get_default_nua()
                 )
