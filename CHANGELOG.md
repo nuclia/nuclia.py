@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.23 (unreleased)
+## 4.9.23 (2026-05-08)
 
 
 - Allow KB management (list/create/get/delete) with NUA keys.
