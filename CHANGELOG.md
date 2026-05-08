@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.22 (unreleased)
+## 4.9.23 (unreleased)
 
 
 - Allow KB management (list/create/get/delete) with NUA keys.
@@ -9,6 +9,12 @@
 - Resolve management zone from NUA region; validate explicit mismatched zones.
 - Prefer NUA account in `@account` when user token is missing.
 - Clarify NUA KB management auth/scopes in docs.
+
+
+## 4.9.22 (2026-05-07)
+
+
+- Enable to access kb enabled functions with the personal token defined on the config
 
 
 ## 4.9.21 (2026-04-24)
