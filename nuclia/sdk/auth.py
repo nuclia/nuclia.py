@@ -24,10 +24,11 @@ from nuclia.config import (
     RetrievalAgentOrchestratorObj,
     User,
     Zone,
+    extract_region,
     retrieve_account,
     retrieve_nua,
 )
-from nuclia.exceptions import NeedUserToken, UserTokenExpired
+from nuclia.exceptions import NeedUserToken, NuaTokenExpired, UserTokenExpired
 from nuclia.lib.utils import build_httpx_async_client, build_httpx_client
 from nuclia.sdk.logger import logger
 
@@ -584,9 +585,62 @@ class NucliaAuth(BaseNucliaAuth):
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
         elif resp.status_code == 403 or resp.status_code == 401:
-            raise UserTokenExpired()
+            raise NuaTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
+
+    def _nua_request(
+        self, method: str, path: str, data: Optional[Any] = None, remove_null=True
+    ):
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        kwargs: Dict[str, Any] = {
+            "headers": {"x-nuclia-nuakey": f"Bearer {nua_obj.token}"}
+        }
+        if data is not None:
+            if remove_null:
+                data = {k: v for k, v in data.items() if v is not None}
+            kwargs["content"] = json.dumps(data)
+
+        resp = self.client.request(
+            method,
+            path,
+            **kwargs,
+        )
+        if resp.status_code == 204:
+            return None
+        elif resp.status_code >= 200 and resp.status_code < 300:
+            return resp.json()
+        elif resp.status_code >= 300 and resp.status_code < 400:
+            return None
+        elif resp.status_code == 403 or resp.status_code == 401:
+            raise NuaTokenExpired()
+        else:
+            raise Exception({"status": resp.status_code, "message": resp.text})
+
+    def kbs_nua(self, account: str, zone: Optional[str] = None) -> List[KnowledgeBox]:
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        zone_slug = zone or extract_region(nua_obj.region)
+        if not zone_slug:
+            raise ValueError("zone is required")
+
+        path = get_regional_url(zone_slug, LIST_KBS.format(account=account))
+        kbs = self._nua_request("GET", path)
+        result: List[KnowledgeBox] = []
+        if kbs is None:
+            return result
+
+        for kb in kbs:
+            url = get_regional_url(zone_slug, f"/api/v1/kb/{kb['id']}")
+            kb_obj = KnowledgeBox(
+                url=url,
+                id=kb["id"],
+                slug=kb["slug"],
+                title=kb["title"],
+                account=account,
+                region=zone_slug,
+            )
+            result.append(kb_obj)
+        return result
 
     def accounts(self) -> List[Account]:
         accounts = self._request("GET", get_global_url(ACCOUNTS))
@@ -980,6 +1034,61 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
+
+    async def _nua_request(
+        self, method: str, path: str, data: Optional[Any] = None, remove_null=True
+    ):
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        kwargs: Dict[str, Any] = {
+            "headers": {"x-nuclia-nuakey": f"Bearer {nua_obj.token}"}
+        }
+
+        if data is not None:
+            if remove_null:
+                data = {k: v for k, v in data.items() if v is not None}
+            kwargs["data"] = json.dumps(data)
+        resp = await self.client.request(
+            method,
+            path,
+            **kwargs,
+        )
+        if resp.status_code == 204:
+            return None
+        elif resp.status_code >= 200 and resp.status_code < 300:
+            return resp.json()
+        elif resp.status_code >= 300 and resp.status_code < 400:
+            return None
+        elif resp.status_code == 403 or resp.status_code == 401:
+            raise UserTokenExpired()
+        else:
+            raise Exception({"status": resp.status_code, "message": resp.text})
+
+    async def kbs_nua(
+        self, account: str, zone: Optional[str] = None
+    ) -> List[KnowledgeBox]:
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        zone_slug = zone or extract_region(nua_obj.region)
+        if not zone_slug:
+            raise ValueError("zone is required")
+
+        path = get_regional_url(zone_slug, LIST_KBS.format(account=account))
+        kbs = await self._nua_request("GET", path)
+        result: List[KnowledgeBox] = []
+        if kbs is None:
+            return result
+
+        for kb in kbs:
+            url = get_regional_url(zone_slug, f"/api/v1/kb/{kb['id']}")
+            kb_obj = KnowledgeBox(
+                url=url,
+                id=kb["id"],
+                slug=kb["slug"],
+                title=kb["title"],
+                account=account,
+                region=zone_slug,
+            )
+            result.append(kb_obj)
+        return result
 
     async def accounts(self, cached: bool = True) -> List[Account]:
         _request = self._cached_request if cached else self._request

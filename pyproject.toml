@@ -43,6 +43,7 @@ dev = [
     # Testing
     "pytest==7.4.0",
     "pytest-cov",
+    "pytest-rerunfailures",
     "types-PyYAML==6.0.12.11",
     "types-requests==2.31.0.2",
     "types-tqdm==4.66.0.2",

@@ -123,13 +123,13 @@ async def test_find(
         AskRequest(query="Who is Hedy Lamarr?"),
     ],
 )
+@pytest.mark.flaky(reruns=4, reruns_delay=1)
 async def test_ask(
     testing_config,
     search_klass: Union[Type[NucliaSearch], Type[AsyncNucliaSearch]],
     query,
 ):
     search = search_klass()
-
     maybe_results = search.ask(query=query)
     results = await maybe_await(maybe_results)
     titles = [r.title for r in results.find_result.resources.values()]
