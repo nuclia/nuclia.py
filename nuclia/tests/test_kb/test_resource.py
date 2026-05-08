@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import tempfile
@@ -207,14 +208,14 @@ async def test_resource_crud_by_id(
         res = await maybe_await(nresource.get(rid=rid))
         if res.title == "Reliability":
             break
-        sleep(0.5)
+        await asyncio.sleep(0.5)
     assert res.title == "Reliability"
 
     await maybe_await(nresource.delete(rid=rid))
     try:
         for _ in range(3):
             await maybe_await(nresource.get(slug=slug))
-            sleep(0.5)
+            await asyncio.sleep(0.5)
         assert False
     except NotFoundError:
         assert True
@@ -251,14 +252,14 @@ async def test_resource_crud_by_slug(
         res = await maybe_await(nresource.get(slug=slug))
         if res.title == "Reliability":
             break
-        sleep(0.5)
+        await asyncio.sleep(0.5)
     assert res.title == "Reliability"
 
     await maybe_await(nresource.delete(slug=slug))
     try:
         for _ in range(3):
             await maybe_await(nresource.get(slug=slug))
-            sleep(0.5)
+            await asyncio.sleep(0.5)
         assert False
     except NotFoundError:
         assert True
@@ -313,7 +314,7 @@ async def test_resource_file_download(
     try:
         for _ in range(3):
             await maybe_await(nresource.get(slug=slug))
-            sleep(0.5)
+            await asyncio.sleep(0.5)
         assert False
     except NotFoundError:
         assert True

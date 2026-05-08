@@ -10,6 +10,10 @@ class UserTokenExpired(Exception):
     pass
 
 
+class NuaTokenExpired(Exception):
+    pass
+
+
 class NotDefinedDefault(Exception):
     pass
 

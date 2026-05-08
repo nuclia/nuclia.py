@@ -28,7 +28,7 @@ from nuclia.config import (
     retrieve_account,
     retrieve_nua,
 )
-from nuclia.exceptions import NeedUserToken, UserTokenExpired
+from nuclia.exceptions import NeedUserToken, NuaTokenExpired, UserTokenExpired
 from nuclia.lib.utils import build_httpx_async_client, build_httpx_client
 from nuclia.sdk.logger import logger
 
@@ -585,7 +585,7 @@ class NucliaAuth(BaseNucliaAuth):
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
         elif resp.status_code == 403 or resp.status_code == 401:
-            raise UserTokenExpired()
+            raise NuaTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
 
@@ -613,7 +613,7 @@ class NucliaAuth(BaseNucliaAuth):
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
         elif resp.status_code == 403 or resp.status_code == 401:
-            raise UserTokenExpired()
+            raise NuaTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
 
