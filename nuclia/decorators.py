@@ -12,7 +12,7 @@ from nuclia.data import (
     get_auth,
     get_client,
 )
-from nuclia.exceptions import NotDefinedDefault, NucliaConnectionError
+from nuclia.exceptions import NeedUserToken, NotDefinedDefault, NucliaConnectionError
 from nuclia.lib.agent import AgentClient, AsyncAgentClient
 from nuclia.lib.kb import AsyncNucliaDBClient, Environment, NucliaDBClient
 from nuclia.lib.nua import AsyncNuaClient, NuaClient
@@ -22,12 +22,20 @@ def accounts(func):
     @wraps(func)
     def wrapper_checkout_accounts(*args, **kwargs):
         auth = get_auth()
-        auth.accounts()
+        try:
+            auth.accounts()
+        except NeedUserToken:
+            if not auth._config.nuas_token:
+                raise
         return func(*args, **kwargs)
 
     async def async_wrapper_checkout_accounts(*args, **kwargs):
         auth = get_async_auth()
-        await auth.accounts(cached=True)
+        try:
+            await auth.accounts(cached=True)
+        except NeedUserToken:
+            if not auth._config.nuas_token:
+                raise
         result = await func(*args, **kwargs)
         return result
 
@@ -241,16 +249,27 @@ def nua(func):
 
 
 def account(func):
+    def _get_account_id_from_nua(auth):
+        nua_id = auth._config.get_default_nua()
+        nua_obj = auth._config.get_nua(nua_id)
+        return nua_obj.account
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         account_slug = kwargs.get("account")
         account_id = kwargs.get("account_id")
         auth = get_auth()
         if account_id is None and account_slug is None:
-            account_slug = auth._config.get_default_account()
-            if account_slug is None:
-                raise NotDefinedDefault()
-            kwargs["account"] = account_slug
+            if not auth._config.token and bool(auth._config.nuas_token):
+                account_id = _get_account_id_from_nua(auth)
+                kwargs["account_id"] = account_id
+            else:
+                try:
+                    account_slug = auth._config.get_default_account()
+                    kwargs["account"] = account_slug
+                except NotDefinedDefault:
+                    account_id = _get_account_id_from_nua(auth)
+                    kwargs["account_id"] = account_id
         if account_id is None:
             account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id
@@ -261,10 +280,16 @@ def account(func):
         account_id = kwargs.get("account_id")
         auth = get_async_auth()
         if account_id is None and account_slug is None:
-            account_slug = auth._config.get_default_account()
-            if account_slug is None:
-                raise NotDefinedDefault()
-            kwargs["account"] = account_slug
+            if not auth._config.token and bool(auth._config.nuas_token):
+                account_id = _get_account_id_from_nua(auth)
+                kwargs["account_id"] = account_id
+            else:
+                try:
+                    account_slug = auth._config.get_default_account()
+                    kwargs["account"] = account_slug
+                except NotDefinedDefault:
+                    account_id = _get_account_id_from_nua(auth)
+                    kwargs["account_id"] = account_id
         if account_id is None:
             account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id
@@ -304,14 +329,24 @@ def pretty(func):
 def zone(func):
     @wraps(func)
     def wrapper_checkout_zone(*args, **kwargs):
-        zone = kwargs.get("zone")
+        bound = inspect.signature(func).bind_partial(*args, **kwargs)
+        zone = bound.arguments.get("zone")
+        if zone is None:
+            extra_kwargs = bound.arguments.get("kwargs", {})
+            if isinstance(extra_kwargs, dict):
+                zone = extra_kwargs.get("zone")
         if not zone:
             auth = get_auth()
             kwargs["zone"] = auth._config.get_default_zone()
         return func(*args, **kwargs)
 
     async def async_wrapper_checkout_zone(*args, **kwargs):
-        zone = kwargs.get("zone")
+        bound = inspect.signature(func).bind_partial(*args, **kwargs)
+        zone = bound.arguments.get("zone")
+        if zone is None:
+            extra_kwargs = bound.arguments.get("kwargs", {})
+            if isinstance(extra_kwargs, dict):
+                zone = extra_kwargs.get("zone")
         if not zone:
             auth = get_async_auth()
             kwargs["zone"] = auth._config.get_default_zone()
