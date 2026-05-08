@@ -10,7 +10,7 @@ def test_account_prefers_nua_in_nua_only_mode(monkeypatch):
     auth = Mock()
     config = Mock()
     config.token = None
-    config.nuas_token = ["nua"]
+    config.nuas_token = ["nua-token"]
     config.get_default_nua.return_value = "default-nua"
     config.get_nua.return_value = SimpleNamespace(account="nua-account-id")
     auth._config = config
@@ -32,7 +32,7 @@ async def test_async_account_prefers_nua_in_nua_only_mode(monkeypatch):
     auth = Mock()
     config = Mock()
     config.token = None
-    config.nuas_token = ["nua"]
+    config.nuas_token = ["nua-token"]
     config.get_default_nua.return_value = "default-nua"
     config.get_nua.return_value = SimpleNamespace(account="nua-account-id")
     auth._config = config
