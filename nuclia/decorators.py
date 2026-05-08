@@ -232,14 +232,20 @@ def account(func):
         account_id = kwargs.get("account_id")
         auth = get_auth()
         if account_id is None and account_slug is None:
-            try:
-                account_slug = auth._config.get_default_account()
-                kwargs["account"] = account_slug
-            except NotDefinedDefault:
+            if not auth._config.token and auth._config.nuas_token:
                 nua_id = auth._config.get_default_nua()
                 nua_obj = auth._config.get_nua(nua_id)
                 kwargs["account_id"] = nua_obj.account
                 account_id = nua_obj.account
+            else:
+                try:
+                    account_slug = auth._config.get_default_account()
+                    kwargs["account"] = account_slug
+                except NotDefinedDefault:
+                    nua_id = auth._config.get_default_nua()
+                    nua_obj = auth._config.get_nua(nua_id)
+                    kwargs["account_id"] = nua_obj.account
+                    account_id = nua_obj.account
         if account_id is None:
             account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id
@@ -250,14 +256,20 @@ def account(func):
         account_id = kwargs.get("account_id")
         auth = get_async_auth()
         if account_id is None and account_slug is None:
-            try:
-                account_slug = auth._config.get_default_account()
-                kwargs["account"] = account_slug
-            except NotDefinedDefault:
+            if not auth._config.token and auth._config.nuas_token:
                 nua_id = auth._config.get_default_nua()
                 nua_obj = auth._config.get_nua(nua_id)
                 kwargs["account_id"] = nua_obj.account
                 account_id = nua_obj.account
+            else:
+                try:
+                    account_slug = auth._config.get_default_account()
+                    kwargs["account"] = account_slug
+                except NotDefinedDefault:
+                    nua_id = auth._config.get_default_nua()
+                    nua_obj = auth._config.get_nua(nua_id)
+                    kwargs["account_id"] = nua_obj.account
+                    account_id = nua_obj.account
         if account_id is None:
             account_id = auth.get_account_id(account_slug)  # type: ignore
             kwargs["account_id"] = account_id
