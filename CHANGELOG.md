@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.25 (unreleased)
+## 4.9.25 (2026-05-12)
 
 
 - Delete should work with None
