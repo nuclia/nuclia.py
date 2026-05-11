@@ -91,26 +91,25 @@ class BaseNucliaAuth:
     def unset_kb(self, kbid: str):
         self._config.unset_default_kb(kbid=kbid)
 
+    def resolve_zone_endpoint(self, zone: str) -> Tuple[str, Optional[str]]:
+        zone_value = zone.strip()
 
-def resolve_zone_endpoint(self, zone: str) -> Tuple[str, Optional[str]]:
-    zone_value = zone.strip()
+        # 1) Zone cache — only populated for OAuth user flows via post_login().
+        #    NUA and service-account flows never populate this cache.
+        zones = self._config.zones or []
+        for zone_obj in zones:
+            if zone_obj.matches(zone_value):
+                region = zone_obj.slug or zone_obj.id or zone_value
+                return region, zone_obj.origin
 
-    # 1) Zone cache — only populated for OAuth user flows via post_login().
-    #    NUA and service-account flows never populate this cache.
-    zones = self._config.zones or []
-    for zone_obj in zones:
-        if zone_obj.matches(zone_value):
-            region = zone_obj.slug or zone_obj.id or zone_value
-            return region, zone_obj.origin
+        # 2) Caller passed a full URL — treat it as origin, extract first hostname label as region slug.
+        parsed = urlparse(zone_value)
+        if parsed.scheme and parsed.netloc:
+            region = parsed.hostname.split(".")[0] if parsed.hostname else zone_value
+            return region, f"{parsed.scheme}://{parsed.netloc}"
 
-    # 2) Caller passed a full URL — treat it as origin, extract first hostname label as region slug.
-    parsed = urlparse(zone_value)
-    if parsed.scheme and parsed.netloc:
-        region = parsed.hostname.split(".")[0] if parsed.hostname else zone_value
-        return region, f"{parsed.scheme}://{parsed.netloc}"
-
-    # 3) Plain slug — no origin override, regional template will be used by callers.
-    return zone_value, None
+        # 3) Plain slug — no origin override, regional template will be used by callers.
+        return zone_value, None
 
 
 def print_config(config: Config):
