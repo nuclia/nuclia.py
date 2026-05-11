@@ -4,7 +4,7 @@
 ## 4.9.24 (unreleased)
 
 
-- Nothing changed yet.
+- Status code review on delete
 
 
 ## 4.9.23 (2026-05-08)
