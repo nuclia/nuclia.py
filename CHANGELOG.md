@@ -4,7 +4,7 @@
 ## 4.9.25 (unreleased)
 
 
-- Nothing changed yet.
+- Delete should work with None
 
 
 ## 4.9.24 (2026-05-12)
