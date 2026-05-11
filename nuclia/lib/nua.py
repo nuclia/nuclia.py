@@ -136,7 +136,11 @@ class NuaClient:
         resp = self.client.request(
             method, url, json=payload, timeout=timeout, headers=extra_headers
         )
-        if resp.status_code != 200:
+        if resp.status_code in (429, 512):
+            raise RetriableRequestException(
+                code=resp.status_code, detail=resp.content.decode()
+            )
+        elif resp.status_code > 299:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
         try:
             data = output.model_validate(resp.json())
