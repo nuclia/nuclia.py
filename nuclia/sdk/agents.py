@@ -66,8 +66,11 @@ class NucliaAgents:
             if not agent_obj:
                 raise ValueError("Retrieval Agent not found")
             id = agent_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id)
+            zone_region,
+            AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id),
+            origin_url=zone_origin,
         )
         return self._auth._request("GET", path)
 
@@ -146,8 +149,11 @@ class AsyncNucliaAgents:
             if not agent_obj:
                 raise ValueError("Retrieval Agent not found")
             id = agent_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id)
+            zone_region,
+            AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id),
+            origin_url=zone_origin,
         )
         return await self._auth._request("GET", path)
 

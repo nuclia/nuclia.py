@@ -98,7 +98,12 @@ class NucliaKBS:
         if not slug:
             raise ValueError("slug is required.")
         zone = self._resolve_management_zone(zone)
-        path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            KBS_ENDPOINT.format(account=kwargs["account_id"]),
+            origin_url=zone_origin,
+        )
         data = {
             "slug": slug,
             "anonymization": anonymization,
@@ -132,8 +137,11 @@ class NucliaKBS:
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
         return self._management_request("GET", path)
 
@@ -158,8 +166,11 @@ class NucliaKBS:
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
         return self._management_request("DELETE", path)
 
@@ -272,7 +283,12 @@ class AsyncNucliaKBS:
         if not slug:
             raise ValueError("slug is required.")
         zone = self._resolve_management_zone(zone)
-        path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            KBS_ENDPOINT.format(account=kwargs["account_id"]),
+            origin_url=zone_origin,
+        )
         data = {
             "slug": slug,
             "anonymization": anonymization,
@@ -308,8 +324,11 @@ class AsyncNucliaKBS:
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
         return await self._management_request("GET", path)
 
@@ -336,8 +355,11 @@ class AsyncNucliaKBS:
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
         return await self._management_request("DELETE", path)
 
