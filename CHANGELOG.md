@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 4.9.24 (unreleased)
+## 4.9.24 (2026-05-12)
 
 
 - Status code review on delete
