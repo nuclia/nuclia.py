@@ -128,7 +128,7 @@ class NuaClient:
         self,
         method: str,
         url: str,
-        output: Type[ConvertType],
+        output: Optional[Type[ConvertType]] = None,
         payload: Optional[dict[Any, Any]] = None,
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
@@ -136,8 +136,14 @@ class NuaClient:
         resp = self.client.request(
             method, url, json=payload, timeout=timeout, headers=extra_headers
         )
-        if resp.status_code != 200:
+        if resp.status_code in (429, 512):
+            raise RetriableRequestException(
+                code=resp.status_code, detail=resp.content.decode()
+            )
+        elif resp.status_code > 299:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
+        if output is None:
+            return None  # type: ignore
         try:
             data = output.model_validate(resp.json())
         except Exception:
@@ -182,7 +188,7 @@ class NuaClient:
 
     def del_config_predict(self, kbid: str):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
-        self._request("DELETE", endpoint, output=Empty)
+        self._request("DELETE", endpoint, output=None)
 
     def update_config_predict(self, kbid: str, config: LearningConfigurationUpdate):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
@@ -523,7 +529,7 @@ class AsyncNuaClient:
         self,
         method: str,
         url: str,
-        output: Type[ConvertType],
+        output: Optional[Type[ConvertType]] = None,
         payload: Optional[dict[Any, Any]] = None,
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
@@ -537,6 +543,8 @@ class AsyncNuaClient:
             )
         elif resp.status_code > 299:
             raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
+        if output is None:
+            return None  # type: ignore
         try:
             data = output.model_validate(resp.json())
         except Exception:
@@ -598,7 +606,7 @@ class AsyncNuaClient:
 
     async def del_config_predict(self, kbid: str):
         endpoint = f"{self.url}{CONFIG}/{kbid}"
-        await self._request("DELETE", endpoint, output=Empty)
+        await self._request("DELETE", endpoint, output=None)
 
     async def update_config_predict(
         self, kbid: str, config: LearningConfigurationUpdate

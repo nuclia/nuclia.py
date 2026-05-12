@@ -1552,6 +1552,8 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-docker-fixtures", extra = ["pg"] },
     { name = "pytest-lazy-fixtures" },
+    { name = "pytest-rerunfailures", version = "16.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pytest-rerunfailures", version = "16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "ruff" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
@@ -1594,6 +1596,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-docker-fixtures", extras = ["pg"] },
     { name = "pytest-lazy-fixtures", specifier = "==1.0.1" },
+    { name = "pytest-rerunfailures" },
     { name = "ruff" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
@@ -2218,6 +2221,38 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e5/5a/6dc9cfde85ccf6c63fb95d484d5ff78415b8b78f60bbc87764b521364225/pytest_lazy_fixtures-1.0.1.tar.gz", hash = "sha256:29f11f1ce4e50475b645ea8a2fbcf981508ca911926f73cbb45df17163d48a6a", size = 4123, upload-time = "2023-05-28T09:24:12.785Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/bf/582e278a7b0d4c359344b60ac3db1eb9264f0c92ec22a4376c60921b7488/pytest_lazy_fixtures-1.0.1-py3-none-any.whl", hash = "sha256:b85c30eaec34d1d2c2ad4c3b55a1301b9d89b963725bb50d7931bf38b02b5f8d", size = 5541, upload-time = "2023-05-28T09:24:11.286Z" },
+]
+
+[[package]]
+name = "pytest-rerunfailures"
+version = "16.0.1"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.10'",
+]
+dependencies = [
+    { name = "packaging", marker = "python_full_version < '3.10'" },
+    { name = "pytest", marker = "python_full_version < '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/26/53/a543a76f922a5337d10df22441af8bf68f1b421cadf9aedf8a77943b81f6/pytest_rerunfailures-16.0.1.tar.gz", hash = "sha256:ed4b3a6e7badb0a720ddd93f9de1e124ba99a0cb13bc88561b3c168c16062559", size = 27612, upload-time = "2025-09-02T06:48:25.193Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/73/67dc14cda1942914e70fbb117fceaf11e259362c517bdadd76b0dd752524/pytest_rerunfailures-16.0.1-py3-none-any.whl", hash = "sha256:0bccc0e3b0e3388275c25a100f7077081318196569a121217688ed05e58984b9", size = 13610, upload-time = "2025-09-02T06:48:23.615Z" },
+]
+
+[[package]]
+name = "pytest-rerunfailures"
+version = "16.1"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.10'",
+]
+dependencies = [
+    { name = "packaging", marker = "python_full_version >= '3.10'" },
+    { name = "pytest", marker = "python_full_version >= '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/de/04/71e9520551fc8fe2cf5c1a1842e4e600265b0815f2016b7c27ec85688682/pytest_rerunfailures-16.1.tar.gz", hash = "sha256:c38b266db8a808953ebd71ac25c381cb1981a78ff9340a14bcb9f1b9bff1899e", size = 30889, upload-time = "2025-10-10T07:06:01.238Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/77/54/60eabb34445e3db3d3d874dc1dfa72751bfec3265bd611cb13c8b290adea/pytest_rerunfailures-16.1-py3-none-any.whl", hash = "sha256:5d11b12c0ca9a1665b5054052fcc1084f8deadd9328962745ef6b04e26382e86", size = 14093, upload-time = "2025-10-10T07:06:00.019Z" },
 ]
 
 [[package]]

@@ -1,9 +1,21 @@
 # Changelog
 
 
-## 4.9.24 (unreleased)
+## 4.9.26 (unreleased)
 
 - Support private zone deployments, where we may need to configure the origin url for the api calls.
+
+## 4.9.25 (2026-05-12)
+
+
+- Delete should work with None
+
+
+## 4.9.24 (2026-05-12)
+
+
+- Status code review on delete
+
 
 ## 4.9.23 (2026-05-08)
 
