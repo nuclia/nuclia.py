@@ -12,8 +12,12 @@ def get_global_url(path: str):
     return BASE + path
 
 
-def get_regional_url(region: str, path: str):
-    return REGIONAL.format(region=region) + path
+def get_regional_url(region: str, path: str, origin_url: Optional[str] = None):
+    if origin_url:
+        base = origin_url
+    else:
+        base = REGIONAL.format(region=(region or "").strip())
+    return base.rstrip("/") + path
 
 
 def get_list_parameter(param: Optional[List[str]]) -> List[str]:
