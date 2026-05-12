@@ -12,6 +12,27 @@ The Nuclia Understanding API (or NUA) allows to call the processing services of 
   sdk.NucliaAuth().nua(token=NUA_KEY)
   ```
 
+That is everything you need for **Nuclia public SaaS cloud**. The SDK extracts the zone and API endpoint from the token automatically.
+
+### Custom API endpoint (private zones)
+
+> **You do not need this for the standard Nuclia cloud service.** Skip this section unless you are running a private or self-hosted Nuclia instance.
+
+On some private or on-premise deployments the JWT token is issued by one host (the identity provider) while the actual Nuclia API lives on a different host. For example, tokens might be issued by `https://auth.internal.corp` but all API calls must go to `https://api.internal.corp`. Because the SDK cannot discover this mapping automatically you can provide the API base URL explicitly via the `origin` parameter at registration time:
+
+```python
+from nuclia import sdk
+
+sdk.NucliaAuth().nua(
+    token=NUA_KEY,
+    origin="https://api.internal.corp",  # API base URL
+)
+```
+
+Once set, all subsequent SDK calls that use this NUA key will route requests to the configured `origin` instead of deriving the URL from the token issuer. The value is stored in the local configuration alongside the key and does not need to be provided again on future runs.
+
+If `origin` is not set (the default), the SDK falls back to the issuer URL embedded in the token, which is correct for all standard Nuclia cloud environments.
+
 In order to check which NUA keys you have access you can run execute:
 
 - CLI:

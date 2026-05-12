@@ -12,6 +12,8 @@ Note: you can also login with a NUA key. With the right permissions/scopes, a NU
   sdk.NucliaAuth().nua(NUA_KEY)
   ```
 
+For private or on-premise deployments where the API endpoint differs from the token issuer, see [Custom API endpoint](07-nua.md#custom-api-endpoint-private-or-on-premise-deployments-only).
+
 ## User authentication
 
 With user authentication, there is no limitation to the API endpoints you can use. You manage all the accounts and Knowledge Boxes you have access to. It also allows to manage local NucliaDBs connected to your accounts.

@@ -3,9 +3,7 @@
 
 ## 4.9.26 (unreleased)
 
-
-- Nothing changed yet.
-
+- Support private zone deployments, where we may need to configure the origin url for the api calls.
 
 ## 4.9.25 (2026-05-12)
 

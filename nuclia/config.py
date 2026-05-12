@@ -20,6 +20,7 @@ class KnowledgeBox(BaseModel):
     slug: Optional[str] = None
     token: Optional[str] = None
     region: Optional[str] = None
+    origin: Optional[str] = None
     account: Optional[str] = None
 
     def __str__(self):
@@ -41,6 +42,7 @@ class RetrievalAgentOrchestrator(BaseModel):
     id: str
     account: str
     region: str
+    origin: Optional[str] = None
     # Set a default so we can deserialize older configs
     memory: bool = True
     title: Optional[str] = None
@@ -64,6 +66,10 @@ class NuaKey(BaseModel):
     region: str
     account: str
     token: str
+    # Explicit API base URL override. When set, takes priority over the issuer URL
+    # (region) for request routing. Useful for private zones where the auth issuer
+    # and the API endpoint are on different hosts.
+    origin: Optional[str] = None
 
     def __str__(self):
         return f"{self.client_id} {self.account} {self.account_type:30}"
@@ -89,9 +95,22 @@ class Zone(BaseModel):
     id: str
     title: str
     slug: Optional[str] = None
+    private: bool = False
+    origin: Optional[str] = None
+
+    def endpoint(self) -> Optional[str]:
+        return self.origin or self.slug or self.id
+
+    def matches(self, zone: str) -> bool:
+        candidates = {
+            candidate for candidate in (self.id, self.slug, self.origin) if candidate
+        }
+        return zone in candidates
 
     def __str__(self):
-        return f"{self.id:30} - {self.slug}"
+        endpoint = self.endpoint() or "-"
+        visibility = "private" if self.private else "public"
+        return f"{self.id:30} - {endpoint} ({visibility})"
 
 
 class Account(BaseModel):
@@ -208,6 +227,7 @@ class Config(BaseModel):
         base_region: str,
         token: str,
         account_type: Optional[str] = None,
+        origin: Optional[str] = None,
     ):
         if self.nuas_token is None:
             self.nuas_token = []
@@ -224,6 +244,7 @@ class Config(BaseModel):
                 region=base_region,
                 token=token,
                 client_id=client_id,
+                origin=origin,
             )
         )
         self.save()
@@ -251,7 +272,20 @@ class Config(BaseModel):
     ):
         self._del_kbid(kbid)
         region = extract_region(url)
-        kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title, region=region)
+        parsed = urlparse(url)
+        origin = (
+            f"{parsed.scheme}://{parsed.netloc}"
+            if parsed.scheme and parsed.netloc
+            else None
+        )
+        kb_obj = KnowledgeBox(
+            id=kbid,
+            url=url,
+            token=token,
+            title=title,
+            region=region,
+            origin=origin,
+        )
         self.kbs_token.append(kb_obj)
 
         if self.default is None:
@@ -266,6 +300,7 @@ class Config(BaseModel):
         agent_id: str,
         memory: bool,
         account_id: str,
+        origin: Optional[str] = None,
         token: Optional[str] = None,
         title: Optional[str] = None,
     ):
@@ -287,6 +322,7 @@ class Config(BaseModel):
             id=agent_id,
             account=account_id,
             region=region,
+            origin=origin,
             memory=memory,
             title=title,
             token=token,
