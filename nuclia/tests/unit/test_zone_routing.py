@@ -1,4 +1,5 @@
 from nuclia import BASE_DOMAIN, get_regional_url
+from nuclia import _root_domain, _regional_template
 from nuclia.config import Config, NuaKey, Zone
 from nuclia.sdk.auth import BaseNucliaAuth
 
@@ -11,7 +12,7 @@ class _FakeAuth(BaseNucliaAuth):
 def test_get_regional_url_with_zone_slug():
     assert (
         get_regional_url("europe-1", "/api/v1")
-        == f"https://europe-1.{BASE_DOMAIN}/api/v1"
+        == _regional_template(BASE_DOMAIN).format(region="europe-1") + "/api/v1"
     )
 
 

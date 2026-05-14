@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 
 from httpx import AsyncClient, Client, ConnectError
 from nucliadb_models.resource import KnowledgeBoxObj
-from prompt_toolkit import prompt
 from pydantic import TypeAdapter
 from tabulate import tabulate
 
@@ -503,24 +502,67 @@ class NucliaAuth(BaseNucliaAuth):
 
     def login(self):
         """
-        Lets redirect the user to the UI to capture a token
+        Start an OAuth 2.0 Authorization Code + PKCE flow.
+
+        Opens the browser to the OAuth server, starts a local HTTP server on
+        one of the pre-registered callback ports, waits for the authorization
+        code, exchanges it for tokens, and stores them.
         """
+        from nuclia.sdk.oauth import (
+            OAuthCallbackServer,
+            build_authorization_url,
+            exchange_code,
+            generate_code_challenge,
+            generate_code_verifier,
+            generate_state,
+        )
+
         if self._validate_user_token():
-            logger.info("Logged in!")
+            logger.info("Already logged in.")
             self._show_user()
             return
 
-        webbrowser.open(get_global_url("/redirect?display=token"))
-        # we cannot use Python's `input` here because the copy/pasted token is too long
-        code = prompt("Follow the browser flow and copy the token and paste it here:")
-        print("Checking...")
-        self.set_user_token(code)
+        code_verifier = generate_code_verifier()
+        code_challenge = generate_code_challenge(code_verifier)
+        state = generate_state()
+
+        server = OAuthCallbackServer(expected_state=state)
+        redirect_uri = server.redirect_uri
+
+        auth_url = build_authorization_url(
+            redirect_uri=redirect_uri,
+            code_challenge=code_challenge,
+            state=state,
+        )
+
+        logger.info("Opening browser for authentication…")
+        webbrowser.open(auth_url)
+        logger.info("Waiting for browser callback (timeout: %ds)…", 120)
+
+        code, error = server.wait_for_code()
+
+        if error or not code:
+            raise RuntimeError(f"Authentication failed: {error}")
+
+        access_token, refresh_token, expires_in = exchange_code(
+            code=code,
+            code_verifier=code_verifier,
+            redirect_uri=redirect_uri,
+        )
+
+        self._config.set_oauth_tokens(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+        )
+        logger.info("Auth completed!")
+        self.post_login()
 
     def logout(self):
         """
-        Remove the current user token.
+        Remove the current user tokens (access + refresh).
         """
-        self._config.remove_user_token()
+        self._config.clear_oauth_tokens()
 
     def set_user_token(self, code: str):
         if self._validate_user_token(code):
@@ -614,11 +656,41 @@ class NucliaAuth(BaseNucliaAuth):
         ta = TypeAdapter(List[PersonalTokenItem])
         return ta.validate_python(resp)
 
+    def _maybe_refresh_token(self) -> None:
+        """
+        Proactively refresh the access token if it is expired or about to
+        expire (within a 30-second margin) and a refresh token is available.
+        Raises UserTokenExpired if the refresh attempt fails.
+        """
+        from time import time
+
+        expires_at = self._config.token_expires_at
+        if expires_at is not None and time() >= expires_at - 30:
+            self._do_refresh()
+
+    def _do_refresh(self) -> None:
+        from nuclia.sdk.oauth import refresh_access_token
+
+        if not self._config.refresh_token:
+            raise UserTokenExpired()
+        try:
+            access_token, new_refresh, expires_in = refresh_access_token(
+                self._config.refresh_token
+            )
+            self._config.set_oauth_tokens(
+                access_token=access_token,
+                refresh_token=new_refresh,
+                expires_in=expires_in,
+            )
+        except Exception:
+            raise UserTokenExpired()
+
     def _request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
     ):
         if not self._config.token:
             raise NeedUserToken()
+        self._maybe_refresh_token()
         kwargs: Dict[str, Any] = {
             "headers": {"Authorization": f"Bearer {self._config.token}"}
         }
@@ -638,8 +710,17 @@ class NucliaAuth(BaseNucliaAuth):
             return resp.json()
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
-        elif resp.status_code == 403 or resp.status_code == 401:
-            raise NuaTokenExpired()
+        elif resp.status_code in (401, 403):
+            # Reactive refresh: try once on auth failure.
+            if self._config.refresh_token:
+                self._do_refresh()
+                kwargs["headers"]["Authorization"] = f"Bearer {self._config.token}"
+                resp = self.client.request(method, path, **kwargs)
+                if resp.status_code == 204:
+                    return None
+                elif resp.status_code >= 200 and resp.status_code < 300:
+                    return resp.json()
+            raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
 
@@ -1044,24 +1125,72 @@ class AsyncNucliaAuth(BaseNucliaAuth):
 
     async def login(self):
         """
-        Lets redirect the user to the UI to capture a token
+        Start an OAuth 2.0 Authorization Code + PKCE flow (async variant).
+
+        Runs the local callback server in a thread-pool executor so the
+        asyncio event loop stays unblocked.
         """
+        import asyncio
+
+        from nuclia.sdk.oauth import (
+            OAuthCallbackServer,
+            build_authorization_url,
+            exchange_code,
+            generate_code_challenge,
+            generate_code_verifier,
+            generate_state,
+        )
+
         if await self._validate_user_token():
-            logger.info("Logged in!")
+            logger.info("Already logged in.")
             await self._show_user()
             return
 
-        webbrowser.open(get_global_url("/redirect?display=token"))
-        # we cannot use Python's `input` here because the copy/pasted token is too long
-        code = prompt("Follow the browser flow and copy the token and paste it here:")
-        logger.info("Checking...")
-        await self.set_user_token(code)
+        code_verifier = generate_code_verifier()
+        code_challenge = generate_code_challenge(code_verifier)
+        state = generate_state()
+
+        server = OAuthCallbackServer(expected_state=state)
+        redirect_uri = server.redirect_uri
+
+        auth_url = build_authorization_url(
+            redirect_uri=redirect_uri,
+            code_challenge=code_challenge,
+            state=state,
+        )
+
+        logger.info("Opening browser for authentication…")
+        webbrowser.open(auth_url)
+        logger.info("Waiting for browser callback (timeout: %ds)…", 120)
+
+        loop = asyncio.get_event_loop()
+        code, error = await loop.run_in_executor(None, server.wait_for_code)
+
+        if error or not code:
+            raise RuntimeError(f"Authentication failed: {error}")
+
+        access_token, refresh_token, expires_in = await loop.run_in_executor(
+            None,
+            lambda: exchange_code(
+                code=code,
+                code_verifier=code_verifier,
+                redirect_uri=redirect_uri,
+            ),
+        )
+
+        self._config.set_oauth_tokens(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+        )
+        logger.info("Auth completed!")
+        await self.post_login()
 
     def logout(self):
         """
-        Remove the current user token.
+        Remove the current user tokens (access + refresh).
         """
-        self._config.remove_user_token()
+        self._config.clear_oauth_tokens()
 
     async def set_user_token(self, code: str):
         if await self._validate_user_token(code):
@@ -1105,11 +1234,46 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             self._cache[path] = (time() + 60, response)
             return response
 
+    async def _maybe_refresh_token(self) -> None:
+        """
+        Proactively refresh the access token if it is expired or about to
+        expire (within a 30-second margin) and a refresh token is available.
+        Raises UserTokenExpired if the refresh attempt fails.
+        """
+        import asyncio
+        from time import time
+
+        expires_at = self._config.token_expires_at
+        if expires_at is not None and time() >= expires_at - 30:
+            await self._do_refresh()
+
+    async def _do_refresh(self) -> None:
+        import asyncio
+
+        from nuclia.sdk.oauth import refresh_access_token
+
+        if not self._config.refresh_token:
+            raise UserTokenExpired()
+        try:
+            loop = asyncio.get_event_loop()
+            access_token, new_refresh, expires_in = await loop.run_in_executor(
+                None,
+                lambda: refresh_access_token(self._config.refresh_token),  # type: ignore[arg-type]
+            )
+            self._config.set_oauth_tokens(
+                access_token=access_token,
+                refresh_token=new_refresh,
+                expires_in=expires_in,
+            )
+        except Exception:
+            raise UserTokenExpired()
+
     async def _request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
     ):
         if not self._config.token:
             raise NeedUserToken()
+        await self._maybe_refresh_token()
         kwargs: Dict[str, Any] = {
             "headers": {"Authorization": f"Bearer {self._config.token}"}
         }
@@ -1129,7 +1293,16 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             return resp.json()
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
-        elif resp.status_code == 403 or resp.status_code == 401:
+        elif resp.status_code in (401, 403):
+            # Reactive refresh: try once on auth failure.
+            if self._config.refresh_token:
+                await self._do_refresh()
+                kwargs["headers"]["Authorization"] = f"Bearer {self._config.token}"
+                resp = await self.client.request(method, path, **kwargs)
+                if resp.status_code == 204:
+                    return None
+                elif resp.status_code >= 200 and resp.status_code < 300:
+                    return resp.json()
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})

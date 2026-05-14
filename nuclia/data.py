@@ -62,7 +62,9 @@ def get_client(kbid: str) -> NucliaDBClient:
         ndb = NucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
     else:
         if kb_obj.token is None and auth._validate_user_token():
-            # User token auth
+            # User token auth — refresh proactively so the token passed to the
+            # client is not already expired.
+            auth._maybe_refresh_token()
             ndb = NucliaDBClient(
                 environment=Environment.CLOUD,
                 url=kb_obj.url,
@@ -97,7 +99,9 @@ async def get_async_client(kbid: str) -> AsyncNucliaDBClient:
         ndb = AsyncNucliaDBClient(environment=Environment.OSS, url=kb_obj.url)
     else:
         if kb_obj.token is None and await auth._validate_user_token():
-            # User token auth
+            # User token auth — refresh proactively so the token passed to the
+            # client is not already expired.
+            await auth._maybe_refresh_token()
             ndb = AsyncNucliaDBClient(
                 environment=Environment.CLOUD,
                 url=kb_obj.url,

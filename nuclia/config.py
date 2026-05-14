@@ -1,12 +1,17 @@
+import logging
 import os
 from datetime import datetime
 from enum import Enum
+from time import time
 from typing import List, Optional, Sequence, Union, overload
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
+from nuclia.urls import _root_domain
 from nuclia.exceptions import NotDefinedDefault
 
 CONFIG_DIR = "~/.nuclia"
@@ -146,10 +151,9 @@ def extract_region(url) -> Optional[str]:
         if region in [
             "localhost",
             "rag",
-            "nuclia",
-            "stashify",
-            "gcp-global-dev-1",
-            CLOUD_ID.split(".")[0],
+            "accounts",
+            "oauth",
+            _root_domain(CLOUD_ID).split(".")[0],
         ]:
             # This means the URL is global, not regional
             return None
@@ -168,6 +172,8 @@ class Config(BaseModel):
     default: Optional[Selection] = Selection()
     user: Optional[str] = None
     token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[float] = None
 
     def get_nua(self, nua_id: str) -> NuaKey:
         nua_obj = next(
@@ -215,6 +221,23 @@ class Config(BaseModel):
 
     def set_user_token(self, code: str):
         self.token = code
+
+    def set_oauth_tokens(
+        self,
+        access_token: str,
+        refresh_token: Optional[str],
+        expires_in: Optional[int],
+    ):
+        self.token = access_token
+        self.refresh_token = refresh_token
+        self.token_expires_at = (time() + expires_in) if expires_in else None
+        self.save()
+
+    def clear_oauth_tokens(self):
+        self.token = None
+        self.refresh_token = None
+        self.token_expires_at = None
+        self.save()
 
     def remove_user_token(self):
         self.token = None
@@ -422,8 +445,16 @@ class Config(BaseModel):
         from nuclia.data import DATA
 
         DATA.config = self
-        with open(os.path.expanduser(CONFIG_PATH), "w") as config_file:
+        config_path = os.path.expanduser(CONFIG_PATH)
+        with open(config_path, "w") as config_file:
             config_file.write(self.model_dump_json())
+        try:
+            os.chmod(config_path, 0o600)
+        except Exception:
+            logger.warning(
+                "Could not set restrictive permissions on config file %s",
+                config_path,
+            )
 
 
 def read_config() -> Config:
