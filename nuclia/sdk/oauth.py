@@ -17,7 +17,7 @@ import json
 import secrets
 import threading
 from base64 import b64encode, urlsafe_b64encode
-from typing import Optional, Tuple
+from typing import Optional, Tuple, cast
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
@@ -193,6 +193,13 @@ def _error_html(error: str) -> str:
     )
 
 
+class _CallbackServer(http.server.HTTPServer):
+    _result: Tuple[Optional[str], Optional[str]] = (
+        None,
+        "Timeout waiting for browser callback",
+    )
+
+
 class _CallbackHandler(http.server.BaseHTTPRequestHandler):
     """Handles exactly one GET /callback request."""
 
@@ -205,6 +212,7 @@ class _CallbackHandler(http.server.BaseHTTPRequestHandler):
             self._respond(404, "Not found")
             return
 
+        server = cast(_CallbackServer, self.server)
         params = parse_qs(parsed.query)
         received_state = params.get("state", [None])[0]
         error = params.get("error", [None])[0]
@@ -217,24 +225,24 @@ class _CallbackHandler(http.server.BaseHTTPRequestHandler):
                 _error_html(description),
                 content_type="text/html",
             )
-            self.server._result = (None, f"OAuth error: {description}")  # type: ignore[attr-defined]
+            server._result = (None, f"OAuth error: {description}")
         elif received_state != self.expected_state:
             self._respond(
                 400,
                 _error_html("State mismatch — possible CSRF attack."),
                 content_type="text/html",
             )
-            self.server._result = (None, "State mismatch")  # type: ignore[attr-defined]
+            server._result = (None, "State mismatch")
         elif not code:
             self._respond(
                 400,
                 _error_html("No authorization code received."),
                 content_type="text/html",
             )
-            self.server._result = (None, "No code in callback")  # type: ignore[attr-defined]
+            server._result = (None, "No code in callback")
         else:
             self._respond(200, _SUCCESS_HTML, content_type="text/html")
-            self.server._result = (code, None)  # type: ignore[attr-defined]
+            server._result = (code, None)
 
         # Signal the waiting thread to stop the server.
         threading.Thread(target=self.server.shutdown, daemon=True).start()
@@ -271,7 +279,7 @@ class OAuthCallbackServer:
     def _bind(self) -> int:
         for port in CALLBACK_PORTS:
             try:
-                server = http.server.HTTPServer(("127.0.0.1", port), _CallbackHandler)
+                server = _CallbackServer(("127.0.0.1", port), _CallbackHandler)
                 _CallbackHandler.expected_state = self._expected_state
                 self._server = server
                 return port
@@ -301,7 +309,7 @@ class OAuthCallbackServer:
         t.start()
         t.join(timeout=CALLBACK_TIMEOUT + 1)
         self._server.server_close()
-        return self._server._result  # type: ignore[attr-defined]
+        return self._server._result
 
 
 # ---------------------------------------------------------------------------
