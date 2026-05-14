@@ -1,8 +1,8 @@
 import pytest
 
 from nuclia import (
-    _root_domain,
     _regional_template,
+    _root_domain,
     get_global_base,
     get_oauth_base,
     get_regional_base,

@@ -1,5 +1,4 @@
-from nuclia import BASE_DOMAIN, get_regional_url
-from nuclia import _root_domain, _regional_template
+from nuclia import BASE_DOMAIN, _regional_template, get_regional_url
 from nuclia.config import Config, NuaKey, Zone
 from nuclia.sdk.auth import BaseNucliaAuth
 

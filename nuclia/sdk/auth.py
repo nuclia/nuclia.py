@@ -1240,7 +1240,6 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         expire (within a 30-second margin) and a refresh token is available.
         Raises UserTokenExpired if the refresh attempt fails.
         """
-        import asyncio
         from time import time
 
         expires_at = self._config.token_expires_at

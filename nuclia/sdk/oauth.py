@@ -15,7 +15,6 @@ import hashlib
 import http.server
 import json
 import secrets
-import socket
 import threading
 from base64 import b64encode, urlsafe_b64encode
 from typing import Optional, Tuple

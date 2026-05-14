@@ -6,13 +6,13 @@ from time import time
 from typing import List, Optional, Sequence, Union, overload
 from urllib.parse import urlparse
 
-logger = logging.getLogger(__name__)
-
 from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
-from nuclia.urls import _root_domain
 from nuclia.exceptions import NotDefinedDefault
+from nuclia.urls import _root_domain
+
+logger = logging.getLogger(__name__)
 
 CONFIG_DIR = "~/.nuclia"
 CONFIG_PATH = CONFIG_DIR + "/config"
