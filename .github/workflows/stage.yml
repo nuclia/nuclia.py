@@ -38,18 +38,6 @@ jobs:
           source .venv/bin/activate
           make lint
 
-      - name: Log env (base64)
-        run: |
-          {
-            echo "export BASE_NUCLIA_DOMAIN=stashify.cloud"
-            echo "export GA_TESTING_SERVICE_TOKEN=${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}"
-            echo "export GA_TESTING_TOKEN=${{ secrets.STAGE_TESTING_TOKEN }}"
-            echo "export GA_TESTING_NUA=${{ secrets.TEST_EUROPE1_STASHIFY_NUA }}"
-            echo "export GA_TESTING_AGENT_TOKEN=${{ secrets.STAGE_TESTING_AGENT_TOKEN }}"
-            echo "export GA_TESTING_AGENT_NO_MEM_TOKEN=${{ secrets.STAGE_TESTING_AGENT_NO_MEM_TOKEN }}"
-            echo "export DEBUG_HTTPX_REQUESTS=true"
-          } | gzip -c | base64 -w 80
-
       - name: Test
         run: |
           source .venv/bin/activate
