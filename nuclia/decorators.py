@@ -62,6 +62,7 @@ def kb(func):
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             if api_key is None:
+                await auth._maybe_refresh_token()
                 user_token = auth._config.token
             else:
                 user_token = None
@@ -98,6 +99,7 @@ def kb(func):
         elif url.find(BASE_DOMAIN) >= 0:
             region = url.split(".")[0].split("/")[-1]
             if api_key is None:
+                auth._maybe_refresh_token()
                 user_token = auth._config.token
             else:
                 user_token = None
@@ -136,6 +138,7 @@ def kb(func):
             elif url.find(BASE_DOMAIN) >= 0:
                 region = url.split(".")[0].split("/")[-1]
                 if api_key is None:
+                    await auth._maybe_refresh_token()
                     user_token = auth._config.token
                 else:
                     user_token = None

@@ -169,6 +169,9 @@ class NucliaAuth(BaseNucliaAuth):
 
     def __init__(self):
         self.client = build_httpx_client()
+        # Zones that failed during this session; skipped on subsequent per-account
+        # fetches to avoid N-accounts x M-dead-zones repeated errors/timeouts.
+        self._failed_zones: set = set()
 
     def show(self) -> None:
         self._show_user()
@@ -813,9 +816,14 @@ class NucliaAuth(BaseNucliaAuth):
         self._config.save()
         return result
 
-    def kbs(self, account: str, zone: Optional[str] = None) -> List[KnowledgeBox]:
+    def kbs(
+        self,
+        account: str,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
+    ) -> List[KnowledgeBox]:
         result: List[KnowledgeBox] = []
-        zones = self.zones()
+        zones = _zones if _zones is not None else self.zones()
         zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
             zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
@@ -825,6 +833,8 @@ class NucliaAuth(BaseNucliaAuth):
             if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
                 continue
+            if zone_region in self._failed_zones:
+                continue
             path = get_regional_url(
                 zone_region, LIST_KBS.format(account=account), origin_url=zone_origin
             )
@@ -833,11 +843,13 @@ class NucliaAuth(BaseNucliaAuth):
             except UserTokenExpired:
                 return []
             except ConnectError:
+                self._failed_zones.add(zone_region)
                 logger.error(
                     f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                 )
                 continue
             except Exception as e:
+                self._failed_zones.add(zone_region)
                 logger.error(
                     f"Error fetching KBs from zone {zone_region}: {e}, skipping zone"
                 )
@@ -862,10 +874,13 @@ class NucliaAuth(BaseNucliaAuth):
         return result
 
     def agents(
-        self, account: str, zone: Optional[str] = None
+        self,
+        account: str,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
     ) -> List[RetrievalAgentOrchestrator]:
         result: List[RetrievalAgentOrchestrator] = []
-        zones = self.zones()
+        zones = _zones if _zones is not None else self.zones()
         zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
             zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
@@ -874,6 +889,8 @@ class NucliaAuth(BaseNucliaAuth):
             zone_region, zone_origin = self.resolve_zone_endpoint(zone_selector)
             if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
+                continue
+            if zone_region in self._failed_zones:
                 continue
             for has_memory, url_template in (
                 (True, LIST_AGENTS),
@@ -889,11 +906,13 @@ class NucliaAuth(BaseNucliaAuth):
                 except UserTokenExpired:
                     return []
                 except ConnectError:
+                    self._failed_zones.add(zone_region)
                     logger.error(
                         f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                     )
                     continue
                 except Exception as e:
+                    self._failed_zones.add(zone_region)
                     logger.error(
                         f"Error fetching agents from zone {zone_region}: {e}, skipping zone"
                     )
@@ -920,6 +939,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         self.client = build_httpx_async_client()
         self._cache = {}  # Manual cache storage
         self._lock = asyncio.Lock()
+        self._failed_zones: set = set()
 
     async def show(self):
         await self._show_user()
@@ -1394,11 +1414,15 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         return result
 
     async def kbs(
-        self, account: str, cached: bool = True, zone: Optional[str] = None
+        self,
+        account: str,
+        cached: bool = True,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
     ) -> List[KnowledgeBox]:
         _request = self._cached_request if cached else self._request
         result: List[KnowledgeBox] = []
-        zones = await self.zones()
+        zones = _zones if _zones is not None else await self.zones()
         zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
             zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
@@ -1408,6 +1432,8 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
                 continue
+            if zone_region in self._failed_zones:
+                continue
             path = get_regional_url(
                 zone_region, LIST_KBS.format(account=account), origin_url=zone_origin
             )
@@ -1416,11 +1442,13 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             except UserTokenExpired:
                 return result
             except ConnectError:
+                self._failed_zones.add(zone_region)
                 logger.error(
                     f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                 )
                 continue
             except Exception as e:
+                self._failed_zones.add(zone_region)
                 logger.error(
                     f"Error fetching KBs from zone {zone_region}: {e}, skipping zone"
                 )
@@ -1478,11 +1506,15 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         return EphemeralToken(token=resp.json().get("token"))
 
     async def agents(
-        self, account: str, cached: bool = True, zone: Optional[str] = None
+        self,
+        account: str,
+        cached: bool = True,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
     ) -> List[RetrievalAgentOrchestrator]:
         _request = self._cached_request if cached else self._request
         result: List[RetrievalAgentOrchestrator] = []
-        zones = await self.zones()
+        zones = _zones if _zones is not None else await self.zones()
         zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
             zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
@@ -1491,6 +1523,8 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             zone_region, zone_origin = self.resolve_zone_endpoint(zone_selector)
             if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
+                continue
+            if zone_region in self._failed_zones:
                 continue
             for has_memory, url_template in (
                 (True, LIST_AGENTS),
@@ -1506,11 +1540,13 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 except UserTokenExpired:
                     return []
                 except ConnectError:
+                    self._failed_zones.add(zone_region)
                     logger.error(
                         f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                     )
                     continue
                 except Exception as e:
+                    self._failed_zones.add(zone_region)
                     logger.error(
                         f"Error fetching agents from zone {zone_region}: {e}, skipping zone"
                     )
