@@ -35,6 +35,15 @@ from nuclia.config import (
 from nuclia.exceptions import NeedUserToken, NuaTokenExpired, UserTokenExpired
 from nuclia.lib.utils import build_httpx_async_client, build_httpx_client
 from nuclia.sdk.logger import logger
+from nuclia.sdk.oauth import (
+    OAuthCallbackServer,
+    build_authorization_url,
+    exchange_code,
+    generate_code_challenge,
+    generate_code_verifier,
+    generate_state,
+    refresh_access_token,
+)
 
 USER = "/api/v1/user/welcome"
 MEMBER = "/api/v1/user"
@@ -508,15 +517,6 @@ class NucliaAuth(BaseNucliaAuth):
         one of the pre-registered callback ports, waits for the authorization
         code, exchanges it for tokens, and stores them.
         """
-        from nuclia.sdk.oauth import (
-            OAuthCallbackServer,
-            build_authorization_url,
-            exchange_code,
-            generate_code_challenge,
-            generate_code_verifier,
-            generate_state,
-        )
-
         if self._validate_user_token():
             logger.info("Already logged in.")
             self._show_user()
@@ -662,15 +662,11 @@ class NucliaAuth(BaseNucliaAuth):
         expire (within a 30-second margin) and a refresh token is available.
         Raises UserTokenExpired if the refresh attempt fails.
         """
-        from time import time
-
         expires_at = self._config.token_expires_at
         if expires_at is not None and time() >= expires_at - 30:
             self._do_refresh()
 
     def _do_refresh(self) -> None:
-        from nuclia.sdk.oauth import refresh_access_token
-
         if not self._config.refresh_token:
             raise UserTokenExpired()
         try:
@@ -1240,17 +1236,11 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         expire (within a 30-second margin) and a refresh token is available.
         Raises UserTokenExpired if the refresh attempt fails.
         """
-        from time import time
-
         expires_at = self._config.token_expires_at
         if expires_at is not None and time() >= expires_at - 30:
             await self._do_refresh()
 
     async def _do_refresh(self) -> None:
-        import asyncio
-
-        from nuclia.sdk.oauth import refresh_access_token
-
         if not self._config.refresh_token:
             raise UserTokenExpired()
         try:

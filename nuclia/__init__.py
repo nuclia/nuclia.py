@@ -30,10 +30,6 @@ def get_regional_url(region: str, path: str, origin_url: Optional[str] = None):
     return base.rstrip("/") + path
 
 
-def get_oauth_base_url() -> str:
-    return OAUTH_BASE
-
-
 def get_list_parameter(param: Optional[List[str]]) -> List[str]:
     param = list(param or [])
     if len(param) > 0 and all([len(el) == 1 for el in param]):
@@ -54,7 +50,6 @@ __all__ = [
     "GLOBAL_BASE",
     "get_global_url",
     "get_regional_url",
-    "get_oauth_base_url",
     "get_list_parameter",
     "is_nuclia_hosted",
     # urls.py helpers re-exported for convenience
