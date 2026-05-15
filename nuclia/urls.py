@@ -20,6 +20,17 @@ def _root_domain(base_domain: str) -> str:
     return base_domain
 
 
+# All known Nuclia root domains (canonical, without the rag. prefix).
+KNOWN_ROOT_DOMAINS = frozenset(
+    {
+        "progress.cloud",
+        "nuclia.cloud",
+        "stashify.cloud",
+        "gcp-global-dev-1.nuclia.io",
+    }
+)
+
+
 def get_global_base(base_domain: str) -> str:
     return f"https://accounts.{_root_domain(base_domain)}"
 

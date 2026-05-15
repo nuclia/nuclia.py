@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
 from nuclia.exceptions import NotDefinedDefault
-from nuclia.urls import _root_domain
+from nuclia.urls import _root_domain, KNOWN_ROOT_DOMAINS
 
 logger = logging.getLogger(__name__)
 
@@ -145,20 +145,16 @@ class Selection(BaseModel):
 def extract_region(url) -> Optional[str]:
     parsed = urlparse(url)
     hostname = parsed.hostname
-    if hostname:
-        parts = hostname.split(".")
-        region = parts[0] if parts else None
-        if region in [
-            "localhost",
-            "rag",
-            "accounts",
-            "oauth",
-            _root_domain(CLOUD_ID).split(".")[0],
-        ]:
-            # This means the URL is global, not regional
-            return None
-        return region
-    return None
+    if not hostname:
+        return None
+    root = _root_domain(hostname)
+    # Global root domains (known static list + currently configured domain).
+    if root in KNOWN_ROOT_DOMAINS or root == _root_domain(CLOUD_ID):
+        return None
+    region = hostname.split(".")[0]
+    if region in {"localhost", "rag", "accounts", "oauth"}:
+        return None
+    return region
 
 
 class Config(BaseModel):
