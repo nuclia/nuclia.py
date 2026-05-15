@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
 from nuclia.exceptions import NotDefinedDefault
-from nuclia.urls import _root_domain, KNOWN_ROOT_DOMAINS
+from nuclia.urls import KNOWN_ROOT_DOMAINS, _root_domain
 
 logger = logging.getLogger(__name__)
 
