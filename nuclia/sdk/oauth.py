@@ -28,9 +28,7 @@ from nuclia import OAUTH_BASE
 # OAuth client configuration
 # ---------------------------------------------------------------------------
 
-# Public client ID registered in Ory Hydra (no secret — PKCE only).
-# Override via environment variable to support multiple environments without
-# code changes; typically set per-environment during deployment/packaging.
+# Public client ID registered in the OAUTH Servers of all envs
 CLIENT_ID: str = "43f54e81-932a-4b45-9bba-acbf4e2b5ee6"
 
 # Scopes requested during authorization.
