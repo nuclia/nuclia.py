@@ -1,27 +1,41 @@
-name: Push docs
+# Reusable workflow: publishes the SDK docs to S3.
+#
+# This file serves two purposes:
+#
+#   1. Single source of truth — nuclia.yml calls this via workflow_call after
+#      a successful PyPI release so the job definition lives here only.
+#
+#   2. Standalone execution — can be triggered outside of a PR via
+#      workflow_dispatch from the GitHub Actions UI (e.g. to force a docs
+#      re-sync without cutting a new release).
+#
+name: Publish docs
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  publish-doc:
-    name: Publish documentation
+  publish-docs:
+    name: Publish docs
     runs-on: ubuntu-latest
     steps:
+<<<<<<< Updated upstream
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+=======
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+>>>>>>> Stashed changes
         with:
           role-to-assume: '${{ secrets.AWS_DOCS_SYNC_ROLE }}'
           aws-region: ${{ secrets.AWS_DOCS_SYNC_REGION }}
-
       - name: Push SDK docs to S3
         run: aws s3 sync ./docs s3://${{ secrets.DOCS_STORAGE }}/python-sdk
