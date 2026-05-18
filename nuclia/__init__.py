@@ -2,14 +2,24 @@ import os
 from typing import List, Optional
 from urllib.parse import urlparse
 
-BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "rag.progress.cloud")
-BASE = f"https://{BASE_DOMAIN}"
-REGIONAL = "https://{region}." + BASE_DOMAIN
-CLOUD_ID = BASE.split("/")[-1]
+from nuclia.urls import (
+    _regional_template,
+    _root_domain,
+    get_global_base,
+    get_oauth_base,
+    get_regional_base,
+)
+
+BASE_DOMAIN = os.environ.get("BASE_NUCLIA_DOMAIN", "progress.cloud")
+CLOUD_ID = BASE_DOMAIN
+
+REGIONAL = _regional_template(BASE_DOMAIN)
+OAUTH_BASE = get_oauth_base(BASE_DOMAIN)
+GLOBAL_BASE = get_global_base(BASE_DOMAIN)
 
 
 def get_global_url(path: str):
-    return BASE + path
+    return GLOBAL_BASE + path
 
 
 def get_regional_url(region: str, path: str, origin_url: Optional[str] = None):
@@ -29,7 +39,26 @@ def get_list_parameter(param: Optional[List[str]]) -> List[str]:
 
 
 def is_nuclia_hosted(url: str):
-    return BASE_DOMAIN in urlparse(url).netloc
+    return _root_domain(BASE_DOMAIN) in urlparse(url).netloc
+
+
+__all__ = [
+    "BASE_DOMAIN",
+    "CLOUD_ID",
+    "REGIONAL",
+    "OAUTH_BASE",
+    "GLOBAL_BASE",
+    "get_global_url",
+    "get_regional_url",
+    "get_list_parameter",
+    "is_nuclia_hosted",
+    # urls.py helpers re-exported for convenience
+    "_root_domain",
+    "_regional_template",
+    "get_global_base",
+    "get_oauth_base",
+    "get_regional_base",
+]
 
 
 # HACK used to debug in CI. Remove once the issue is solved

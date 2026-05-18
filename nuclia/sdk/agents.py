@@ -25,9 +25,10 @@ class NucliaAgents:
                 if self._auth._config.accounts is not None
                 else []
             )
+            zones = self._auth.zones()
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    result.extend(self._auth.agents(account_obj.id))
+                    result.extend(self._auth.agents(account_obj.id, _zones=zones))
             self._auth._config.agents = result
             self._auth._config.save()
 
@@ -108,9 +109,10 @@ class AsyncNucliaAgents:
                 if self._auth._config.accounts is not None
                 else []
             )
+            zones = await self._auth.zones()
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    result.extend(await self._auth.agents(account_obj.id))
+                    result.extend(await self._auth.agents(account_obj.id, _zones=zones))
             self._auth._config.agents = result
             self._auth._config.save()
 
