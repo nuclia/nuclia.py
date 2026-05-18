@@ -47,9 +47,10 @@ class NucliaKBS:
                     if self._auth._config.accounts is not None
                     else []
                 )
+                zones = self._auth.zones()
                 for account_obj in accounts:
                     if account_obj.slug is not None:
-                        result.extend(self._auth.kbs(account_obj.id))
+                        result.extend(self._auth.kbs(account_obj.id, _zones=zones))
             elif self._auth._config.nuas_token:
                 nua_obj = self._auth._config.get_nua(
                     self._auth._config.get_default_nua()
@@ -230,10 +231,13 @@ class AsyncNucliaKBS:
                     if self._auth._config.accounts is not None
                     else []
                 )
+                zones = await self._auth.zones()
                 for account_obj in accounts:
                     if account_obj.slug is not None:
                         result.extend(
-                            await self._auth.kbs(account_obj.id, cached=False)
+                            await self._auth.kbs(
+                                account_obj.id, cached=False, _zones=zones
+                            )
                         )
             elif self._auth._config.nuas_token:
                 nua_obj = self._auth._config.get_nua(
