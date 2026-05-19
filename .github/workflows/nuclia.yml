@@ -36,20 +36,20 @@ on:
 jobs:
   test-stage:
     name: Test (stage)
-    if: github.event_name == 'pull_request' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
-    uses: ./.github/workflows/stage.yml
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    uses: nuclia/nuclia.py/.github/workflows/stage.yml@automated_release  # TEMPORARY: revert to ./.github/workflows/stage.yml before merging
     secrets: inherit
 
   test-prod:
     name: Test (prod)
-    if: github.event_name == 'pull_request' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
-    uses: ./.github/workflows/prod.yml
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    uses: nuclia/nuclia.py/.github/workflows/prod.yml@automated_release  # TEMPORARY: revert to ./.github/workflows/prod.yml before merging
     secrets: inherit
 
   test-windows:
     name: Test (windows)
-    if: github.event_name == 'pull_request' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
-    uses: ./.github/workflows/windows.yml
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    uses: nuclia/nuclia.py/.github/workflows/windows.yml@automated_release  # TEMPORARY: revert to ./.github/workflows/windows.yml before merging
     secrets: inherit
 
   prepare-release:
@@ -172,6 +172,6 @@ jobs:
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'release')
     needs: [publish-pypi]
-    uses: ./.github/workflows/docs.yml
+    uses: nuclia/nuclia.py/.github/workflows/docs.yml@automated_release  # TEMPORARY: revert to ./.github/workflows/docs.yml before merging
     secrets: inherit
 
