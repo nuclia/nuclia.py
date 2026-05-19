@@ -1,31 +1,33 @@
-name: Test on windows
+# Reusable workflow: basic smoke test on Windows.
+#
+# This file serves two purposes:
+#
+#   1. Single source of truth — nuclia.yml calls this via workflow_call so
+#      the job definition lives here only, not duplicated.
+#
+#   2. Standalone execution — can be triggered outside of a PR via
+#      workflow_dispatch from the GitHub Actions UI.
+#
+name: Test (windows)
 
 on:
-  pull_request:
-    branches:
-      - main
-  repository_dispatch:
-    types: [test-stage]
+  workflow_call:
+    secrets:
+      PROD_API_KEY_FOR_WINDOWS_TEST:
+        required: true
+  workflow_dispatch:
 
 jobs:
-  test:
-    name: Testing
+  test-windows:
+    name: Test (windows)
     runs-on: windows-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Setup Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
-
+      - uses: astral-sh/setup-uv@v5
       - name: Install package
         run: uv sync --no-editable --all-extras
-
       - name: Test
         run: uv run nuclia kb list --url="https://europe-1.rag.progress.cloud/api/v1/kb/eb720a59-f879-4b23-a995-605f91c874f4" --api_key="${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}"
