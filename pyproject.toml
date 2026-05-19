@@ -81,7 +81,6 @@ managed = true
 
 [tool.commitizen]
 version_provider = "pep621"
-version_files = ["VERSION"]
 tag_format = "$version"
 update_changelog_on_bump = true
 changelog_incremental = true

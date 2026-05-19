@@ -112,7 +112,7 @@ jobs:
           # remote tag yet (e.g. initial 4.10.0 set without a published release).
           # fetch-depth: 0 already fetches all remote tags, so on the normal path
           # (every version comes from a previous publish) this is a no-op.
-          git tag "$(cat VERSION)" || true
+          git tag "$(uv version --short)" || true
           cz bump --allow-no-commit --changelog --yes
 
       - name: Delete local tag (tag will be created on the merge commit instead)
@@ -122,7 +122,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          VERSION=$(cat VERSION)
+          VERSION=$(uv version --short)
           gh pr comment ${{ github.event.pull_request.number }} --body "**Release \`${VERSION}\` is ready.**
 
           The version and changelog have been updated by the bot. You can:
@@ -176,7 +176,7 @@ jobs:
           # remote tag yet (e.g. initial 4.10.0 set without a published release).
           # fetch-depth: 0 already fetches all remote tags, so on the normal path
           # (every version comes from a previous publish) this is a no-op.
-          git tag "$(cat VERSION)" || true
+          git tag "$(uv version --short)" || true
           if [ -n "${{ inputs.bump_type }}" ]; then
             cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
           else
@@ -184,7 +184,7 @@ jobs:
           fi
 
       - name: Delete local tag (tag will be created on the merge commit instead)
-        run: git tag -d "$(cat VERSION)" || true
+        run: git tag -d "$(uv version --short)" || true
 
       - name: Push release branch
         run: git push origin release/auto
@@ -193,7 +193,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          VERSION=$(cat VERSION)
+          VERSION=$(uv version --short)
           gh pr create \
             --title "chore: release ${VERSION}" \
             --body "Automated release PR. Review the changelog and merge to publish to PyPI." \
@@ -233,7 +233,7 @@ jobs:
 
       - name: Tag release commit
         run: |
-          VERSION=$(cat VERSION)
+          VERSION=$(uv version --short)
           git tag "${VERSION}"
           git push origin "${VERSION}"
 
