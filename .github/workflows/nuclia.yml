@@ -36,13 +36,13 @@ on:
 jobs:
   test-stage:
     name: Test (stage)
-    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    if: github.event_name == 'pull_request' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/stage.yml
     secrets: inherit
 
   test-prod:
     name: Test (prod)
-    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    if: github.event_name == 'pull_request' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/prod.yml
     secrets: inherit
 
