@@ -57,8 +57,7 @@ point for all CI and release activity. Here is what happens at each stage:
      the bot and can bypass branch protection).
    - Installs and runs `commitizen` (`cz bump --allow-no-commit --changelog`), which
      inspects all conventional commits since the last tag to determine the bump type
-     (`fix:` → patch, `feat:` → minor, breaking change → major), updates `VERSION` and
-     `CHANGELOG.md`, and creates a bump commit.
+     (`fix:` → patch, `feat:` → minor, `feat!:` / `fix!:` / any `type!:` → major), updates `CHANGELOG.md`, and creates a bump commit.
      
      > **Conventional commits matter.** If none of the commits since the last tag follow
      > the `type: description` format, commitizen falls back to a patch bump and produces
@@ -114,13 +113,13 @@ credential. This is configured on PyPI under the package's **Trusted Publishers*
 ### `pypi` GitHub Environment (approval gate)
 
 The `publish-pypi` job runs under the `pypi` GitHub Environment (repo Settings →
-Environments). This environment requires explicit approval from the `@nuclia/publishers`
+Environments). This environment requires explicit approval from the `@nuclia/pypi-publishers`
 team before the job proceeds. The job will pause at the environment gate even if all
 tests passed and the PR was merged — a human must approve before the upload happens.
 
 ### CODEOWNERS protection
 
-`.github/CODEOWNERS` requires a review from `@nuclia/publishers` on any PR that touches
+`.github/CODEOWNERS` requires a review from `@nuclia/pypi-publishers` on any PR that touches
 `.github/workflows/`. This prevents someone from modifying the workflow to bypass the
 `pypi` environment gate and then self-merging.
 

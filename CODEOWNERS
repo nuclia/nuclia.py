@@ -1,2 +1,2 @@
-.github/workflows/nuclia.yml    @nuclia/publishers
-.github/workflows               @nuclia/publishers
+.github/workflows/nuclia.yml    @nuclia/pypi-publishers
+.github/workflows               @nuclia/pypi-publishers
