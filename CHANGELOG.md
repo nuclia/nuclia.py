@@ -1,6 +1,8 @@
 # Changelog
 
 
+## 4.9.27 (2026-05-19)
+
 ## 4.9.26 (2026-05-12)
 
 - Support private zone deployments, where we may need to configure the origin url for the api calls.
