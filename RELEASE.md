@@ -59,6 +59,12 @@ point for all CI and release activity. Here is what happens at each stage:
      inspects all conventional commits since the last tag to determine the bump type
      (`fix:` → patch, `feat:` → minor, breaking change → major), updates `VERSION` and
      `CHANGELOG.md`, and creates a bump commit.
+     
+     > **Conventional commits matter.** If none of the commits since the last tag follow
+     > the `type: description` format, commitizen falls back to a patch bump and produces
+     > an empty changelog section (just the version header, no entries). To get meaningful
+     > automatic release notes, use conventional commit messages: `fix: ...`, `feat: ...`, etc.
+     > You can always edit `CHANGELOG.md` manually before merging.
    - Pushes the bump commit back to the PR branch.
    - Posts a PR comment confirming the new version and inviting changelog edits.
    
