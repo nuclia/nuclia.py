@@ -23,8 +23,6 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, closed]
-  push:
-    branches: [automated_relase]  # TEMPORARY: remove after merging
   workflow_dispatch:
     inputs:
       bump_type:
@@ -38,19 +36,19 @@ on:
 jobs:
   test-stage:
     name: Test (stage)
-    if: (github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true))
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: nuclia/nuclia.py/.github/workflows/stage.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/stage.yml before merging
     secrets: inherit
 
   test-prod:
     name: Test (prod)
-    if: (github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true))
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: nuclia/nuclia.py/.github/workflows/prod.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/prod.yml before merging
     secrets: inherit
 
   test-windows:
     name: Test (windows)
-    if: (github.event_name == 'push') || (github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true))
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: nuclia/nuclia.py/.github/workflows/windows.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/windows.yml before merging
     secrets: inherit
 
