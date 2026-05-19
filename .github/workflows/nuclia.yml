@@ -36,19 +36,19 @@ on:
 jobs:
   test-stage:
     name: Test (stage)
-    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: nuclia/nuclia.py/.github/workflows/stage.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/stage.yml before merging
     secrets: inherit
 
   test-prod:
     name: Test (prod)
-    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: nuclia/nuclia.py/.github/workflows/prod.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/prod.yml before merging
     secrets: inherit
 
   test-windows:
     name: Test (windows)
-    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: nuclia/nuclia.py/.github/workflows/windows.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/windows.yml before merging
     secrets: inherit
 
@@ -88,7 +88,10 @@ jobs:
           git config user.name "nuclia-service-bot[bot]"
 
       - name: Bump version and update changelog
-        run: cz bump --allow-no-commit --changelog --no-tag --yes
+        run: cz bump --allow-no-commit --changelog --yes
+
+      - name: Delete local tag (tag will be created on the merge commit instead)
+        run: git tag -d "v$(cat VERSION)" || true
 
       - name: Push version bump commit to PR branch
         run: git push origin HEAD:${{ github.head_ref }}
@@ -135,10 +138,13 @@ jobs:
       - name: Bump version and update changelog
         run: |
           if [ -n "${{ inputs.bump_type }}" ]; then
-            cz bump --increment "${{ inputs.bump_type }}" --changelog --no-tag --yes
+            cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
           else
-            cz bump --allow-no-commit --changelog --no-tag --yes
+            cz bump --allow-no-commit --changelog --yes
           fi
+
+      - name: Delete local tag (tag will be created on the merge commit instead)
+        run: git tag -d "v$(cat VERSION)" || true
 
       - name: Push release branch
         run: git push origin release/auto
