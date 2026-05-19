@@ -789,5 +789,3 @@
 ## 1.0.3 (2023-06-20)
 
 Initial version with support of KB authentication and NUA
-
-## v4.9.27 (2026-05-19)

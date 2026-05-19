@@ -84,7 +84,7 @@ managed = true
 
 [tool.commitizen]
 version_provider = "commitizen"
-version = "4.9.27"
+version = "4.9.26"
 version_files = ["VERSION"]
 tag_format = "$version"
 update_changelog_on_bump = true
