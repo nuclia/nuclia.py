@@ -1,6 +1,6 @@
 [project]
 name = "nuclia"
-version = "4.10.3"
+version = "4.10.0"
 license = "MIT"
 description = "Nuclia Python SDK"
 readme = "README.md"
@@ -85,4 +85,3 @@ version_files = ["VERSION"]
 tag_format = "$version"
 update_changelog_on_bump = true
 changelog_incremental = true
-changelog_start_rev = "4.9.26"
