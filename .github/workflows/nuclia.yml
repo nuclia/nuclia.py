@@ -1,0 +1,186 @@
+# Main CI/CD workflow for the nuclia package.
+#
+# This is the single entry point for all PR, merge, and release operations.
+#
+# Release flow:
+#   1. Run workflow manually (Actions tab) to trigger prepare-release.
+#   2. prepare-release runs commitizen, opens a PR on release/auto with the
+#      version bump + changelog already committed, and adds the "release" label.
+#   3. Tests run automatically on the new PR (pull_request: opened trigger).
+#   4. Team reviews changelog, approves, and merges.
+#   5. publish-pypi fires on merge: tags the merge commit, builds, uploads to PyPI.
+#   6. publish-docs fires after publish-pypi.
+#
+# Job dependency graph (PR tests):
+#
+#   test-stage ──┐
+#   test-prod  ──┼── publish-pypi ── publish-docs  (release PRs only)
+#   test-windows─┘
+#
+name: Nuclia
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Bump type override (patch / minor / major). Leave empty to auto-detect from conventional commits.'
+        required: false
+        default: ''
+
+# All test jobs: run on open/sync/reopen AND on merge, but NOT on close-without-merge.
+# Condition used: github.event.action != 'closed' || github.event.pull_request.merged == true
+
+jobs:
+  test-stage:
+    name: Test (stage)
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    uses: ./.github/workflows/stage.yml
+    secrets: inherit
+
+  test-prod:
+    name: Test (prod)
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    uses: ./.github/workflows/prod.yml
+    secrets: inherit
+
+  test-windows:
+    name: Test (windows)
+    if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - uses: astral-sh/setup-uv@v5
+      - name: Install package
+        run: uv sync --no-editable --all-extras
+      - name: Test
+        run: uv run nuclia kb list --url="https://europe-1.rag.progress.cloud/api/v1/kb/eb720a59-f879-4b23-a995-605f91c874f4" --api_key="${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}"
+
+  prepare-release:
+    name: Prepare release PR
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Generate bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3.0.0
+        with:
+          app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
+          private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
+          owner: nuclia
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install commitizen
+        run: uv tool install commitizen
+
+      - name: Configure git identity for bot commit
+        run: |
+          git config user.email "nuclia-service-bot[bot]@users.noreply.github.com"
+          git config user.name "nuclia-service-bot[bot]"
+
+      - name: Create release branch
+        run: |
+          git push origin --delete release/auto || true
+          git checkout -b release/auto
+
+      - name: Bump version and update changelog
+        run: |
+          if [ -n "${{ inputs.bump_type }}" ]; then
+            cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
+          else
+            cz bump --allow-no-commit --changelog --yes
+          fi
+
+      - name: Delete local tag (tag will be created on the merge commit instead)
+        run: |
+          VERSION=$(cat VERSION)
+          git tag -d "v${VERSION}" || true
+
+      - name: Push release branch
+        run: git push origin release/auto
+
+      - name: Open release PR with label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          VERSION=$(cat VERSION)
+          gh pr create \
+            --title "chore: release ${VERSION}" \
+            --body "Automated release PR. Review the changelog and merge to publish to PyPI." \
+            --label release \
+            --base main \
+            --head release/auto
+
+  publish-pypi:
+    name: Publish to PyPI
+    if: >
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'release') &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    needs: [test-stage, test-prod, test-windows]
+    runs-on: ubuntu-latest
+    environment: pypi  # requires approval from designated reviewers (repo Settings → Environments)
+    permissions:
+      id-token: write
+    steps:
+      - name: Generate bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3.0.0
+        with:
+          app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
+          private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
+          owner: nuclia
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git identity for bot commit
+        run: |
+          git config user.email "nuclia-service-bot[bot]@users.noreply.github.com"
+          git config user.name "nuclia-service-bot[bot]"
+
+      - name: Tag release commit
+        run: |
+          VERSION=$(cat VERSION)
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build package
+        run: uv build
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-docs:
+    name: Publish docs
+    if: >
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'release')
+    needs: [publish-pypi]
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit
+
