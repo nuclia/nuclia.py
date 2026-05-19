@@ -54,21 +54,21 @@ jobs:
     name: Test (stage)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
-    uses: nuclia/nuclia.py/.github/workflows/stage.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/stage.yml before merging
+    uses: nuclia/nuclia.py/.github/workflows/stage.yml
     secrets: inherit
 
   test-prod:
     name: Test (prod)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
-    uses: nuclia/nuclia.py/.github/workflows/prod.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/prod.yml before merging
+    uses: nuclia/nuclia.py/.github/workflows/prod.yml
     secrets: inherit
 
   test-windows:
     name: Test (windows)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
-    uses: nuclia/nuclia.py/.github/workflows/windows.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/windows.yml before merging
+    uses: nuclia/nuclia.py/.github/workflows/windows.yml
     secrets: inherit
 
   prepare-release-commit:
@@ -124,7 +124,7 @@ jobs:
 
           The version and changelog have been updated by the bot. You can:
           - Edit \`CHANGELOG.md\` to adjust the release notes
-          - Push additional commits if needed
+          - Push additional commits if needed, but won't be automatically included in the release notes after this.
 
           Once you're happy, merge this PR and \`${VERSION}\` will be published to PyPI automatically."
 
@@ -246,6 +246,6 @@ jobs:
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'release')
     needs: [publish-pypi]
-    uses: nuclia/nuclia.py/.github/workflows/docs.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/docs.yml before merging
+    uses: nuclia/nuclia.py/.github/workflows/docs.yml
     secrets: inherit
 
