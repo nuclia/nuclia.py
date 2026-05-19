@@ -34,21 +34,40 @@ on:
 # Condition used: github.event.action != 'closed' || github.event.pull_request.merged == true
 
 jobs:
+  check-changes:
+    name: Check changed files
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            relevant:
+              - 'nuclia/**'
+              - '.github/workflows/**'
+
   test-stage:
     name: Test (stage)
-    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    needs: [check-changes]
+    if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
     uses: nuclia/nuclia.py/.github/workflows/stage.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/stage.yml before merging
     secrets: inherit
 
   test-prod:
     name: Test (prod)
-    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    needs: [check-changes]
+    if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
     uses: nuclia/nuclia.py/.github/workflows/prod.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/prod.yml before merging
     secrets: inherit
 
   test-windows:
     name: Test (windows)
-    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    needs: [check-changes]
+    if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
     uses: nuclia/nuclia.py/.github/workflows/windows.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/windows.yml before merging
     secrets: inherit
 
@@ -95,6 +114,19 @@ jobs:
 
       - name: Push version bump commit to PR branch
         run: git push origin HEAD:${{ github.head_ref }}
+
+      - name: Comment on PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          VERSION=$(cat VERSION)
+          gh pr comment ${{ github.event.pull_request.number }} --body "**Release \`${VERSION}\` is ready.**
+
+          The version and changelog have been updated by the bot. You can:
+          - Edit \`CHANGELOG.md\` to adjust the release notes
+          - Push additional commits if needed
+
+          Once you're happy, merge this PR and \`${VERSION}\` will be published to PyPI automatically."
 
   prepare-release:
     name: Prepare release PR

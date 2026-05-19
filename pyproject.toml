@@ -86,6 +86,6 @@ managed = true
 version_provider = "commitizen"
 version = "4.9.27"
 version_files = ["VERSION"]
-tag_format = "v$version"
+tag_format = "$version"
 update_changelog_on_bump = true
 changelog_incremental = true
