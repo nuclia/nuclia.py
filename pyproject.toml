@@ -1,6 +1,6 @@
 [project]
 name = "nuclia"
-dynamic = ["version"]
+version = "4.10.0"
 license = "MIT"
 description = "Nuclia Python SDK"
 readme = "README.md"
@@ -73,9 +73,6 @@ Slack = "https://join.slack.com/t/nuclia-community/shared_invite/zt-2ldfznncw-LW
 requires = ["setuptools >= 40.9.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = { file = "VERSION" }
-
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
@@ -83,8 +80,7 @@ asyncio_mode = "auto"
 managed = true
 
 [tool.commitizen]
-version_provider = "commitizen"
-version = "4.9.27"
+version_provider = "pep621"
 version_files = ["VERSION"]
 tag_format = "$version"
 update_changelog_on_bump = true
