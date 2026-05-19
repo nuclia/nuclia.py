@@ -54,21 +54,21 @@ jobs:
     name: Test (stage)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
-    uses: nuclia/nuclia.py/.github/workflows/stage.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/stage.yml before merging
+    uses: ./.github/workflows/stage.yml
     secrets: inherit
 
   test-prod:
     name: Test (prod)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
-    uses: nuclia/nuclia.py/.github/workflows/prod.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/prod.yml before merging
+    uses: ./.github/workflows/prod.yml
     secrets: inherit
 
   test-windows:
     name: Test (windows)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
-    uses: nuclia/nuclia.py/.github/workflows/windows.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/windows.yml before merging
+    uses: ./.github/workflows/windows.yml
     secrets: inherit
 
   prepare-release-commit:
@@ -107,12 +107,15 @@ jobs:
           git config user.name "nuclia-service-bot[bot]"
 
       - name: Bump version and update changelog
-        run: cz bump --allow-no-commit --changelog --yes
+        run: |
+          # Anchor tag: only needed when VERSION was manually set to a value with no
+          # remote tag yet (e.g. initial 4.10.0 set without a published release).
+          # fetch-depth: 0 already fetches all remote tags, so on the normal path
+          # (every version comes from a previous publish) this is a no-op.
+          git tag "$(cat VERSION)" || true
+          cz bump --allow-no-commit --changelog --yes
 
       - name: Delete local tag (tag will be created on the merge commit instead)
-        run: git tag -d "$(cat VERSION)" || true
-
-      - name: Push version bump commit to PR branch
         run: git push origin HEAD:${{ github.head_ref }}
 
       - name: Comment on PR
@@ -169,6 +172,11 @@ jobs:
 
       - name: Bump version and update changelog
         run: |
+          # Anchor tag: only needed when VERSION was manually set to a value with no
+          # remote tag yet (e.g. initial 4.10.0 set without a published release).
+          # fetch-depth: 0 already fetches all remote tags, so on the normal path
+          # (every version comes from a previous publish) this is a no-op.
+          git tag "$(cat VERSION)" || true
           if [ -n "${{ inputs.bump_type }}" ]; then
             cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
           else
@@ -246,6 +254,6 @@ jobs:
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'release')
     needs: [publish-pypi]
-    uses: nuclia/nuclia.py/.github/workflows/docs.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/docs.yml before merging
+    uses: ./.github/workflows/docs.yml
     secrets: inherit
 
