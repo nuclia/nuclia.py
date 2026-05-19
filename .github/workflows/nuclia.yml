@@ -22,7 +22,7 @@ name: Nuclia
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened, closed, labeled]
   workflow_dispatch:
     inputs:
       bump_type:
@@ -51,6 +51,47 @@ jobs:
     if: github.event_name == 'pull_request' && github.head_ref != 'release/auto' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: nuclia/nuclia.py/.github/workflows/windows.yml@automated_relase  # TEMPORARY: revert to ./.github/workflows/windows.yml before merging
     secrets: inherit
+
+  prepare-release-commit:
+    name: Bump version and update changelog
+    if: github.event.action == 'labeled' && github.event.label.name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Generate bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3.0.0
+        with:
+          app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
+          private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
+          owner: nuclia
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install commitizen
+        run: uv tool install commitizen
+
+      - name: Configure git identity for bot commit
+        run: |
+          git config user.email "nuclia-service-bot[bot]@users.noreply.github.com"
+          git config user.name "nuclia-service-bot[bot]"
+
+      - name: Bump version and update changelog
+        run: cz bump --allow-no-commit --changelog --no-tag --yes
+
+      - name: Push version bump commit to PR branch
+        run: git push origin HEAD:${{ github.head_ref }}
 
   prepare-release:
     name: Prepare release PR
@@ -94,15 +135,10 @@ jobs:
       - name: Bump version and update changelog
         run: |
           if [ -n "${{ inputs.bump_type }}" ]; then
-            cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
+            cz bump --increment "${{ inputs.bump_type }}" --changelog --no-tag --yes
           else
-            cz bump --allow-no-commit --changelog --yes
+            cz bump --allow-no-commit --changelog --no-tag --yes
           fi
-
-      - name: Delete local tag (tag will be created on the merge commit instead)
-        run: |
-          VERSION=$(cat VERSION)
-          git tag -d "v${VERSION}" || true
 
       - name: Push release branch
         run: git push origin release/auto
