@@ -53,8 +53,8 @@ dev = [
     "types-aiofiles",
     "types-Deprecated",
     "types-tabulate",
-    # Pypi manual release
-    "zest.releaser"
+    # Automated release in CI
+    "commitizen"
 ]
 
 [project.optional-dependencies]
@@ -81,3 +81,11 @@ asyncio_mode = "auto"
 
 [tool.uv]
 managed = true
+
+[tool.commitizen]
+version_provider = "commitizen"
+version = "4.9.26"
+version_files = ["VERSION"]
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_incremental = true
