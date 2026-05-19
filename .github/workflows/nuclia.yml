@@ -206,8 +206,13 @@ jobs:
     if: >
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'release') &&
-      !contains(needs.*.result, 'failure') &&
-      !contains(needs.*.result, 'cancelled')
+      (
+        contains(github.event.pull_request.labels.*.name, 'break-glass') ||
+        (
+          !contains(needs.*.result, 'failure') &&
+          !contains(needs.*.result, 'cancelled')
+        )
+      )
     needs: [test-stage, test-prod, test-windows]
     runs-on: ubuntu-latest
     environment: pypi  # requires approval from designated reviewers (repo Settings → Environments)

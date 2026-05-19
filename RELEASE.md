@@ -31,6 +31,19 @@ without introducing any further code changes:
    a PR already labeled `release`, and posts a summary comment.
 4. Review the changelog, approve, and merge. PyPI publishing starts automatically.
 
+### Emergency release when tests are failing (`break-glass`)
+
+If you need to publish urgently and the test suite is broken or unavailable:
+
+1. Add both the `release` **and** `break-glass` labels to the PR.
+2. Proceed as normal (the bot will still commit the version bump).
+3. Merge. The `publish-pypi` job will run even if test jobs failed or were skipped.
+   The `pypi` environment approval gate still applies — a member of `@nuclia/pypi-publishers`
+   must approve before the upload proceeds.
+
+> Only use this when you have high confidence the package is safe to ship. The environment
+> gate is the last human checkpoint.
+
 ---
 
 ## How the release process works
