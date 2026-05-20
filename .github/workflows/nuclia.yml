@@ -1,0 +1,348 @@
+# Main CI/CD workflow for the nuclia package.
+#
+# This is the single entry point for all PR, merge, and release operations.
+#
+# Release flow:
+#
+#   Bumping and releasing are intentionally separate steps to allow safe retries:
+#
+#   Normal path (feature/fix PR):
+#     1. Develop on a branch. When ready to version, add the `bump` label
+#        commitizen will auto-detect the increment from conventional commits.
+#        The bot runs commitizen, commits the version bump + updated CHANGELOG.md
+#        to your branch, then automatically adds the `release` label.
+#     2. Review the changelog, get the PR approved, merge.
+#        publish-pypi tags the merge commit and uploads to PyPI.
+#        publish-docs syncs the docs to S3 afterwards.
+#
+#   Retry path (publish failed, fix in a new PR):
+#     1. Fix the issue in a new PR. Do NOT add `bump` — the version was already
+#        bumped on the previous PR.
+#     2. Add the `release` label directly and merge. No new bump is triggered.
+#
+#   Manual path (release unreleased commits, no new code changes):
+#    Actions → Nuclia → Run workflow  →  prepare-release creates a release/auto
+#     branch with the bump committed, opens a PR already labeled `release`,
+#     ready to review and merge.
+#
+# Job dependency graph (PR tests):
+#
+#   check-pr-tests ─┐
+#   check-changes  ─┴─ tests-gate ─┬─ test-stage ──┐
+#                                   ├─ test-prod  ──┼── publish-pypi ── publish-docs
+#                                   └─ test-windows─┘
+#   check-pr-tests ────────────────────────────────────────────────────────────┘
+#
+# On a release merge where all three test jobs last succeeded on the PR head SHA,
+# check-pr-tests sets tests_already_passed=true and the test jobs are skipped.
+#
+name: Nuclia
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'pyproject.toml'
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Bump type override (patch / minor / major). Leave empty to auto-detect from conventional commits.'
+        required: false
+        default: ''
+
+# All test jobs: run on open/sync/reopen AND on merge, but NOT on close-without-merge.
+# Condition used: github.event.action != 'closed' || github.event.pull_request.merged == true
+#
+# NOTE: `labeled` is intentionally excluded from the triggers. The bump-version job
+# lives in bump.yml (labeled-only trigger) so that label events never create skipped
+# check runs that would override passing ones and block branch-protection merges.
+
+jobs:
+  check-changes:
+    name: Check changed files
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
+        id: filter
+        with:
+          filters: |
+            relevant:
+              - 'nuclia/**'
+              - '.github/workflows/**'
+
+  check-pr-tests:
+    name: Check PR test results
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release')
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+    outputs:
+      tests_already_passed: ${{ steps.check.outputs.tests_already_passed }}
+    steps:
+      - name: Check last test run results on PR head SHA
+        id: check
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const sha = context.payload.pull_request.head.sha;
+            const requiredJobs = [
+              'Test (stage) / Test (stage)',
+              'Test (prod) / Test (prod)',
+              'Test (windows) / Test (windows)',
+            ];
+
+            let checkRuns;
+            try {
+              const { data } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: sha,
+                per_page: 100,
+              });
+              checkRuns = data.check_runs;
+            } catch (err) {
+              core.warning(`Failed to fetch check runs: ${err.message}. Falling back to re-running tests.`);
+              core.setOutput('tests_already_passed', 'false');
+              return;
+            }
+
+            for (const jobName of requiredJobs) {
+              const runs = checkRuns
+                .filter(r => r.name === jobName && r.status === 'completed')
+                .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+
+              if (runs.length === 0) {
+                core.info(`No completed check run found for: ${jobName}`);
+                core.setOutput('tests_already_passed', 'false');
+                return;
+              }
+
+              const latest = runs[0];
+              core.info(`Latest run for "${jobName}": ${latest.conclusion} (completed ${latest.completed_at})`);
+
+              if (latest.conclusion !== 'success') {
+                core.info(`Last run for "${jobName}" did not succeed; tests must re-run.`);
+                core.setOutput('tests_already_passed', 'false');
+                return;
+              }
+            }
+
+            core.info('All required test jobs passed on PR head SHA; skipping re-run on merge.');
+            core.setOutput('tests_already_passed', 'true');
+
+  tests-gate:
+    # Aggregates all pre-conditions for the three test jobs into a single `run` output.
+    # Tests run when ALL of the following are true:
+    #   1. check-changes succeeded and found relevant file changes (nuclia/ or .github/workflows/)
+    #   2. The branch is not release/auto (version-bump-only commits don't need re-testing)
+    #   3. check-pr-tests did not confirm that all three test jobs already passed on the PR head SHA
+    #      (on non-release-merge events check-pr-tests is skipped, so tests always run there)
+    #
+    # SECURITY NOTE: condition 3 (skipping tests on merge) is only safe when the repository
+    # branch protection rule "Require branches to be up to date before merging" is enabled on
+    # main. Without it, a PR branch could be stale — tests passed against old code that does
+    # not include recent commits on main — and the skip would be incorrectly trusted.
+    # → Settings → Branches → Edit rule for main → "Require branches to be up to date"
+    name: Decide whether tests should run
+    needs: [check-changes, check-pr-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - id: decide
+        env:
+          CHANGES_RESULT: ${{ needs.check-changes.result }}
+          RELEVANT: ${{ needs.check-changes.outputs.relevant }}
+          HEAD_REF: ${{ github.head_ref }}
+          TESTS_ALREADY_PASSED: ${{ needs.check-pr-tests.outputs.tests_already_passed }}
+        run: |
+          if [[ "$CHANGES_RESULT" == "success" && \
+                "$RELEVANT" == "true" && \
+                "$HEAD_REF" != "release/auto" && \
+                "$TESTS_ALREADY_PASSED" != "true" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  test-stage:
+    name: Test (stage)
+    needs: [tests-gate]
+    if: always() && needs.tests-gate.outputs.run == 'true'
+    uses: ./.github/workflows/stage.yml
+    secrets: inherit
+
+  test-prod:
+    name: Test (prod)
+    needs: [tests-gate]
+    if: always() && needs.tests-gate.outputs.run == 'true'
+    uses: ./.github/workflows/prod.yml
+    secrets: inherit
+
+  test-windows:
+    name: Test (windows)
+    needs: [tests-gate]
+    if: always() && needs.tests-gate.outputs.run == 'true'
+    uses: ./.github/workflows/windows.yml
+    secrets: inherit
+
+  prepare-release:
+    name: Prepare release PR
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Generate bot token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        with:
+          app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
+          private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
+          owner: nuclia
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install commitizen
+        run: uv tool install commitizen
+
+      - name: Configure git identity for bot commit
+        run: |
+          git config user.email "nuclia-service-bot[bot]@users.noreply.github.com"
+          git config user.name "nuclia-service-bot[bot]"
+
+      - name: Create release branch
+        run: |
+          git push origin --delete release/auto || true
+          git checkout -b release/auto
+
+      - name: Bump version and update changelog
+        run: |
+          # Anchor tag: only needed when VERSION was manually set to a value with no
+          # remote tag yet (e.g. initial 4.10.0 set without a published release).
+          # fetch-depth: 0 already fetches all remote tags, so on the normal path
+          # (every version comes from a previous publish) this is a no-op.
+          git tag "$(uv version --short)" || true
+          if [ -n "${{ inputs.bump_type }}" ]; then
+            cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
+          else
+            cz bump --allow-no-commit --changelog --yes
+          fi
+
+      - name: Delete local tag (tag will be created on the merge commit instead)
+        run: git tag -d "$(uv version --short)" || true
+
+      - name: Push release branch
+        run: git push origin release/auto
+
+      - name: Open release PR with label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          VERSION=$(uv version --short)
+          gh pr create \
+            --title "chore: release ${VERSION}" \
+            --body "Automated release PR. Review the changelog and merge to publish to PyPI." \
+            --label release \
+            --base main \
+            --head release/auto
+
+  publish-pypi:
+    # Runs only when the PR was merged with the `release` label, AND one of:
+    #   a) `breaking-glass` label is present  → bypass test results
+    #   b) check-pr-tests confirmed all three test jobs already passed on the PR
+    #      head SHA  → tests were intentionally skipped on this merge run
+    #   c) all three test jobs succeeded in this run  → normal release path
+    #
+    # `always()` is required because the test jobs may be skipped (case b), and
+    # without it GitHub would auto-skip this job when any dependency is skipped.
+    name: Publish to PyPI
+    if: >
+      always() &&
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'release') &&
+      (
+        contains(github.event.pull_request.labels.*.name, 'breaking-glass') ||
+        needs.check-pr-tests.outputs.tests_already_passed == 'true' ||
+        (
+          needs.test-stage.result == 'success' &&
+          needs.test-prod.result == 'success' &&
+          needs.test-windows.result == 'success'
+        )
+      )
+    needs: [check-pr-tests, test-stage, test-prod, test-windows]
+    runs-on: ubuntu-latest
+    environment: pypi  # requires approval from designated reviewers (repo Settings → Environments)
+    permissions:
+      id-token: write
+    steps:
+      - name: Generate bot token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        with:
+          app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
+          private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
+          owner: nuclia
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git identity for bot commit
+        run: |
+          git config user.email "nuclia-service-bot[bot]@users.noreply.github.com"
+          git config user.name "nuclia-service-bot[bot]"
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Verify version tag does not already exist
+        # Guards against merging with `release` but without a prior bump — i.e. VERSION
+        # still matches the last published tag. Fails fast with a clear message rather
+        # than letting the push fail cryptically or accidentally re-publishing.
+        run: |
+          VERSION=$(uv version --short)
+          if git ls-remote --tags origin "refs/tags/${VERSION}" | grep -q .; then
+            echo "::error::Tag ${VERSION} already exists on remote. Did you forget to add the 'bump' label before 'release'?"
+            exit 1
+          fi
+
+      - name: Tag release commit
+        run: |
+          VERSION=$(uv version --short)
+          git tag "${VERSION}"
+          git push origin "${VERSION}"
+
+      - name: Build package
+        run: uv build
+
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+
+  publish-docs:
+    name: Publish docs
+    if: >
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'release')
+    needs: [publish-pypi]
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit
+

@@ -2,7 +2,17 @@
 
 In order to start working you can login either using a user acount, or using an API key.
 
-Note: you can also login with a NUA key if you only need to run some processing, see [NUA](07-nua.md).
+Note: you can also login with a NUA key. With the right permissions/scopes, a NUA key can be used not only for processing features (see [NUA](07-nua.md)), but also for Knowledge Box management operations (list/get/create/delete) in your authorized account.
+
+- CLI: `nuclia auth nua [NUA_KEY]`
+- SDK:
+
+  ```python
+  from nuclia import sdk
+  sdk.NucliaAuth().nua(NUA_KEY)
+  ```
+
+For private or on-premise deployments where the API endpoint differs from the token issuer, see [Custom API endpoint](07-nua.md#custom-api-endpoint-private-or-on-premise-deployments-only).
 
 ## User authentication
 

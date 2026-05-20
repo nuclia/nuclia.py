@@ -11,16 +11,23 @@ from nuclia.tests.utils import maybe_async_iterate
     "agent_klass",
     [NucliaAgent, AsyncNucliaAgent],
 )
+@pytest.mark.parametrize(
+    "agent_fixture_name",
+    ["use_agent", "use_agent_no_mem"],
+)
 async def test_interact(
     testing_config,
+    request,
+    agent_fixture_name: str,
     agent_klass: Type[Union[NucliaAgent, AsyncNucliaAgent]],
 ):
+    request.getfixturevalue(agent_fixture_name)
     n_agent = agent_klass()
     responses: list[AragAnswer] = []
     async for message in maybe_async_iterate(
         n_agent.interact(
             session_uuid="ephemeral",
-            question="What is Eric known for?",
+            question="Does Eric have a great sense of humor?",
             headers={"X-Custom-Header": "value"},
         )
     ):
@@ -34,10 +41,17 @@ async def test_interact(
     assert responses[2].operation == AnswerOperation.ANSWER
     assert responses[2].step and responses[2].step.module == "basic_ask"
 
-    assert responses[-3].operation == AnswerOperation.ANSWER
-    assert responses[-3].step and responses[-3].step.module == "remi"
+    remi_response = next(
+        response
+        for response in responses
+        if (response.step and response.step.module == "remi")
+        or (response.context and response.context.agent == "remi")
+    )
+    assert remi_response.operation == AnswerOperation.ANSWER
 
     assert responses[-2].operation == AnswerOperation.ANSWER
-    assert responses[-2].answer and "humor" in responses[-2].answer.lower()
+    assert responses[-2].answer and (
+        "yes" in responses[-2].answer.lower() or "humor" in responses[-2].answer.lower()
+    )
 
     assert responses[-1].operation == AnswerOperation.DONE

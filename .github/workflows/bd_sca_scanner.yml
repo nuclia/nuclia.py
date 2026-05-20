@@ -19,20 +19,20 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
       - name: Calculate detect-args for BD SCA Scan
         id: calculate-detect-args
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "DETECT_ARGS=--detect.included.detector.types=uv,git --detect.timeout=600 --detect.blackduck.rapid.compare.mode=BOM_COMPARE_STRICT" >> $GITHUB_OUTPUT
+            echo "DETECT_ARGS=--detect.included.detector.types=uv --detect.uv.dependency.groups.excluded=dev --detect.timeout=600 --detect.excluded.detector.types=GIT --detect.blackduck.rapid.compare.mode=BOM_COMPARE_STRICT" >> $GITHUB_OUTPUT
           else
-            echo "DETECT_ARGS=--detect.included.detector.types=uv,git --detect.timeout=600" >> $GITHUB_OUTPUT
+            echo "DETECT_ARGS=--detect.included.detector.types=uv --detect.uv.dependency.groups.excluded=dev --detect.timeout=600" >> $GITHUB_OUTPUT
           fi
 
       - name: Run Black Duck SCA PR Scan
         id: blackduck-pr-scan
-        uses: blackduck-inc/black-duck-security-scan@v2
+        uses: blackduck-inc/black-duck-security-scan@659a0742e793a093377fab3117b0d90f23b04bfa # v2.9.0
         env:
           DETECT_PROJECT_NAME: nuclia.py
           DETECT_PROJECT_GROUP_NAME: Nuclia

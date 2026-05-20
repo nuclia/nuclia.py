@@ -39,7 +39,12 @@ class NucliaBackup:
         if not account_id:
             raise ValueError("account_id is required")
 
-        path = get_regional_url(zone, BACKUPS_ENDPOINT.format(account_id=account_id))
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            BACKUPS_ENDPOINT.format(account_id=account_id),
+            origin_url=zone_origin,
+        )
         data = self._auth._request("GET", path)
 
         ta = TypeAdapter(list[BackupResponse])
@@ -66,7 +71,12 @@ class NucliaBackup:
         else:
             body = backup
 
-        path = get_regional_url(zone, BACKUPS_ENDPOINT.format(account_id=account_id))
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            BACKUPS_ENDPOINT.format(account_id=account_id),
+            origin_url=zone_origin,
+        )
         data = self._auth._request(
             "POST", path, body.model_dump(mode="json", exclude_unset=True)
         )
@@ -87,8 +97,11 @@ class NucliaBackup:
         if not account_id:
             raise ValueError("account_id is required")
 
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, BACKUP_ENDPOINT.format(account_id=account_id, backup_id=str(id))
+            zone_region,
+            BACKUP_ENDPOINT.format(account_id=account_id, backup_id=str(id)),
+            origin_url=zone_origin,
         )
         self._auth._request("DELETE", path)
 
@@ -114,9 +127,11 @@ class NucliaBackup:
         else:
             body = restore
 
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone,
+            zone_region,
             RESTORE_ENDPOINT.format(account_id=account_id, backup_id=str(backup_id)),
+            origin_url=zone_origin,
         )
         data = self._auth._request(
             "POST", path, body.model_dump(mode="json", exclude_unset=True)
@@ -140,7 +155,12 @@ class AsyncNucliaBackup:
         if not account_id:
             raise ValueError("account_id is required")
 
-        path = get_regional_url(zone, BACKUPS_ENDPOINT.format(account_id=account_id))
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            BACKUPS_ENDPOINT.format(account_id=account_id),
+            origin_url=zone_origin,
+        )
         data = await self._auth._request("GET", path)
 
         ta = TypeAdapter(list[BackupResponse])
@@ -167,7 +187,12 @@ class AsyncNucliaBackup:
         else:
             body = backup
 
-        path = get_regional_url(zone, BACKUPS_ENDPOINT.format(account_id=account_id))
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            BACKUPS_ENDPOINT.format(account_id=account_id),
+            origin_url=zone_origin,
+        )
         data = await self._auth._request(
             "POST", path, body.model_dump(mode="json", exclude_unset=True)
         )
@@ -188,8 +213,11 @@ class AsyncNucliaBackup:
         if not account_id:
             raise ValueError("account_id is required")
 
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, BACKUP_ENDPOINT.format(account_id=account_id, backup_id=str(id))
+            zone_region,
+            BACKUP_ENDPOINT.format(account_id=account_id, backup_id=str(id)),
+            origin_url=zone_origin,
         )
         await self._auth._request("DELETE", path)
 
@@ -215,9 +243,11 @@ class AsyncNucliaBackup:
         else:
             body = restore
 
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone,
+            zone_region,
             RESTORE_ENDPOINT.format(account_id=account_id, backup_id=str(backup_id)),
+            origin_url=zone_origin,
         )
         data = await self._auth._request(
             "POST", path, body.model_dump(mode="json", exclude_unset=True)

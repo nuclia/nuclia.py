@@ -6,7 +6,7 @@ import fire  # type: ignore
 from nucliadb_sdk import exceptions
 
 from nuclia.data import get_auth
-from nuclia.exceptions import NeedUserToken, UserTokenExpired
+from nuclia.exceptions import NeedUserToken, NuaTokenExpired, UserTokenExpired
 from nuclia.lib.utils import serialize
 from nuclia.sdk.accounts import NucliaAccounts
 from nuclia.sdk.agent import NucliaAgent
@@ -53,9 +53,17 @@ def run():
         handleAuthError()
     except UserTokenExpired:
         handleAuthError()
+    except NuaTokenExpired:
+        handleNuaAuthError()
 
 
 def handleAuthError():
     logger.error("Login required.")
     logger.info("Run `nuclia auth login` to login.")
+    sys.exit(1)
+
+
+def handleNuaAuthError():
+    logger.error("NUA key is invalid or expired.")
+    logger.info("Run `nuclia auth nua --token <token>` to configure a valid NUA key.")
     sys.exit(1)

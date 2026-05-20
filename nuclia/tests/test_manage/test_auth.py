@@ -144,7 +144,7 @@ async def test_async_auth_zones(testing_config):
     na = AsyncNucliaAuth()
     zones = await na.zones()
     assert len(zones) > 0
-    assert zones[0].slug
+    assert zones[0].slug or zones[0].origin
 
 
 @pytest.mark.asyncio
@@ -152,7 +152,16 @@ async def test_async_auth_kbs(testing_config):
     na = AsyncNucliaAuth()
     accounts = await na.accounts()
     assert len(accounts) > 0
-    kbs = await na.kbs(accounts[0].id)
+    account_id = accounts[0].id
+
+    # Test with zone filter (if there are any zones available)
+    zones = await na.zones()
+    if zones:
+        zone_selector = zones[0].origin or zones[0].slug or zones[0].id
+        kbs_with_zone = await na.kbs(account_id, zone=zone_selector)
+        assert isinstance(kbs_with_zone, list)
+
+    kbs = await na.kbs(account_id)
     # Should return a list (may be empty depending on account)
     assert isinstance(kbs, list)
 
@@ -162,23 +171,50 @@ async def test_async_auth_agents(testing_config):
     na = AsyncNucliaAuth()
     accounts = await na.accounts()
     assert len(accounts) > 0
-    agents = await na.agents(accounts[0].id)
+    account_id = accounts[0].id
+
+    # Test with zone filter (if there are any zones available)
+    zones = await na.zones()
+    if zones:
+        zone_selector = zones[0].origin or zones[0].slug or zones[0].id
+        agents_with_zone = await na.agents(account_id, zone=zone_selector)
+        assert isinstance(agents_with_zone, list)
+
+    agents = await na.agents(account_id)
     # Should return a list (may be empty depending on account)
     assert isinstance(agents, list)
 
 
 def test_auth_agent_url(testing_agent: str):
-    from nuclia.tests.fixtures import TESTING_AGENT, TESTING_AGENT_ID
+    from nuclia.tests.fixtures import (
+        TESTING_ACCOUNT_ID,
+        TESTING_AGENT_ID,
+        TESTING_AGENT_REGION,
+    )
 
     na = NucliaAuth()
-    agent_uuid = na.agent(TESTING_AGENT, testing_agent)
+    agent_uuid = na.agent(
+        region=TESTING_AGENT_REGION,
+        account_id=TESTING_ACCOUNT_ID,
+        agent_id=TESTING_AGENT_ID,
+        token=testing_agent,
+    )
     assert agent_uuid == TESTING_AGENT_ID
 
 
 @pytest.mark.asyncio
 async def test_async_auth_agent_url(testing_agent: str):
-    from nuclia.tests.fixtures import TESTING_AGENT, TESTING_AGENT_ID
+    from nuclia.tests.fixtures import (
+        TESTING_ACCOUNT_ID,
+        TESTING_AGENT_ID,
+        TESTING_AGENT_REGION,
+    )
 
     na = AsyncNucliaAuth()
-    agent_uuid = await na.agent(TESTING_AGENT, testing_agent)
+    agent_uuid = await na.agent(
+        region=TESTING_AGENT_REGION,
+        account_id=TESTING_ACCOUNT_ID,
+        agent_id=TESTING_AGENT_ID,
+        token=testing_agent,
+    )
     assert agent_uuid == TESTING_AGENT_ID

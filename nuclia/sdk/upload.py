@@ -68,6 +68,7 @@ class NucliaUpload:
         mimetype: Optional[str] = None,
         extract_strategy: Optional[str] = None,
         split_strategy: Optional[str] = None,
+        language: Optional[str] = None,
         **kwargs,
     ) -> Optional[str]:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
@@ -87,7 +88,7 @@ class NucliaUpload:
         )
         if not field:
             field = uuid4().hex
-        md5_hash = hashlib.md5()
+        md5_hash = hashlib.md5(usedforsecurity=False)
 
         with open(path, "rb") as upload_file:
             md5_hash.update(upload_file.read())
@@ -103,6 +104,7 @@ class NucliaUpload:
                     md5=md5_hash.hexdigest(),
                     extract_strategy=extract_strategy,
                     split_strategy=split_strategy,
+                    language=language,
                 )
 
                 offset = 0
@@ -401,6 +403,7 @@ class AsyncNucliaUpload:
         blanklineSplitter: Optional[bool] = False,
         extract_strategy: Optional[str] = None,
         split_strategy: Optional[str] = None,
+        language: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Upload a file from filesystem to a Nuclia KnowledgeBox"""
@@ -419,7 +422,7 @@ class AsyncNucliaUpload:
         )
         if not field:
             field = uuid4().hex
-        md5_hash = hashlib.md5()
+        md5_hash = hashlib.md5(usedforsecurity=False)
 
         async with aiofiles.open(path, "rb") as upload_file:
             md5_hash.update(await upload_file.read())
@@ -435,6 +438,7 @@ class AsyncNucliaUpload:
                     md5=md5_hash.hexdigest(),
                     extract_strategy=extract_strategy,
                     split_strategy=split_strategy,
+                    language=language,
                 )
                 offset = 0
                 for _ in tqdm(range((size // CHUNK_SIZE) + 1)):

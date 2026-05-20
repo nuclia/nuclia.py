@@ -1,0 +1,42 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        ":dependencyDashboard"
+    ],
+    "rebaseWhen": "never",
+    "assignees": [
+        "sunbit",
+        "rastut",
+        "lferran",
+        "bloodbare"
+    ],
+    "pip_setup": {
+        "enabled": false
+    },
+    "pip_requirements": {
+        "enabled": false
+    },
+    "pipenv": {
+        "enabled": false
+    },
+    "poetry": {
+        "enabled": false
+    },
+    "pep621": {
+        "enabled": false
+    },
+    "ignorePaths": [
+        ".vscode/**",
+        "docs/**",
+        "charts/**"
+    ],
+    "packageRules": [
+        {
+            "matchDepTypes": [
+                "action"
+            ],
+            "pinDigests": true
+        }
+    ]
+}

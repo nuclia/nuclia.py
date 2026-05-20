@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import tempfile
@@ -23,7 +24,12 @@ def test_resource(testing_config):
     except NotFoundError:
         pass
 
+    assert not nresource.exists(slug="res1")
+
     res_id = nresource.create(slug="res1")
+
+    assert nresource.exists(slug="res1")
+    assert nresource.exists(rid=res_id)
 
     res = nresource.get(rid=res_id)
     assert res
@@ -181,6 +187,8 @@ async def test_resource_crud_by_id(
     except NotFoundError:
         pass
 
+    assert not await maybe_await(nresource.exists(slug=slug))
+
     rid = await maybe_await(
         nresource.create(
             slug=slug,
@@ -188,18 +196,26 @@ async def test_resource_crud_by_id(
             texts={"mytext": {"body": "testing is essential for a reliable software"}},
         )
     )
+
+    assert await maybe_await(nresource.exists(slug=slug))
+    assert await maybe_await(nresource.exists(rid=rid))
+
     res = await maybe_await(nresource.get(rid=rid))
     assert res.title == "Testing"
 
     await maybe_await(nresource.update(rid=rid, title="Reliability"))
-    res = await maybe_await(nresource.get(rid=rid))
+    for _ in range(6):
+        res = await maybe_await(nresource.get(rid=rid))
+        if res.title == "Reliability":
+            break
+        await asyncio.sleep(0.5)
     assert res.title == "Reliability"
 
     await maybe_await(nresource.delete(rid=rid))
     try:
         for _ in range(3):
             await maybe_await(nresource.get(slug=slug))
-            sleep(0.5)
+            await asyncio.sleep(0.5)
         assert False
     except NotFoundError:
         assert True
@@ -232,14 +248,18 @@ async def test_resource_crud_by_slug(
     assert res.title == "Testing"
 
     await maybe_await(nresource.update(slug=slug, title="Reliability"))
-    res = await maybe_await(nresource.get(slug=slug))
+    for _ in range(6):
+        res = await maybe_await(nresource.get(slug=slug))
+        if res.title == "Reliability":
+            break
+        await asyncio.sleep(0.5)
     assert res.title == "Reliability"
 
     await maybe_await(nresource.delete(slug=slug))
     try:
         for _ in range(3):
             await maybe_await(nresource.get(slug=slug))
-            sleep(0.5)
+            await asyncio.sleep(0.5)
         assert False
     except NotFoundError:
         assert True
@@ -294,7 +314,7 @@ async def test_resource_file_download(
     try:
         for _ in range(3):
             await maybe_await(nresource.get(slug=slug))
-            sleep(0.5)
+            await asyncio.sleep(0.5)
         assert False
     except NotFoundError:
         assert True

@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Any, Dict, List, Optional, Union
+from urllib.parse import urlparse
 from uuid import uuid4
 
 import backoff
@@ -39,6 +40,15 @@ RESOURCE_ATTRIBUTES = [
     "security",
     "wait_for_commit",
 ]
+
+
+def _ndb_origin_url(ndb: Union[NucliaDBClient, AsyncNucliaDBClient]) -> Optional[str]:
+    if ndb.url is None:
+        return None
+    parsed = urlparse(ndb.url)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return None
 
 
 class RagStrategiesParse(BaseModel):
@@ -153,6 +163,22 @@ class NucliaResource:
         return res
 
     @kb
+    def exists(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ) -> bool:
+        ndb: NucliaDBClient = kwargs["ndb"]
+        url = _resource_head_url(kbid=ndb.kbid, rid=rid, slug=slug)
+        resp = ndb.ndb.session.head(url)
+        if resp.status_code == 404:
+            return False
+        resp.raise_for_status()
+        return True
+
+    @kb
     @pretty
     def get(
         self,
@@ -219,7 +245,11 @@ class NucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
+        url = get_regional_url(
+            ndb.region,
+            "/api/v1" + file_field.value.file.uri,
+            origin_url=_ndb_origin_url(ndb),
+        )
         download = requests.get(url, stream=True, headers=ndb.headers)
         if download.status_code != 200:
             raise ValueError(f"Error downloading file: {download.text}")
@@ -252,7 +282,11 @@ class NucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
+        url = get_regional_url(
+            ndb.region,
+            "/api/v1" + file_field.value.file.uri,
+            origin_url=_ndb_origin_url(ndb),
+        )
         auth = get_auth()
         token = auth.create_ephemeral_token(ndb.kbid, ttl=ttl)
         return f"{url}?eph-token={token.token}"
@@ -334,6 +368,22 @@ class AsyncNucliaResource:
         return rid
 
     @kb
+    async def exists(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        **kwargs,
+    ) -> bool:
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        url = _resource_head_url(kbid=ndb.kbid, rid=rid, slug=slug)
+        resp = await ndb.ndb.session.head(url)
+        if resp.status_code == 404:
+            return False
+        resp.raise_for_status()
+        return True
+
+    @kb
     @pretty
     async def get(
         self,
@@ -400,7 +450,11 @@ class AsyncNucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
+        url = get_regional_url(
+            ndb.region,
+            "/api/v1" + file_field.value.file.uri,
+            origin_url=_ndb_origin_url(ndb),
+        )
         download = requests.get(url, stream=True, headers=ndb.headers)
         if download.status_code != 200:
             raise ValueError(f"Error downloading file: {download.text}")
@@ -433,7 +487,11 @@ class AsyncNucliaResource:
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
-        url = get_regional_url(ndb.region, "/api/v1" + file_field.value.file.uri)
+        url = get_regional_url(
+            ndb.region,
+            "/api/v1" + file_field.value.file.uri,
+            origin_url=_ndb_origin_url(ndb),
+        )
         download = requests.get(url, stream=True, headers=ndb.headers)
         if download.status_code != 200:
             raise ValueError(f"Error downloading file: {download.text}")
@@ -493,3 +551,15 @@ class AsyncNucliaResource:
             await ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
         else:
             raise ValueError("Either rid or slug must be provided")
+
+
+def _resource_head_url(
+    *, kbid: str, rid: Optional[str] = None, slug: Optional[str] = None
+) -> str:
+    if rid:
+        url = "v1/kb/{kbid}/resource/{rid}".format(kbid=kbid, rid=rid)
+    elif slug:
+        url = "v1/kb/{kbid}/slug/{slug}".format(kbid=kbid, slug=slug)
+    else:
+        raise ValueError("Either rid or slug must be provided")
+    return url

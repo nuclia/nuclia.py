@@ -1,10 +1,85 @@
 # Changelog
 
-
-## 4.9.16 (unreleased)
-
+## 4.10.0 (2026-05-19)
 
 - Support image generation for NUA
+- Replaces the old nuclia auth login flow (manual browser redirect + paste token) with a proper OAuth 2.0 Authorization Code + PKCE flow.
+- Implements the oauth offline access refresh mechanism
+- Adds more deterministic url crafting
+- Improvement to avoid refetching recent zone informatino
+
+## 4.9.26 (2026-05-12)
+
+- Support private zone deployments, where we may need to configure the origin url for the api calls.
+
+## 4.9.25 (2026-05-12)
+
+
+- Delete should work with None
+
+
+## 4.9.24 (2026-05-12)
+
+
+- Status code review on delete
+
+
+## 4.9.23 (2026-05-08)
+
+
+- Allow KB management (list/create/get/delete) with NUA keys.
+- Use NUA listing path when no user token is available.
+- Resolve management zone from NUA region; validate explicit mismatched zones.
+- Prefer NUA account in `@account` when user token is missing.
+- Clarify NUA KB management auth/scopes in docs.
+
+
+## 4.9.22 (2026-05-07)
+
+
+- Enable to access kb enabled functions with the personal token defined on the config
+
+
+## 4.9.21 (2026-04-24)
+
+
+- Fix reading response data in NUA errors
+
+
+## 4.9.20 (2026-04-21)
+
+
+- Fix NUA client error handling
+- Retry 512 errors
+
+
+## 4.9.19 (2026-04-14)
+
+
+- Add seed on ChatModel
+- Retry 429 responses from NUA API.
+
+
+## 4.9.18 (2026-03-06)
+
+
+- Be able to get all kbs and agents in a specific zone
+- Be able to set file language on file uploads
+
+
+## 4.9.17 (2026-01-27)
+
+- Cache requests to global accounts endpoint
+- Fix error handling for incorrect model names in NUA
+- Support for Retrieval Agents Orchestrators without memory.
+- Use /api/v1/agent/{agent_id}/ endpoints across the sdk for Retrieval Agent Orchestrators.
+
+
+## 4.9.16 (2026-01-20)
+
+
+- Add exists method to resource
+- Add support for `tool_choice` in ChatModel
 
 
 ## 4.9.15 (2025-12-23)
