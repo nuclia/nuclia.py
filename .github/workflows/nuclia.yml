@@ -13,9 +13,14 @@
 #
 # Job dependency graph (PR tests):
 #
-#   test-stage ──┐
-#   test-prod  ──┼── publish-pypi ── publish-docs  (release PRs only)
-#   test-windows─┘
+#   check-pr-tests ─┐
+#   check-changes  ─┴─ tests-gate ─┬─ test-stage ──┐
+#                                   ├─ test-prod  ──┼── publish-pypi ── publish-docs
+#                                   └─ test-windows─┘
+#   check-pr-tests ────────────────────────────────────────────────────────────┘
+#
+# On a release merge where all three test jobs last succeeded on the PR head SHA,
+# check-pr-tests sets tests_already_passed=true and the test jobs are skipped.
 #
 name: Nuclia
 
@@ -50,24 +55,114 @@ jobs:
               - 'nuclia/**'
               - '.github/workflows/**'
 
+  check-pr-tests:
+    name: Check PR test results
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release')
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+    outputs:
+      tests_already_passed: ${{ steps.check.outputs.tests_already_passed }}
+    steps:
+      - name: Check last test run results on PR head SHA
+        id: check
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const sha = context.payload.pull_request.head.sha;
+            const requiredJobs = [
+              'Test (stage) / Test (stage)',
+              'Test (prod) / Test (prod)',
+              'Test (windows) / Test (windows)',
+            ];
+
+            let checkRuns;
+            try {
+              const { data } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: sha,
+                per_page: 100,
+              });
+              checkRuns = data.check_runs;
+            } catch (err) {
+              core.warning(`Failed to fetch check runs: ${err.message}. Falling back to re-running tests.`);
+              core.setOutput('tests_already_passed', 'false');
+              return;
+            }
+
+            for (const jobName of requiredJobs) {
+              const runs = checkRuns
+                .filter(r => r.name === jobName && r.status === 'completed')
+                .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+
+              if (runs.length === 0) {
+                core.info(`No completed check run found for: ${jobName}`);
+                core.setOutput('tests_already_passed', 'false');
+                return;
+              }
+
+              const latest = runs[0];
+              core.info(`Latest run for "${jobName}": ${latest.conclusion} (completed ${latest.completed_at})`);
+
+              if (latest.conclusion !== 'success') {
+                core.info(`Last run for "${jobName}" did not succeed; tests must re-run.`);
+                core.setOutput('tests_already_passed', 'false');
+                return;
+              }
+            }
+
+            core.info('All required test jobs passed on PR head SHA; skipping re-run on merge.');
+            core.setOutput('tests_already_passed', 'true');
+
+  tests-gate:
+    # Aggregates all pre-conditions for the three test jobs into a single `run` output.
+    # Tests run when ALL of the following are true:
+    #   1. check-changes succeeded and found relevant file changes (nuclia/ or .github/workflows/)
+    #   2. The branch is not release/auto (version-bump-only commits don't need re-testing)
+    #   3. check-pr-tests did not confirm that all three test jobs already passed on the PR head SHA
+    #      (on non-release-merge events check-pr-tests is skipped, so tests always run there)
+    name: Decide whether tests should run
+    needs: [check-changes, check-pr-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - id: decide
+        env:
+          CHANGES_RESULT: ${{ needs.check-changes.result }}
+          RELEVANT: ${{ needs.check-changes.outputs.relevant }}
+          HEAD_REF: ${{ github.head_ref }}
+          TESTS_ALREADY_PASSED: ${{ needs.check-pr-tests.outputs.tests_already_passed }}
+        run: |
+          if [[ "$CHANGES_RESULT" == "success" && \
+                "$RELEVANT" == "true" && \
+                "$HEAD_REF" != "release/auto" && \
+                "$TESTS_ALREADY_PASSED" != "true" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test-stage:
     name: Test (stage)
-    needs: [check-changes]
-    if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
+    needs: [tests-gate]
+    if: always() && needs.tests-gate.outputs.run == 'true'
     uses: ./.github/workflows/stage.yml
     secrets: inherit
 
   test-prod:
     name: Test (prod)
-    needs: [check-changes]
-    if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
+    needs: [tests-gate]
+    if: always() && needs.tests-gate.outputs.run == 'true'
     uses: ./.github/workflows/prod.yml
     secrets: inherit
 
   test-windows:
     name: Test (windows)
-    needs: [check-changes]
-    if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
+    needs: [tests-gate]
+    if: always() && needs.tests-gate.outputs.run == 'true'
     uses: ./.github/workflows/windows.yml
     secrets: inherit
 
@@ -202,18 +297,29 @@ jobs:
             --head release/auto
 
   publish-pypi:
+    # Runs only when the PR was merged with the `release` label, AND one of:
+    #   a) `breaking-glass` label is present  → bypass test results
+    #   b) check-pr-tests confirmed all three test jobs already passed on the PR
+    #      head SHA  → tests were intentionally skipped on this merge run
+    #   c) all three test jobs succeeded in this run  → normal release path
+    #
+    # `always()` is required because the test jobs may be skipped (case b), and
+    # without it GitHub would auto-skip this job when any dependency is skipped.
     name: Publish to PyPI
     if: >
+      always() &&
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'release') &&
       (
-        contains(github.event.pull_request.labels.*.name, 'break-glass') ||
+        contains(github.event.pull_request.labels.*.name, 'breaking-glass') ||
+        needs.check-pr-tests.outputs.tests_already_passed == 'true' ||
         (
-          !contains(needs.*.result, 'failure') &&
-          !contains(needs.*.result, 'cancelled')
+          needs.test-stage.result == 'success' &&
+          needs.test-prod.result == 'success' &&
+          needs.test-windows.result == 'success'
         )
       )
-    needs: [test-stage, test-prod, test-windows]
+    needs: [check-pr-tests, test-stage, test-prod, test-windows]
     runs-on: ubuntu-latest
     environment: pypi  # requires approval from designated reviewers (repo Settings → Environments)
     permissions:
