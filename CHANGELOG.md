@@ -1,11 +1,11 @@
 # Changelog
 
+## 4.10.0 (2026-05-19)
 
-## 4.9.27 (unreleased)
-
-
-- Nothing changed yet.
-
+- Replaces the old nuclia auth login flow (manual browser redirect + paste token) with a proper OAuth 2.0 Authorization Code + PKCE flow.
+- Implements the oauth offline access refresh mechanism
+- Adds more deterministic url crafting
+- Improvement to avoid refetching recent zone informatino
 
 ## 4.9.26 (2026-05-12)
 
