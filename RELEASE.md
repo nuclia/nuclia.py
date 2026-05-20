@@ -31,11 +31,11 @@ without introducing any further code changes:
    a PR already labeled `release`, and posts a summary comment.
 4. Review the changelog, approve, and merge. PyPI publishing starts automatically.
 
-### Emergency release when tests are failing (`break-glass`)
+### Emergency release when tests are failing (`breaking-glass`)
 
 If you need to publish urgently and the test suite is broken or unavailable:
 
-1. Add both the `release` **and** `break-glass` labels to the PR.
+1. Add both the `release` **and** `breaking-glass` labels to the PR.
 2. Proceed as normal (the bot will still commit the version bump).
 3. Merge. The `publish-pypi` job will run even if test jobs failed or were skipped.
    The `pypi` environment approval gate still applies — a member of `@nuclia/pypi-publishers`
