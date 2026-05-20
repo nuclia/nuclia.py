@@ -1,5 +1,7 @@
 # Changelog
 
+## 4.10.1 (2026-05-20)
+
 ## 4.10.0 (2026-05-19)
 
 - Replaces the old nuclia auth login flow (manual browser redirect + paste token) with a proper OAuth 2.0 Authorization Code + PKCE flow.
