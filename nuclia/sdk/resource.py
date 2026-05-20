@@ -360,7 +360,7 @@ class NucliaResource:
                 kbid=ndb.kbid, rid=rid, field_type=field_type, field_id=field_id
             )
         elif slug:
-            ndb.ndb.delete_field_by_slug(
+            ndb.ndb.delete_field_by_id(
                 kbid=ndb.kbid, rslug=slug, field_type=field_type, field_id=field_id
             )
         else:
@@ -590,7 +590,7 @@ class AsyncNucliaResource:
                 kbid=ndb.kbid, rid=rid, field_type=field_type, field_id=field_id
             )
         elif slug:
-            await ndb.ndb.delete_field_by_slug(
+            await ndb.ndb.delete_field_by_id(
                 kbid=ndb.kbid, rslug=slug, field_type=field_type, field_id=field_id
             )
         else:
