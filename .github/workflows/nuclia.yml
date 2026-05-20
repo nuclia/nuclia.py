@@ -3,13 +3,27 @@
 # This is the single entry point for all PR, merge, and release operations.
 #
 # Release flow:
-#   1. Run workflow manually (Actions tab) to trigger prepare-release.
-#   2. prepare-release runs commitizen, opens a PR on release/auto with the
-#      version bump + changelog already committed, and adds the "release" label.
-#   3. Tests run automatically on the new PR (pull_request: opened trigger).
-#   4. Team reviews changelog, approves, and merges.
-#   5. publish-pypi fires on merge: tags the merge commit, builds, uploads to PyPI.
-#   6. publish-docs fires after publish-pypi.
+#
+#   Bumping and releasing are intentionally separate steps to allow safe retries:
+#
+#   Normal path (feature/fix PR):
+#     1. Develop on a branch. When ready to version, add the `bump` label
+#        commitizen will auto-detect the increment from conventional commits.
+#        The bot runs commitizen, commits the version bump + updated CHANGELOG.md
+#        to your branch, then automatically adds the `release` label.
+#     2. Review the changelog, get the PR approved, merge.
+#        publish-pypi tags the merge commit and uploads to PyPI.
+#        publish-docs syncs the docs to S3 afterwards.
+#
+#   Retry path (publish failed, fix in a new PR):
+#     1. Fix the issue in a new PR. Do NOT add `bump` — the version was already
+#        bumped on the previous PR.
+#     2. Add the `release` label directly and merge. No new bump is triggered.
+#
+#   Manual path (release unreleased commits, no new code changes):
+#    Actions → Nuclia → Run workflow  →  prepare-release creates a release/auto
+#     branch with the bump committed, opens a PR already labeled `release`,
+#     ready to review and merge.
 #
 # Job dependency graph (PR tests):
 #
@@ -172,9 +186,21 @@ jobs:
     uses: ./.github/workflows/windows.yml
     secrets: inherit
 
-  prepare-release-commit:
+  bump-version:
+    # Triggered by adding the `bump` label to a PR.
+    # Runs commitizen to auto-detect the increment from conventional commits
+    # (patch fallback if no conventional commits are present), commits the version
+    # bump + updated CHANGELOG.md to the branch, then automatically adds the
+    # `release` label so the PR is ready to publish on merge.
+    #
+    # If you need a different increment than what commitizen auto-detects, edit
+    # VERSION and CHANGELOG.md manually before adding the `bump` label.
+    #
+    # The `release` label is added by the bot after the bump, NOT directly by the
+    # developer. This ensures publish-pypi only fires on PRs that went through the
+    # bump job — preventing accidental publishes without a version increment.
     name: Bump version and update changelog
-    if: github.event.action == 'labeled' && github.event.label.name == 'release'
+    if: github.event.action == 'labeled' && github.event.label.name == 'bump'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -216,21 +242,25 @@ jobs:
           git tag "$(uv version --short)" || true
           cz bump --allow-no-commit --changelog --yes
 
-      - name: Delete local tag (tag will be created on the merge commit instead)
+      - name: Push bump commit
         run: git push origin HEAD:${{ github.head_ref }}
+
+      - name: Add release label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh pr edit ${{ github.event.pull_request.number }} --add-label release
 
       - name: Comment on PR
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           VERSION=$(uv version --short)
-          gh pr comment ${{ github.event.pull_request.number }} --body "**Release \`${VERSION}\` is ready.**
+          gh pr comment ${{ github.event.pull_request.number }} --body "**Version bumped to \`${VERSION}\`.**
 
-          The version and changelog have been updated by the bot. You can:
-          - Edit \`CHANGELOG.md\` to adjust the release notes
-          - Push additional commits if needed, but won't be automatically included in the release notes after this.
-
-          Once you're happy, merge this PR and \`${VERSION}\` will be published to PyPI automatically."
+          The version and changelog have been updated and the \`release\` label has been added.
+          - Edit \`CHANGELOG.md\` on this branch if you want to adjust the release notes.
+          - Merging this PR will publish \`${VERSION}\` to PyPI automatically.
+          - If you need to cancel the release, remove the \`release\` label before merging."
 
   prepare-release:
     name: Prepare release PR
@@ -353,6 +383,17 @@ jobs:
           python-version: "3.12"
 
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Verify version tag does not already exist
+        # Guards against merging with `release` but without a prior bump — i.e. VERSION
+        # still matches the last published tag. Fails fast with a clear message rather
+        # than letting the push fail cryptically or accidentally re-publishing.
+        run: |
+          VERSION=$(uv version --short)
+          if git ls-remote --tags origin "refs/tags/${VERSION}" | grep -q .; then
+            echo "::error::Tag ${VERSION} already exists on remote. Did you forget to add the 'bump' label before 'release'?"
+            exit 1
+          fi
 
       - name: Tag release commit
         run: |
