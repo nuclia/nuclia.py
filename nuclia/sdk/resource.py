@@ -344,6 +344,28 @@ class NucliaResource:
         else:
             raise ValueError("Either rid or slug must be provided")
 
+    @kb
+    def delete_field(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        field_type: str,
+        field_id: str,
+        **kwargs,
+    ):
+        ndb: NucliaDBClient = kwargs["ndb"]
+        if rid:
+            ndb.ndb.delete_field_by_id(
+                kbid=ndb.kbid, rid=rid, field_type=field_type, field_id=field_id
+            )
+        elif slug:
+            ndb.ndb.delete_field_by_slug(
+                kbid=ndb.kbid, rslug=slug, field_type=field_type, field_id=field_id
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+
 
 class AsyncNucliaResource:
     """
@@ -549,6 +571,28 @@ class AsyncNucliaResource:
             await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
         elif slug:
             await ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
+        else:
+            raise ValueError("Either rid or slug must be provided")
+
+    @kb
+    async def delete_field(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        field_type: str,
+        field_id: str,
+        **kwargs,
+    ):
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        if rid:
+            await ndb.ndb.delete_field_by_id(
+                kbid=ndb.kbid, rid=rid, field_type=field_type, field_id=field_id
+            )
+        elif slug:
+            await ndb.ndb.delete_field_by_slug(
+                kbid=ndb.kbid, rslug=slug, field_type=field_type, field_id=field_id
+            )
         else:
             raise ValueError("Either rid or slug must be provided")
 

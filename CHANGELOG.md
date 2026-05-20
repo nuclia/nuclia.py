@@ -6,6 +6,8 @@
 - Implements the oauth offline access refresh mechanism
 - Adds more deterministic url crafting
 - Improvement to avoid refetching recent zone informatino
+- Method to delete field.
+
 
 ## 4.9.26 (2026-05-12)
 
