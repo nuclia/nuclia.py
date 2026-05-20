@@ -84,4 +84,4 @@ version_provider = "pep621"
 tag_format = "$version"
 update_changelog_on_bump = true
 changelog_incremental = true
-bump_message = "bump: version $current_version → $new_version [skip ci]"
+
