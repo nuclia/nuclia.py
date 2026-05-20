@@ -33,15 +33,21 @@ on:
 # All test jobs: run on open/sync/reopen AND on merge, but NOT on close-without-merge.
 # Condition used: github.event.action != 'closed' || github.event.pull_request.merged == true
 
+permissions: {}
+
 jobs:
   check-changes:
     name: Check changed files
     if: github.event_name == 'pull_request' && github.event.action != 'labeled' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read   # actions/checkout, dorny/paths-filter
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
         id: filter
         with:
@@ -54,29 +60,47 @@ jobs:
     name: Test (stage)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
+    permissions:
+      contents: read   # stage.yml -> actions/checkout
     uses: ./.github/workflows/stage.yml
-    secrets: inherit
+    secrets:
+      STAGE_TESTING_SERVICE_TOKEN: ${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}
+      STAGE_TESTING_TOKEN: ${{ secrets.STAGE_TESTING_TOKEN }}
+      TEST_EUROPE1_STASHIFY_NUA: ${{ secrets.TEST_EUROPE1_STASHIFY_NUA }}
+      STAGE_TESTING_AGENT_TOKEN: ${{ secrets.STAGE_TESTING_AGENT_TOKEN }}
+      STAGE_TESTING_AGENT_NO_MEM_TOKEN: ${{ secrets.STAGE_TESTING_AGENT_NO_MEM_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-prod:
     name: Test (prod)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
+    permissions:
+      contents: read   # prod.yml -> actions/checkout
     uses: ./.github/workflows/prod.yml
-    secrets: inherit
+    secrets:
+      PROD_TESTING_SERVICE_TOKEN: ${{ secrets.PROD_TESTING_SERVICE_TOKEN }}
+      PROD_TESTING_TOKEN: ${{ secrets.PROD_TESTING_TOKEN }}
+      PROD_TESTING_NUA: ${{ secrets.PROD_TESTING_NUA }}
+      PROD_TESTING_AGENT_TOKEN: ${{ secrets.PROD_TESTING_AGENT_TOKEN }}
+      PROD_TESTING_AGENT_NO_MEM_TOKEN: ${{ secrets.PROD_TESTING_AGENT_NO_MEM_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-windows:
     name: Test (windows)
     needs: [check-changes]
     if: needs.check-changes.outputs.relevant == 'true' && github.head_ref != 'release/auto'
+    permissions:
+      contents: read   # windows.yml -> actions/checkout
     uses: ./.github/workflows/windows.yml
-    secrets: inherit
+    secrets:
+      PROD_API_KEY_FOR_WINDOWS_TEST: ${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}
 
   prepare-release-commit:
     name: Bump version and update changelog
     if: github.event.action == 'labeled' && github.event.label.name == 'release'
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
+    permissions: {}   # all GitHub API calls use the app token; GITHUB_TOKEN unused
     steps:
       - name: Generate bot token
         id: app-token
@@ -85,12 +109,16 @@ jobs:
           app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
           private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
           owner: nuclia
+          repositories: nuclia.py
+          permission-contents: write         # git push HEAD:$GITHUB_HEAD_REF
+          permission-pull-requests: write    # gh pr comment
 
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -116,7 +144,7 @@ jobs:
           cz bump --allow-no-commit --changelog --yes
 
       - name: Delete local tag (tag will be created on the merge commit instead)
-        run: git push origin HEAD:${{ github.head_ref }}
+        run: git push origin HEAD:${GITHUB_HEAD_REF}
 
       - name: Comment on PR
         env:
@@ -135,8 +163,7 @@ jobs:
     name: Prepare release PR
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
+    permissions: {}   # all GitHub API calls use the app token; GITHUB_TOKEN unused
     steps:
       - name: Generate bot token
         id: app-token
@@ -145,11 +172,15 @@ jobs:
           app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
           private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
           owner: nuclia
+          repositories: nuclia.py
+          permission-contents: write         # git push release/auto
+          permission-pull-requests: write    # gh pr create
 
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -177,11 +208,13 @@ jobs:
           # fetch-depth: 0 already fetches all remote tags, so on the normal path
           # (every version comes from a previous publish) this is a no-op.
           git tag "$(uv version --short)" || true
-          if [ -n "${{ inputs.bump_type }}" ]; then
-            cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
+          if [ -n "${INPUTS_BUMP_TYPE}" ]; then
+            cz bump --increment "${INPUTS_BUMP_TYPE}" --changelog --yes
           else
             cz bump --allow-no-commit --changelog --yes
           fi
+        env:
+          INPUTS_BUMP_TYPE: ${{ inputs.bump_type }}
 
       - name: Delete local tag (tag will be created on the merge commit instead)
         run: git tag -d "$(uv version --short)" || true
@@ -217,7 +250,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: pypi  # requires approval from designated reviewers (repo Settings → Environments)
     permissions:
-      id-token: write
+      id-token: write   # pypa/gh-action-pypi-publish (OIDC)
     steps:
       - name: Generate bot token
         id: app-token
@@ -226,10 +259,13 @@ jobs:
           app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
           private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
           owner: nuclia
+          repositories: nuclia.py
+          permission-contents: write         # git push tag
 
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Configure git identity for bot commit
         run: |
@@ -241,6 +277,8 @@ jobs:
           python-version: "3.12"
 
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: false
 
       - name: Tag release commit
         run: |
@@ -259,6 +297,12 @@ jobs:
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'release')
     needs: [publish-pypi]
+    permissions:
+      id-token: write   # docs.yml -> aws-actions/configure-aws-credentials (OIDC)
+      contents: read    # docs.yml -> actions/checkout
     uses: ./.github/workflows/docs.yml
-    secrets: inherit
+    secrets:
+      AWS_DOCS_SYNC_ROLE: ${{ secrets.AWS_DOCS_SYNC_ROLE }}
+      AWS_DOCS_SYNC_REGION: ${{ secrets.AWS_DOCS_SYNC_REGION }}
+      DOCS_STORAGE: ${{ secrets.DOCS_STORAGE }}
 
