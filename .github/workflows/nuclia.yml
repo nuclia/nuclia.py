@@ -236,17 +236,17 @@ jobs:
           git config user.email "nuclia-service-bot[bot]@users.noreply.github.com"
           git config user.name "nuclia-service-bot[bot]"
 
-      - name: Tag release commit
-        run: |
-          VERSION=$(uv version --short)
-          git tag "${VERSION}"
-          git push origin "${VERSION}"
-
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
 
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Tag release commit
+        run: |
+          VERSION=$(uv version --short)
+          git tag "${VERSION}"
+          git push origin "${VERSION}"
 
       - name: Build package
         run: uv build
