@@ -1,6 +1,6 @@
 [project]
 name = "nuclia"
-version = "4.11.0"
+version = "4.10.0"
 license = "MIT"
 description = "Nuclia Python SDK"
 readme = "README.md"
