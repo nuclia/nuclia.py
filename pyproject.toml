@@ -1,6 +1,6 @@
 [project]
 name = "nuclia"
-version = "4.10.0"
+version = "4.11.0"
 license = "MIT"
 description = "Nuclia Python SDK"
 readme = "README.md"
@@ -84,4 +84,17 @@ version_provider = "pep621"
 tag_format = "$version"
 update_changelog_on_bump = true
 changelog_incremental = true
+
+[tool.commitizen.change_type_map]
+"BREAKING CHANGE" = "⚠ Breaking Changes"
+feat = "New Features"
+fix = "Bug Fixes"
+refactor = "Code Refactoring"
+perf = "Performance Improvements"
+docs = "Documentation"
+style = "Styling"
+test = "Tests"
+build = "Build System"
+ci = "CI/CD"
+chore = "Chores"
 

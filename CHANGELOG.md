@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.11.0 (2026-05-21)
+
+### New Features
+
+- Add kb resource field deletion
+
 ## 4.10.0 (2026-05-19)
 
 - Support image generation for NUA
@@ -7,6 +13,8 @@
 - Implements the oauth offline access refresh mechanism
 - Adds more deterministic url crafting
 - Improvement to avoid refetching recent zone informatino
+- Method to delete field.
+
 
 ## 4.9.26 (2026-05-12)
 

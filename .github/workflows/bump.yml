@@ -76,6 +76,11 @@ jobs:
       - name: Push bump commit
         run: git push origin HEAD:${{ github.head_ref }}
 
+      - name: Remove bump label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label bump
+
       - name: Add release label
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -86,9 +91,12 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           VERSION=$(uv version --short)
+          REPO=${{ github.repository }}
+          BRANCH=${{ github.head_ref }}
+          CHANGELOG_URL="https://github.com/${REPO}/blob/${BRANCH}/CHANGELOG.md"
           gh pr comment ${{ github.event.pull_request.number }} --body "**Version bumped to \`${VERSION}\`.**
 
           The version and changelog have been updated and the \`release\` label has been added.
-          - Edit \`CHANGELOG.md\` on this branch if you want to adjust the release notes.
+          - Review or edit the release notes: [CHANGELOG.md](${CHANGELOG_URL})
           - Merging this PR will publish \`${VERSION}\` to PyPI automatically.
           - If you need to cancel the release, remove the \`release\` label before merging."
