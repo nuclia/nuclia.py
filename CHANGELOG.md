@@ -1,12 +1,5 @@
 # Changelog
 
-
-## 4.11.0 (2026-05-21)
-
-### Feat
-
-- Add kb resource field deletion
-
 ## 4.10.0 (2026-05-19)
 
 - Replaces the old nuclia auth login flow (manual browser redirect + paste token) with a proper OAuth 2.0 Authorization Code + PKCE flow.
