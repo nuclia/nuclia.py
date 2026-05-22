@@ -219,14 +219,14 @@ class AsyncNucliaImports:
             return None
 
     @kb
-    def status(self, *, import_id: str, **kwargs) -> StatusResponse:
+    async def status(self, *, import_id: str, **kwargs) -> StatusResponse:
         """
         Check the status of an import.
 
         :param import_id: id of the import task.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        return ndb.ndb.import_status(kbid=ndb.kbid, import_id=import_id)
+        return await ndb.ndb.import_status(kbid=ndb.kbid, import_id=import_id)
 
 
 def wait_for_task_to_finish(ndb: NucliaDBClient, task_type: str, id: str):

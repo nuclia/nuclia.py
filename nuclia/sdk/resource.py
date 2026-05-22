@@ -213,6 +213,7 @@ class NucliaResource:
 
         if (
             "extracted" in show
+            and res.metadata is not None
             and res.metadata.status != ResourceProcessingStatus.PROCESSED
         ):
             logger.warning(
@@ -242,9 +243,17 @@ class NucliaResource:
             )
         else:
             raise ValueError("Either rid or slug must be provided")
+        if res.data is None or res.data.files is None:
+            raise ValueError("Resource has no file data")
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
+        if (
+            file_field.value is None
+            or file_field.value.file is None
+            or file_field.value.file.uri is None
+        ):
+            raise ValueError(f"File field {file_id} has no download URI")
         url = get_regional_url(
             ndb.region,
             "/api/v1" + file_field.value.file.uri,
@@ -440,6 +449,7 @@ class AsyncNucliaResource:
 
         if (
             "extracted" in show
+            and res.metadata is not None
             and res.metadata.status != ResourceProcessingStatus.PROCESSED
         ):
             logger.warning(
@@ -469,9 +479,17 @@ class AsyncNucliaResource:
             )
         else:
             raise ValueError("Either rid or slug must be provided")
+        if res.data is None or res.data.files is None:
+            raise ValueError("Resource has no file data")
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
+        if (
+            file_field.value is None
+            or file_field.value.file is None
+            or file_field.value.file.uri is None
+        ):
+            raise ValueError(f"File field {file_id} has no download URI")
         url = get_regional_url(
             ndb.region,
             "/api/v1" + file_field.value.file.uri,
