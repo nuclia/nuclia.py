@@ -376,7 +376,7 @@ async def test_image_generation_support(testing_config, client_class):
                 question="Generate an image of a futuristic city skyline at sunset with flying cars",
                 retrieval=False,
                 user_id="Nuclia PY CLI",
-                generative_model="gemini-2.5-flash-image",
+                generative_model="chatgpt-5.5",
                 max_tokens=4000,
                 user_prompt=UserPrompt(prompt="{question}"),
             ),
