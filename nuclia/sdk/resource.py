@@ -213,6 +213,7 @@ class NucliaResource:
 
         if (
             "extracted" in show
+            and res.metadata is not None
             and res.metadata.status != ResourceProcessingStatus.PROCESSED
         ):
             logger.warning(
@@ -242,9 +243,17 @@ class NucliaResource:
             )
         else:
             raise ValueError("Either rid or slug must be provided")
+        if res.data is None or res.data.files is None:
+            raise ValueError("Resource has no file data")
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
+        if (
+            file_field.value is None
+            or file_field.value.file is None
+            or file_field.value.file.uri is None
+        ):
+            raise ValueError(f"File field {file_id} has no download URI")
         url = get_regional_url(
             ndb.region,
             "/api/v1" + file_field.value.file.uri,
@@ -344,6 +353,28 @@ class NucliaResource:
         else:
             raise ValueError("Either rid or slug must be provided")
 
+    @kb
+    def delete_field(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        field_type: str,
+        field_id: str,
+        **kwargs,
+    ):
+        ndb: NucliaDBClient = kwargs["ndb"]
+        if rid:
+            ndb.ndb.delete_field_by_id(
+                kbid=ndb.kbid, rid=rid, field_type=field_type, field_id=field_id
+            )
+        elif slug:
+            ndb.ndb.delete_field_by_id(
+                kbid=ndb.kbid, rslug=slug, field_type=field_type, field_id=field_id
+            )
+        else:
+            raise ValueError("Either rid or slug must be provided")
+
 
 class AsyncNucliaResource:
     """
@@ -418,6 +449,7 @@ class AsyncNucliaResource:
 
         if (
             "extracted" in show
+            and res.metadata is not None
             and res.metadata.status != ResourceProcessingStatus.PROCESSED
         ):
             logger.warning(
@@ -447,9 +479,17 @@ class AsyncNucliaResource:
             )
         else:
             raise ValueError("Either rid or slug must be provided")
+        if res.data is None or res.data.files is None:
+            raise ValueError("Resource has no file data")
         file_field = res.data.files.get(file_id)
         if not file_field:
             raise ValueError(f"File with id {file_id} not found in resource")
+        if (
+            file_field.value is None
+            or file_field.value.file is None
+            or file_field.value.file.uri is None
+        ):
+            raise ValueError(f"File field {file_id} has no download URI")
         url = get_regional_url(
             ndb.region,
             "/api/v1" + file_field.value.file.uri,
@@ -549,6 +589,28 @@ class AsyncNucliaResource:
             await ndb.ndb.delete_resource(kbid=ndb.kbid, rid=rid)
         elif slug:
             await ndb.ndb.delete_resource_by_slug(kbid=ndb.kbid, rslug=slug)
+        else:
+            raise ValueError("Either rid or slug must be provided")
+
+    @kb
+    async def delete_field(
+        self,
+        *,
+        rid: Optional[str] = None,
+        slug: Optional[str] = None,
+        field_type: str,
+        field_id: str,
+        **kwargs,
+    ):
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        if rid:
+            await ndb.ndb.delete_field_by_id(
+                kbid=ndb.kbid, rid=rid, field_type=field_type, field_id=field_id
+            )
+        elif slug:
+            await ndb.ndb.delete_field_by_id(
+                kbid=ndb.kbid, rslug=slug, field_type=field_type, field_id=field_id
+            )
         else:
             raise ValueError("Either rid or slug must be provided")
 
