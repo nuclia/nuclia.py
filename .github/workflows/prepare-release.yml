@@ -1,0 +1,98 @@
+# Standalone workflow to bump the version and open a ready-to-merge release PR.
+#
+# Use this when commits have already been merged to main without a bump, or
+# when you want to prepare a release outside of the normal PR label flow.
+#
+# What it does:
+#   1. Creates (or resets) the release/auto branch from main
+#   2. Runs commitizen to bump the version + update CHANGELOG.md
+#   3. Pushes the branch and opens a PR already labeled `release`
+#   4. Merging the PR will trigger publish-pypi in nuclia.yml
+#
+# The bump_type input is optional — leave empty to let commitizen auto-detect
+# the increment from conventional commits (patch fallback if none are present).
+
+name: Prepare release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Bump type override (patch / minor / major). Leave empty to auto-detect from conventional commits.'
+        required: false
+        default: ''
+
+jobs:
+  prepare-release:
+    name: Prepare release PR
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Generate bot token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        with:
+          app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
+          private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
+          owner: nuclia
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install commitizen
+        run: uv tool install commitizen
+
+      - name: Configure git identity for bot commit
+        run: |
+          git config user.email "nuclia-service-bot[bot]@users.noreply.github.com"
+          git config user.name "nuclia-service-bot[bot]"
+
+      - name: Create release branch
+        run: |
+          git push origin --delete release/auto || true
+          git checkout -b release/auto
+
+      - name: Bump version and update changelog
+        run: |
+          # Anchor tag: only needed when VERSION was manually set to a value with no
+          # remote tag yet (e.g. initial 4.10.0 set without a published release).
+          # fetch-depth: 0 already fetches all remote tags, so on the normal path
+          # (every version comes from a previous publish) this is a no-op.
+          git tag "$(uv version --short)" || true
+          if [ -n "${{ inputs.bump_type }}" ]; then
+            cz bump --increment "${{ inputs.bump_type }}" --changelog --yes
+          else
+            cz bump --allow-no-commit --changelog --yes
+          fi
+
+      - name: Delete local tag (tag will be created on the merge commit instead)
+        run: git tag -d "$(uv version --short)" || true
+
+      - name: Push release branch
+        run: git push origin release/auto
+
+      - name: Open release PR with label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          VERSION=$(uv version --short)
+          CHANGELOG_URL="https://github.com/${{ github.repository }}/blob/release/auto/CHANGELOG.md"
+          gh pr create \
+            --title "chore: release ${VERSION}" \
+            --body "Automated release PR for \`${VERSION}\`. Review the changelog and merge to publish to PyPI.
+
+          - Review or edit the release notes: [CHANGELOG.md](${CHANGELOG_URL})
+          - Merging this PR will publish \`${VERSION}\` to PyPI automatically.
+          - If you need to cancel the release, remove the \`release\` label before merging." \
+            --label release \
+            --base main \
+            --head release/auto
