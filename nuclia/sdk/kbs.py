@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from nuclia import get_regional_url
-from nuclia.config import retrieve, retrieve_account
+from nuclia.config import extract_region, retrieve, retrieve_account
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import account, accounts, zone
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
@@ -16,18 +16,47 @@ class NucliaKBS:
         auth = get_auth()
         return auth
 
+    def _management_request(self, method: str, path: str, data: Optional[Dict] = None):
+        if self._auth._config.token:
+            return self._auth._request(method, path, data)
+        return self._auth._nua_request(method, path, data)
+
+    def _resolve_management_zone(self, zone: Optional[str]) -> str:
+        if self._auth._config.token:
+            if not zone:
+                raise ValueError("zone is required")
+            return zone
+
+        nua_obj = self._auth._config.get_nua(self._auth._config.get_default_nua())
+        nua_zone = extract_region(nua_obj.region)
+        if not nua_zone:
+            raise ValueError("zone is required")
+        if zone and zone != nua_zone:
+            raise ValueError(
+                f"NUA key is scoped to zone '{nua_zone}'. Remove --zone or use --zone {nua_zone}."
+            )
+        return nua_zone
+
     @accounts
     def list(self, account: Optional[str] = None):
         if account is None:
             result = []
-            accounts = (
-                self._auth._config.accounts
-                if self._auth._config.accounts is not None
-                else []
-            )
-            for account_obj in accounts:
-                if account_obj.slug is not None:
-                    result.extend(self._auth.kbs(account_obj.id))
+            if self._auth._config.token:
+                accounts = (
+                    self._auth._config.accounts
+                    if self._auth._config.accounts is not None
+                    else []
+                )
+                zones = self._auth.zones()
+                for account_obj in accounts:
+                    if account_obj.slug is not None:
+                        result.extend(self._auth.kbs(account_obj.id, _zones=zones))
+            elif self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                result.extend(self._auth.kbs_nua(nua_obj.account))
+
             self._auth._config.kbs = result
             self._auth._config.save()
 
@@ -39,12 +68,19 @@ class NucliaKBS:
             )
             return result
         else:
-            matching_account = retrieve_account(
-                self._auth._config.accounts or [], account
-            )
-            if not matching_account:
-                raise ValueError("Account not found")
-            return self._auth.kbs(matching_account.id)
+            if self._auth._config.token:
+                matching_account = retrieve_account(
+                    self._auth._config.accounts or [], account
+                )
+                if matching_account:
+                    return self._auth.kbs(matching_account.id)
+            elif self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                if account == nua_obj.account:
+                    return self._auth.kbs_nua(nua_obj.account)
+            raise ValueError("Account not found")
 
     @accounts
     @account
@@ -62,9 +98,13 @@ class NucliaKBS:
     ):
         if not slug:
             raise ValueError("slug is required.")
-        if not zone:
-            raise ValueError("zone is required")
-        path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
+        zone = self._resolve_management_zone(zone)
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            KBS_ENDPOINT.format(account=kwargs["account_id"]),
+            origin_url=zone_origin,
+        )
         data = {
             "slug": slug,
             "anonymization": anonymization,
@@ -74,7 +114,7 @@ class NucliaKBS:
             "title": title or slug,
             "zone": zone,
         }
-        self._auth._request("POST", path, data)
+        self._management_request("POST", path, data)
         return self.get(slug, account_id=kwargs["account_id"], zone=zone)
 
     @accounts
@@ -86,21 +126,25 @@ class NucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            if self._auth._config.token:
+                kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            else:
+                kbs = self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
-        return self._auth._request("GET", path)
+        return self._management_request("GET", path)
 
     @accounts
     @account
@@ -111,21 +155,25 @@ class NucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            if self._auth._config.token:
+                kbs = self._auth.kbs(kwargs["account_id"], zone=zone)
+            else:
+                kbs = self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
-        return self._auth._request("DELETE", path)
+        return self._management_request("DELETE", path)
 
     def default(self, kb: str):
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []
@@ -150,18 +198,53 @@ class AsyncNucliaKBS:
         auth = get_async_auth()
         return auth
 
+    async def _management_request(
+        self, method: str, path: str, data: Optional[Dict] = None
+    ):
+        if self._auth._config.token:
+            return await self._auth._request(method, path, data)
+        return await self._auth._nua_request(method, path, data)
+
+    def _resolve_management_zone(self, zone: Optional[str]) -> str:
+        if self._auth._config.token:
+            if not zone:
+                raise ValueError("zone is required")
+            return zone
+
+        nua_obj = self._auth._config.get_nua(self._auth._config.get_default_nua())
+        nua_zone = extract_region(nua_obj.region)
+        if not nua_zone:
+            raise ValueError("zone is required")
+        if zone and zone != nua_zone:
+            raise ValueError(
+                f"NUA key is scoped to zone '{nua_zone}'. Remove --zone or use --zone {nua_zone}."
+            )
+        return nua_zone
+
     @accounts
     async def list(self, account: Optional[str] = None):
         if account is None:
             result = []
-            accounts = (
-                self._auth._config.accounts
-                if self._auth._config.accounts is not None
-                else []
-            )
-            for account_obj in accounts:
-                if account_obj.slug is not None:
-                    result.extend(await self._auth.kbs(account_obj.id, cached=False))
+            if self._auth._config.token:
+                accounts = (
+                    self._auth._config.accounts
+                    if self._auth._config.accounts is not None
+                    else []
+                )
+                zones = await self._auth.zones()
+                for account_obj in accounts:
+                    if account_obj.slug is not None:
+                        result.extend(
+                            await self._auth.kbs(
+                                account_obj.id, cached=False, _zones=zones
+                            )
+                        )
+            elif self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                result.extend(await self._auth.kbs_nua(nua_obj.account))
+
             self._auth._config.kbs = result
             self._auth._config.save()
 
@@ -173,12 +256,19 @@ class AsyncNucliaKBS:
             )
             return result
         else:
-            matching_account = retrieve_account(
-                self._auth._config.accounts or [], account
-            )
-            if not matching_account:
-                raise ValueError("Account not found")
-            return await self._auth.kbs(matching_account.id, cached=False)
+            if self._auth._config.token:
+                matching_account = retrieve_account(
+                    self._auth._config.accounts or [], account
+                )
+                if matching_account:
+                    return await self._auth.kbs(matching_account.id, cached=False)
+            elif self._auth._config.nuas_token:
+                nua_obj = self._auth._config.get_nua(
+                    self._auth._config.get_default_nua()
+                )
+                if account == nua_obj.account:
+                    return await self._auth.kbs_nua(nua_obj.account)
+            raise ValueError("Account not found")
 
     @accounts
     @account
@@ -196,9 +286,13 @@ class AsyncNucliaKBS:
     ):
         if not slug:
             raise ValueError("slug is required.")
-        if not zone:
-            raise ValueError("zone is required")
-        path = get_regional_url(zone, KBS_ENDPOINT.format(account=kwargs["account_id"]))
+        zone = self._resolve_management_zone(zone)
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
+        path = get_regional_url(
+            zone_region,
+            KBS_ENDPOINT.format(account=kwargs["account_id"]),
+            origin_url=zone_origin,
+        )
         data = {
             "slug": slug,
             "anonymization": anonymization,
@@ -208,7 +302,7 @@ class AsyncNucliaKBS:
             "title": title or slug,
             "zone": zone,
         }
-        await self._auth._request("POST", path, data)
+        await self._management_request("POST", path, data)
         return await self.get(slug, account_id=kwargs["account_id"], zone=zone)
 
     @accounts
@@ -220,21 +314,27 @@ class AsyncNucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"], cached=False, zone=zone)
+            if self._auth._config.token:
+                kbs = await self._auth.kbs(
+                    kwargs["account_id"], cached=False, zone=zone
+                )
+            else:
+                kbs = await self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
-        return await self._auth._request("GET", path)
+        return await self._management_request("GET", path)
 
     @accounts
     @account
@@ -245,21 +345,27 @@ class AsyncNucliaKBS:
         id: Optional[str] = None,
         **kwargs,
     ):
-        zone = kwargs.get("zone")
-        if not zone:
-            raise ValueError("zone is required")
+        zone = self._resolve_management_zone(kwargs.get("zone"))
         if not id and not slug:
             raise ValueError("id or slug is required")
         if slug and not id:
-            kbs = await self._auth.kbs(kwargs["account_id"], cached=False, zone=zone)
+            if self._auth._config.token:
+                kbs = await self._auth.kbs(
+                    kwargs["account_id"], cached=False, zone=zone
+                )
+            else:
+                kbs = await self._auth.kbs_nua(kwargs["account_id"], zone=zone)
             kb_obj = retrieve(kbs, slug)
             if not kb_obj:
                 raise ValueError("Knowledge Box not found")
             id = kb_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, KB_ENDPOINT.format(account=kwargs["account_id"], kb=id)
+            zone_region,
+            KB_ENDPOINT.format(account=kwargs["account_id"], kb=id),
+            origin_url=zone_origin,
         )
-        return await self._auth._request("DELETE", path)
+        return await self._management_request("DELETE", path)
 
     async def default(self, kb: str):
         kbs = self._auth._config.kbs if self._auth._config.kbs is not None else []

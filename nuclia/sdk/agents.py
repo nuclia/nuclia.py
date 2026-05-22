@@ -25,9 +25,10 @@ class NucliaAgents:
                 if self._auth._config.accounts is not None
                 else []
             )
+            zones = self._auth.zones()
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    result.extend(self._auth.agents(account_obj.id))
+                    result.extend(self._auth.agents(account_obj.id, _zones=zones))
             self._auth._config.agents = result
             self._auth._config.save()
 
@@ -66,8 +67,11 @@ class NucliaAgents:
             if not agent_obj:
                 raise ValueError("Retrieval Agent not found")
             id = agent_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id)
+            zone_region,
+            AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id),
+            origin_url=zone_origin,
         )
         return self._auth._request("GET", path)
 
@@ -105,9 +109,10 @@ class AsyncNucliaAgents:
                 if self._auth._config.accounts is not None
                 else []
             )
+            zones = await self._auth.zones()
             for account_obj in accounts:
                 if account_obj.slug is not None:
-                    result.extend(await self._auth.agents(account_obj.id))
+                    result.extend(await self._auth.agents(account_obj.id, _zones=zones))
             self._auth._config.agents = result
             self._auth._config.save()
 
@@ -146,8 +151,11 @@ class AsyncNucliaAgents:
             if not agent_obj:
                 raise ValueError("Retrieval Agent not found")
             id = agent_obj.id
+        zone_region, zone_origin = self._auth.resolve_zone_endpoint(zone)
         path = get_regional_url(
-            zone, AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id)
+            zone_region,
+            AGENT_ENDPOINT.format(account=kwargs["account_id"], agent=id),
+            origin_url=zone_origin,
         )
         return await self._auth._request("GET", path)
 

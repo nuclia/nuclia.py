@@ -1,6 +1,6 @@
 [project]
 name = "nuclia"
-dynamic = ["version"]
+version = "4.11.0"
 license = "MIT"
 description = "Nuclia Python SDK"
 readme = "README.md"
@@ -43,6 +43,7 @@ dev = [
     # Testing
     "pytest==7.4.0",
     "pytest-cov",
+    "pytest-rerunfailures",
     "types-PyYAML==6.0.12.11",
     "types-requests==2.31.0.2",
     "types-tqdm==4.66.0.2",
@@ -52,8 +53,8 @@ dev = [
     "types-aiofiles",
     "types-Deprecated",
     "types-tabulate",
-    # Pypi manual release
-    "zest.releaser"
+    # Automated release in CI
+    "commitizen"
 ]
 
 [project.optional-dependencies]
@@ -72,11 +73,28 @@ Slack = "https://join.slack.com/t/nuclia-community/shared_invite/zt-2ldfznncw-LW
 requires = ["setuptools >= 40.9.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = { file = "VERSION" }
-
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
 [tool.uv]
 managed = true
+
+[tool.commitizen]
+version_provider = "pep621"
+tag_format = "$version"
+update_changelog_on_bump = true
+changelog_incremental = true
+
+[tool.commitizen.change_type_map]
+"BREAKING CHANGE" = "⚠ Breaking Changes"
+feat = "New Features"
+fix = "Bug Fixes"
+refactor = "Code Refactoring"
+perf = "Performance Improvements"
+docs = "Documentation"
+style = "Styling"
+test = "Tests"
+build = "Build System"
+ci = "CI/CD"
+chore = "Chores"
+

@@ -93,6 +93,21 @@ def testing_config(
         reset_config_file()
 
 
+@pytest.fixture(scope="module")
+def testing_nua_config(testing_nua):
+    os.environ["TESTING"] = "True"
+    with tempfile.NamedTemporaryFile() as temp_file:
+        temp_file.write(b"{}")
+        temp_file.flush()
+        set_config_file(temp_file.name)
+        nuclia_auth = NucliaAuth()
+        client_id = nuclia_auth.nua(testing_nua)
+        assert client_id
+        nuclia_auth._config.set_default_nua(client_id)
+        yield
+        reset_config_file()
+
+
 @pytest.fixture(autouse=True)
 def cleanup_auth():
     # sdk stores the client on DATA, so when running async tests, that gets tied to a function scope loop

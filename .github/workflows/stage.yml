@@ -1,50 +1,51 @@
-name: Test on stage
+# Reusable workflow: tests against the stage environment (stashify.cloud).
+#
+# This file serves two purposes:
+#
+#   1. Single source of truth — nuclia.yml calls this via workflow_call so
+#      the job definition lives here only, not duplicated.
+#
+#   2. Standalone execution — can be triggered outside of a PR via:
+#        - workflow_dispatch:   manual run from the GitHub Actions UI
+#        - repository_dispatch: triggered programmatically by other systems
+#          (e.g. after a stage deployment to verify the new build)
+#
+name: Test (stage)
 
 on:
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
+  workflow_call:
+  workflow_dispatch:
   repository_dispatch:
     type: test-stage
 
-concurrency:
-  group: ${{ github.workflow }}
-
 jobs:
-  test:
-    name: Testing
+  test-stage:
+    name: Test (stage)
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.9.20"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
       - name: Install package
         run: uv sync --no-editable --all-extras
-
-      - name: Run pre-checks
+      - name: Lint
         run: |
           source .venv/bin/activate
           make lint
-
       - name: Test
         run: |
           source .venv/bin/activate
-          BASE_NUCLIA_DOMAIN="stashify.cloud" GA_TESTING_SERVICE_TOKEN="${{secrets.STAGE_TESTING_SERVICE_TOKEN }}" GA_TESTING_TOKEN="${{secrets.STAGE_TESTING_TOKEN }}" GA_TESTING_NUA="${{secrets.TEST_EUROPE1_STASHIFY_NUA }}" GA_TESTING_AGENT_TOKEN="${{secrets.STAGE_TESTING_AGENT_TOKEN }}" GA_TESTING_AGENT_NO_MEM_TOKEN="${{secrets.STAGE_TESTING_AGENT_NO_MEM_TOKEN }}" DEBUG_HTTPX_REQUESTS="true" make test-cov
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+          BASE_NUCLIA_DOMAIN="stashify.cloud" \
+          GA_TESTING_SERVICE_TOKEN="${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}" \
+          GA_TESTING_TOKEN="${{ secrets.STAGE_TESTING_TOKEN }}" \
+          GA_TESTING_NUA="${{ secrets.TEST_EUROPE1_STASHIFY_NUA }}" \
+          GA_TESTING_AGENT_TOKEN="${{ secrets.STAGE_TESTING_AGENT_TOKEN }}" \
+          GA_TESTING_AGENT_NO_MEM_TOKEN="${{ secrets.STAGE_TESTING_AGENT_NO_MEM_TOKEN }}" \
+          DEBUG_HTTPX_REQUESTS="true" \
+          make test-cov
+      - uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
         with:
           flags: stage
         env:

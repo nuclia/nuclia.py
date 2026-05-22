@@ -5,14 +5,18 @@ import json
 import webbrowser
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import urlparse
 
 from httpx import AsyncClient, Client, ConnectError
 from nucliadb_models.resource import KnowledgeBoxObj
-from prompt_toolkit import prompt
 from pydantic import TypeAdapter
 from tabulate import tabulate
 
-from nuclia import get_global_url, get_regional_url, is_nuclia_hosted
+from nuclia import (
+    get_global_url,
+    get_regional_url,
+    is_nuclia_hosted,
+)
 from nuclia.config import (
     Account,
     Config,
@@ -24,12 +28,22 @@ from nuclia.config import (
     RetrievalAgentOrchestratorObj,
     User,
     Zone,
+    extract_region,
     retrieve_account,
     retrieve_nua,
 )
-from nuclia.exceptions import NeedUserToken, UserTokenExpired
+from nuclia.exceptions import NeedUserToken, NuaTokenExpired, UserTokenExpired
 from nuclia.lib.utils import build_httpx_async_client, build_httpx_client
 from nuclia.sdk.logger import logger
+from nuclia.sdk.oauth import (
+    OAuthCallbackServer,
+    build_authorization_url,
+    exchange_code,
+    generate_code_challenge,
+    generate_code_verifier,
+    generate_state,
+    refresh_access_token,
+)
 
 USER = "/api/v1/user/welcome"
 MEMBER = "/api/v1/user"
@@ -85,6 +99,26 @@ class BaseNucliaAuth:
     def unset_kb(self, kbid: str):
         self._config.unset_default_kb(kbid=kbid)
 
+    def resolve_zone_endpoint(self, zone: str) -> Tuple[str, Optional[str]]:
+        zone_value = zone.strip()
+
+        # 1) Zone cache — only populated for OAuth user flows via post_login().
+        #    NUA and service-account flows never populate this cache.
+        zones = self._config.zones or []
+        for zone_obj in zones:
+            if zone_obj.matches(zone_value):
+                region = zone_obj.slug or zone_obj.id or zone_value
+                return region, zone_obj.origin
+
+        # 2) Caller passed a full URL — treat it as origin, extract first hostname label as region slug.
+        parsed = urlparse(zone_value)
+        if parsed.scheme and parsed.netloc:
+            region = parsed.hostname.split(".")[0] if parsed.hostname else zone_value
+            return region, f"{parsed.scheme}://{parsed.netloc}"
+
+        # 3) Plain slug — no origin override, regional template will be used by callers.
+        return zone_value, None
+
 
 def print_config(config: Config):
     if config.default:
@@ -135,6 +169,9 @@ class NucliaAuth(BaseNucliaAuth):
 
     def __init__(self):
         self.client = build_httpx_client()
+        # Zones that failed during this session; skipped on subsequent per-account
+        # fetches to avoid N-accounts x M-dead-zones repeated errors/timeouts.
+        self._failed_zones: set = set()
 
     def show(self) -> None:
         self._show_user()
@@ -156,7 +193,11 @@ class NucliaAuth(BaseNucliaAuth):
                     and kb_obj.token is not None
                 ):
                     permissions = self.client.get(
-                        get_regional_url(kb_obj.region, "/api/authorizer/info"),
+                        get_regional_url(
+                            kb_obj.region,
+                            "/api/authorizer/info",
+                            origin_url=kb_obj.origin,
+                        ),
                         headers={"X-NUCLIA-SERVICEACCOUNT": f"Bearer {kb_obj.token}"},
                     )
                     if permissions.status_code == 200:
@@ -196,7 +237,11 @@ class NucliaAuth(BaseNucliaAuth):
                     and agent_obj.token is not None
                 ):
                     permissions = self.client.get(
-                        get_regional_url(agent_obj.region, "/api/authorizer/info"),
+                        get_regional_url(
+                            agent_obj.region,
+                            "/api/authorizer/info",
+                            origin_url=agent_obj.origin,
+                        ),
                         headers={
                             "X-NUCLIA-SERVICEACCOUNT": f"Bearer {agent_obj.token}"
                         },
@@ -287,14 +332,21 @@ class NucliaAuth(BaseNucliaAuth):
     def agent(
         self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
     ) -> Optional[str]:
+        region_slug, origin_url = self.resolve_zone_endpoint(region)
         agent = self.validate_agent(
-            account_id=account_id, agent_id=agent_id, region=region, token=token
+            account_id=account_id,
+            agent_id=agent_id,
+            region=region_slug,
+            origin_url=origin_url,
+            token=token,
         )
         # For now we validate kb to assess if the agent has memory or not
         memory = False
         kb_check = self.validate_kb(
             url=get_regional_url(
-                region, VALIDATE_AGENT_MEMORY.format(agent_id=agent_id)
+                region_slug,
+                VALIDATE_AGENT_MEMORY.format(agent_id=agent_id),
+                origin_url=origin_url,
             ),
             token=token,
         )
@@ -304,10 +356,11 @@ class NucliaAuth(BaseNucliaAuth):
             logger.info("Validated")
 
             self._config.set_agent_token(
-                region=region,
+                region=region_slug,
                 agent_id=agent.id,
                 memory=memory,
                 account_id=account_id,
+                origin=origin_url,
                 token=token,
                 title=agent.title,
             )
@@ -317,7 +370,7 @@ class NucliaAuth(BaseNucliaAuth):
             logger.error("Invalid service token")
             return None
 
-    def nua(self, token: str) -> Optional[str]:
+    def nua(self, token: str, origin: Optional[str] = None) -> Optional[str]:
         client_id, account_type, account, base_region = self.validate_nua(token)
         if account is not None and client_id is not None and base_region is not None:
             logger.info("Validated")
@@ -327,6 +380,7 @@ class NucliaAuth(BaseNucliaAuth):
                 account=account,
                 base_region=base_region,
                 token=token,
+                origin=origin,
             )
             self.default_nua(client_id)
             return client_id
@@ -374,7 +428,10 @@ class NucliaAuth(BaseNucliaAuth):
         Returns:
             Tuple of (account_id, kb_id, role) or (None, None, None) if invalid
         """
-        url = get_regional_url(region, "/api/authorizer/info")
+        region_slug, origin_url = self.resolve_zone_endpoint(region)
+        url = get_regional_url(
+            region_slug, "/api/authorizer/info", origin_url=origin_url
+        )
         resp = self.client.get(
             url,
             headers={"x-nuclia-serviceaccount": f"Bearer {token}"},
@@ -420,11 +477,16 @@ class NucliaAuth(BaseNucliaAuth):
             return None
 
     def validate_agent(
-        self, account_id: str, agent_id: str, region: str, token: Optional[str] = None
+        self,
+        account_id: str,
+        agent_id: str,
+        region: str,
+        token: Optional[str] = None,
+        origin_url: Optional[str] = None,
     ) -> Optional[RetrievalAgentOrchestratorObj]:
         url = VALIDATE_AGENT.format(account=account_id, agent_id=agent_id)
         resp = self.client.get(
-            get_regional_url(region, url),
+            get_regional_url(region, url, origin_url=origin_url),
             headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
         )
         if resp.status_code == 200:
@@ -452,24 +514,58 @@ class NucliaAuth(BaseNucliaAuth):
 
     def login(self):
         """
-        Lets redirect the user to the UI to capture a token
+        Start an OAuth 2.0 Authorization Code + PKCE flow.
+
+        Opens the browser to the OAuth server, starts a local HTTP server on
+        one of the pre-registered callback ports, waits for the authorization
+        code, exchanges it for tokens, and stores them.
         """
         if self._validate_user_token():
-            logger.info("Logged in!")
+            logger.info("Already logged in.")
             self._show_user()
             return
 
-        webbrowser.open(get_global_url("/redirect?display=token"))
-        # we cannot use Python's `input` here because the copy/pasted token is too long
-        code = prompt("Follow the browser flow and copy the token and paste it here:")
-        print("Checking...")
-        self.set_user_token(code)
+        code_verifier = generate_code_verifier()
+        code_challenge = generate_code_challenge(code_verifier)
+        state = generate_state()
+
+        server = OAuthCallbackServer(expected_state=state)
+        redirect_uri = server.redirect_uri
+
+        auth_url = build_authorization_url(
+            redirect_uri=redirect_uri,
+            code_challenge=code_challenge,
+            state=state,
+        )
+
+        logger.info("Opening browser for authentication…")
+        webbrowser.open(auth_url)
+        logger.info("Waiting for browser callback (timeout: %ds)…", 120)
+
+        code, error = server.wait_for_code()
+
+        if error or not code:
+            raise RuntimeError(f"Authentication failed: {error}")
+
+        access_token, refresh_token, expires_in = exchange_code(
+            code=code,
+            code_verifier=code_verifier,
+            redirect_uri=redirect_uri,
+        )
+
+        self._config.set_oauth_tokens(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+        )
+        logger.info("Auth completed!")
+        self.post_login()
 
     def logout(self):
         """
-        Remove the current user token.
+        Remove the current user tokens (access + refresh).
         """
-        self._config.remove_user_token()
+        self._config.clear_oauth_tokens()
 
     def set_user_token(self, code: str):
         if self._validate_user_token(code):
@@ -526,7 +622,11 @@ class NucliaAuth(BaseNucliaAuth):
         if ttl is not None:
             payload["ttl"] = ttl
         resp = self.client.post(
-            get_regional_url(kb_obj.region, SA_EPHEMERAL_TOKEN),
+            get_regional_url(
+                kb_obj.region,
+                SA_EPHEMERAL_TOKEN,
+                origin_url=kb_obj.origin,
+            ),
             headers={"X-NUCLIA-SERVICEACCOUNT": f"Bearer {kb_obj.token}"},
             json=payload,
         )
@@ -559,11 +659,37 @@ class NucliaAuth(BaseNucliaAuth):
         ta = TypeAdapter(List[PersonalTokenItem])
         return ta.validate_python(resp)
 
+    def _maybe_refresh_token(self) -> None:
+        """
+        Proactively refresh the access token if it is expired or about to
+        expire (within a 30-second margin) and a refresh token is available.
+        Raises UserTokenExpired if the refresh attempt fails.
+        """
+        expires_at = self._config.token_expires_at
+        if expires_at is not None and time() >= expires_at - 30:
+            self._do_refresh()
+
+    def _do_refresh(self) -> None:
+        if not self._config.refresh_token:
+            raise UserTokenExpired()
+        try:
+            access_token, new_refresh, expires_in = refresh_access_token(
+                self._config.refresh_token
+            )
+            self._config.set_oauth_tokens(
+                access_token=access_token,
+                refresh_token=new_refresh,
+                expires_in=expires_in,
+            )
+        except Exception:
+            raise UserTokenExpired()
+
     def _request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
     ):
         if not self._config.token:
             raise NeedUserToken()
+        self._maybe_refresh_token()
         kwargs: Dict[str, Any] = {
             "headers": {"Authorization": f"Bearer {self._config.token}"}
         }
@@ -583,10 +709,84 @@ class NucliaAuth(BaseNucliaAuth):
             return resp.json()
         elif resp.status_code >= 300 and resp.status_code < 400:
             return None
-        elif resp.status_code == 403 or resp.status_code == 401:
+        elif resp.status_code in (401, 403):
+            # Reactive refresh: try once on auth failure.
+            if self._config.refresh_token:
+                self._do_refresh()
+                kwargs["headers"]["Authorization"] = f"Bearer {self._config.token}"
+                resp = self.client.request(method, path, **kwargs)
+                if resp.status_code == 204:
+                    return None
+                elif resp.status_code >= 200 and resp.status_code < 300:
+                    return resp.json()
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
+
+    def _nua_request(
+        self, method: str, path: str, data: Optional[Any] = None, remove_null=True
+    ):
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        kwargs: Dict[str, Any] = {
+            "headers": {"x-nuclia-nuakey": f"Bearer {nua_obj.token}"}
+        }
+        if data is not None:
+            if remove_null:
+                data = {k: v for k, v in data.items() if v is not None}
+            kwargs["content"] = json.dumps(data)
+
+        resp = self.client.request(
+            method,
+            path,
+            **kwargs,
+        )
+        if resp.status_code == 204:
+            return None
+        elif resp.status_code >= 200 and resp.status_code < 300:
+            return resp.json()
+        elif resp.status_code >= 300 and resp.status_code < 400:
+            return None
+        elif resp.status_code == 403 or resp.status_code == 401:
+            raise NuaTokenExpired()
+        else:
+            raise Exception({"status": resp.status_code, "message": resp.text})
+
+    def kbs_nua(self, account: str, zone: Optional[str] = None) -> List[KnowledgeBox]:
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        # NUA flows never have access to the global zones API, so resolve_zone_endpoint
+        # cannot help here. Origin and region are read directly from the stored key.
+        # origin: explicitly configured override → falls back to the token issuer URL.
+        # region: caller-supplied zone slug → falls back to subdomain extracted from issuer.
+        zone_origin = nua_obj.origin or nua_obj.region
+        zone_region = zone or extract_region(nua_obj.region) or nua_obj.region
+        if not zone_region:
+            raise ValueError("zone is required")
+
+        path = get_regional_url(
+            zone_region, LIST_KBS.format(account=account), origin_url=zone_origin
+        )
+        kbs = self._nua_request("GET", path)
+        result: List[KnowledgeBox] = []
+        if kbs is None:
+            return result
+
+        for kb in kbs:
+            url = get_regional_url(
+                zone_region,
+                f"/api/v1/kb/{kb['id']}",
+                origin_url=zone_origin,
+            )
+            kb_obj = KnowledgeBox(
+                url=url,
+                id=kb["id"],
+                slug=kb["slug"],
+                title=kb["title"],
+                account=account,
+                region=zone_region,
+                origin=zone_origin,
+            )
+            result.append(kb_obj)
+        return result
 
     def accounts(self) -> List[Account]:
         accounts = self._request("GET", get_global_url(ACCOUNTS))
@@ -616,74 +816,105 @@ class NucliaAuth(BaseNucliaAuth):
         self._config.save()
         return result
 
-    def kbs(self, account: str, zone: Optional[str] = None) -> List[KnowledgeBox]:
+    def kbs(
+        self,
+        account: str,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
+    ) -> List[KnowledgeBox]:
         result: List[KnowledgeBox] = []
-        zones = self.zones()
+        zones = _zones if _zones is not None else self.zones()
+        zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
-            zoneSlug = zoneObj.slug
-            if not zoneSlug:
+            zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
+            if not zone_selector:
                 continue
-            if zone is not None and zoneSlug != zone:
+            zone_region, zone_origin = self.resolve_zone_endpoint(zone_selector)
+            if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
                 continue
-            path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
+            if zone_region in self._failed_zones:
+                continue
+            path = get_regional_url(
+                zone_region, LIST_KBS.format(account=account), origin_url=zone_origin
+            )
             try:
                 kbs = self._request("GET", path)
             except UserTokenExpired:
                 return []
             except ConnectError:
+                self._failed_zones.add(zone_region)
                 logger.error(
-                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                    f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                 )
                 continue
             except Exception as e:
+                self._failed_zones.add(zone_region)
                 logger.error(
-                    f"Error fetching KBs from zone {zoneSlug}: {e}, skipping zone"
+                    f"Error fetching KBs from zone {zone_region}: {e}, skipping zone"
                 )
                 continue
             if kbs is not None:
                 for kb in kbs:
-                    url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
+                    url = get_regional_url(
+                        zone_region,
+                        f"/api/v1/kb/{kb['id']}",
+                        origin_url=zone_origin,
+                    )
                     kb_obj = KnowledgeBox(
                         url=url,
                         id=kb["id"],
                         slug=kb["slug"],
                         title=kb["title"],
                         account=account,
-                        region=zoneSlug,
+                        region=zone_region,
+                        origin=zone_origin,
                     )
                     result.append(kb_obj)
         return result
 
     def agents(
-        self, account: str, zone: Optional[str] = None
+        self,
+        account: str,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
     ) -> List[RetrievalAgentOrchestrator]:
         result: List[RetrievalAgentOrchestrator] = []
-        zones = self.zones()
+        zones = _zones if _zones is not None else self.zones()
+        zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
-            zoneSlug = zoneObj.slug
-            if not zoneSlug:
+            zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
+            if not zone_selector:
                 continue
-            if zone is not None and zoneSlug != zone:
+            zone_region, zone_origin = self.resolve_zone_endpoint(zone_selector)
+            if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
+                continue
+            if zone_region in self._failed_zones:
                 continue
             for has_memory, url_template in (
                 (True, LIST_AGENTS),
                 (False, LIST_AGENTS_NO_MEM),
             ):
-                path = get_regional_url(zoneSlug, url_template.format(account=account))
+                path = get_regional_url(
+                    zone_region,
+                    url_template.format(account=account),
+                    origin_url=zone_origin,
+                )
                 try:
                     agents = self._request("GET", path)
                 except UserTokenExpired:
                     return []
                 except ConnectError:
+                    self._failed_zones.add(zone_region)
                     logger.error(
-                        f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                        f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                     )
                     continue
                 except Exception as e:
+                    self._failed_zones.add(zone_region)
                     logger.error(
-                        f"Error fetching agents from zone {zoneSlug}: {e}, skipping zone"
+                        f"Error fetching agents from zone {zone_region}: {e}, skipping zone"
                     )
                     continue
                 if agents is not None:
@@ -694,7 +925,8 @@ class NucliaAuth(BaseNucliaAuth):
                             memory=has_memory,
                             title=agent["title"],
                             slug=agent["slug"],
-                            region=zoneSlug,
+                            region=zone_region,
+                            origin=zone_origin,
                         )
                         result.append(ra_obj)
         return result
@@ -707,6 +939,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         self.client = build_httpx_async_client()
         self._cache = {}  # Manual cache storage
         self._lock = asyncio.Lock()
+        self._failed_zones: set = set()
 
     async def show(self):
         await self._show_user()
@@ -741,14 +974,21 @@ class AsyncNucliaAuth(BaseNucliaAuth):
     async def agent(
         self, region: str, account_id: str, agent_id: str, token: Optional[str] = None
     ) -> Optional[str]:
+        region_slug, origin_url = self.resolve_zone_endpoint(region)
         agent = await self.validate_agent(
-            account_id=account_id, agent_id=agent_id, region=region, token=token
+            account_id=account_id,
+            agent_id=agent_id,
+            region=region_slug,
+            origin_url=origin_url,
+            token=token,
         )
         # For now we validate kb to assess if the agent has memory or not
         memory = False
         kb_check = await self.validate_kb(
             url=get_regional_url(
-                region, VALIDATE_AGENT_MEMORY.format(agent_id=agent_id)
+                region_slug,
+                VALIDATE_AGENT_MEMORY.format(agent_id=agent_id),
+                origin_url=origin_url,
             ),
             token=token,
         )
@@ -758,10 +998,11 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             logger.info("Validated")
 
             self._config.set_agent_token(
-                region=region,
+                region=region_slug,
                 agent_id=agent.id,
                 memory=memory,
                 account_id=account_id,
+                origin=origin_url,
                 token=token,
                 title=agent.title,
             )
@@ -771,7 +1012,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             logger.error("Invalid service token")
             return None
 
-    async def nua(self, token: str) -> Optional[str]:
+    async def nua(self, token: str, origin: Optional[str] = None) -> Optional[str]:
         client_id, account_type, account, base_region = await self.validate_nua(token)
         if account is not None and client_id is not None and base_region is not None:
             logger.info("Validated")
@@ -781,6 +1022,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                 account=account,
                 base_region=base_region,
                 token=token,
+                origin=origin,
             )
             return client_id
         else:
@@ -824,7 +1066,10 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         Returns:
             Tuple of (account_id, kb_id, role) or (None, None, None) if invalid
         """
-        url = get_regional_url(region, "/api/authorizer/info")
+        region_slug, origin_url = self.resolve_zone_endpoint(region)
+        url = get_regional_url(
+            region_slug, "/api/authorizer/info", origin_url=origin_url
+        )
         resp = await self.client.get(
             url,
             headers={"x-nuclia-serviceaccount": f"Bearer {token}"},
@@ -870,11 +1115,16 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             return None
 
     async def validate_agent(
-        self, account_id: str, agent_id: str, region: str, token: Optional[str] = None
+        self,
+        account_id: str,
+        agent_id: str,
+        region: str,
+        token: Optional[str] = None,
+        origin_url: Optional[str] = None,
     ) -> Optional[RetrievalAgentOrchestratorObj]:
         url = VALIDATE_AGENT.format(account=account_id, agent_id=agent_id)
         resp = await self.client.get(
-            get_regional_url(region, url),
+            get_regional_url(region, url, origin_url=origin_url),
             headers={"X-Nuclia-Serviceaccount": f"Bearer {token}"},
         )
         if resp.status_code == 200:
@@ -891,24 +1141,72 @@ class AsyncNucliaAuth(BaseNucliaAuth):
 
     async def login(self):
         """
-        Lets redirect the user to the UI to capture a token
+        Start an OAuth 2.0 Authorization Code + PKCE flow (async variant).
+
+        Runs the local callback server in a thread-pool executor so the
+        asyncio event loop stays unblocked.
         """
+        import asyncio
+
+        from nuclia.sdk.oauth import (
+            OAuthCallbackServer,
+            build_authorization_url,
+            exchange_code,
+            generate_code_challenge,
+            generate_code_verifier,
+            generate_state,
+        )
+
         if await self._validate_user_token():
-            logger.info("Logged in!")
+            logger.info("Already logged in.")
             await self._show_user()
             return
 
-        webbrowser.open(get_global_url("/redirect?display=token"))
-        # we cannot use Python's `input` here because the copy/pasted token is too long
-        code = prompt("Follow the browser flow and copy the token and paste it here:")
-        logger.info("Checking...")
-        await self.set_user_token(code)
+        code_verifier = generate_code_verifier()
+        code_challenge = generate_code_challenge(code_verifier)
+        state = generate_state()
+
+        server = OAuthCallbackServer(expected_state=state)
+        redirect_uri = server.redirect_uri
+
+        auth_url = build_authorization_url(
+            redirect_uri=redirect_uri,
+            code_challenge=code_challenge,
+            state=state,
+        )
+
+        logger.info("Opening browser for authentication…")
+        webbrowser.open(auth_url)
+        logger.info("Waiting for browser callback (timeout: %ds)…", 120)
+
+        loop = asyncio.get_event_loop()
+        code, error = await loop.run_in_executor(None, server.wait_for_code)
+
+        if error or not code:
+            raise RuntimeError(f"Authentication failed: {error}")
+
+        access_token, refresh_token, expires_in = await loop.run_in_executor(
+            None,
+            lambda: exchange_code(
+                code=code,
+                code_verifier=code_verifier,
+                redirect_uri=redirect_uri,
+            ),
+        )
+
+        self._config.set_oauth_tokens(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+        )
+        logger.info("Auth completed!")
+        await self.post_login()
 
     def logout(self):
         """
-        Remove the current user token.
+        Remove the current user tokens (access + refresh).
         """
-        self._config.remove_user_token()
+        self._config.clear_oauth_tokens()
 
     async def set_user_token(self, code: str):
         if await self._validate_user_token(code):
@@ -952,13 +1250,78 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             self._cache[path] = (time() + 60, response)
             return response
 
+    async def _maybe_refresh_token(self) -> None:
+        """
+        Proactively refresh the access token if it is expired or about to
+        expire (within a 30-second margin) and a refresh token is available.
+        Raises UserTokenExpired if the refresh attempt fails.
+        """
+        expires_at = self._config.token_expires_at
+        if expires_at is not None and time() >= expires_at - 30:
+            await self._do_refresh()
+
+    async def _do_refresh(self) -> None:
+        if not self._config.refresh_token:
+            raise UserTokenExpired()
+        try:
+            loop = asyncio.get_event_loop()
+            access_token, new_refresh, expires_in = await loop.run_in_executor(
+                None,
+                lambda: refresh_access_token(self._config.refresh_token),  # type: ignore[arg-type]
+            )
+            self._config.set_oauth_tokens(
+                access_token=access_token,
+                refresh_token=new_refresh,
+                expires_in=expires_in,
+            )
+        except Exception:
+            raise UserTokenExpired()
+
     async def _request(
         self, method: str, path: str, data: Optional[Any] = None, remove_null=True
     ):
         if not self._config.token:
             raise NeedUserToken()
+        await self._maybe_refresh_token()
         kwargs: Dict[str, Any] = {
             "headers": {"Authorization": f"Bearer {self._config.token}"}
+        }
+
+        if data is not None:
+            if remove_null:
+                data = {k: v for k, v in data.items() if v is not None}
+            kwargs["data"] = json.dumps(data)
+        resp = await self.client.request(
+            method,
+            path,
+            **kwargs,
+        )
+        if resp.status_code == 204:
+            return None
+        elif resp.status_code >= 200 and resp.status_code < 300:
+            return resp.json()
+        elif resp.status_code >= 300 and resp.status_code < 400:
+            return None
+        elif resp.status_code in (401, 403):
+            # Reactive refresh: try once on auth failure.
+            if self._config.refresh_token:
+                await self._do_refresh()
+                kwargs["headers"]["Authorization"] = f"Bearer {self._config.token}"
+                resp = await self.client.request(method, path, **kwargs)
+                if resp.status_code == 204:
+                    return None
+                elif resp.status_code >= 200 and resp.status_code < 300:
+                    return resp.json()
+            raise UserTokenExpired()
+        else:
+            raise Exception({"status": resp.status_code, "message": resp.text})
+
+    async def _nua_request(
+        self, method: str, path: str, data: Optional[Any] = None, remove_null=True
+    ):
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        kwargs: Dict[str, Any] = {
+            "headers": {"x-nuclia-nuakey": f"Bearer {nua_obj.token}"}
         }
 
         if data is not None:
@@ -980,6 +1343,45 @@ class AsyncNucliaAuth(BaseNucliaAuth):
             raise UserTokenExpired()
         else:
             raise Exception({"status": resp.status_code, "message": resp.text})
+
+    async def kbs_nua(
+        self, account: str, zone: Optional[str] = None
+    ) -> List[KnowledgeBox]:
+        nua_obj = self._config.get_nua(self._config.get_default_nua())
+        # NUA flows never have access to the global zones API, so resolve_zone_endpoint
+        # cannot help here. Origin and region are read directly from the stored key.
+        # origin: explicitly configured override → falls back to the token issuer URL.
+        # region: caller-supplied zone slug → falls back to subdomain extracted from issuer.
+        zone_origin = nua_obj.origin or nua_obj.region
+        zone_region = zone or extract_region(nua_obj.region) or nua_obj.region
+        if not zone_region:
+            raise ValueError("zone is required")
+
+        path = get_regional_url(
+            zone_region, LIST_KBS.format(account=account), origin_url=zone_origin
+        )
+        kbs = await self._nua_request("GET", path)
+        result: List[KnowledgeBox] = []
+        if kbs is None:
+            return result
+
+        for kb in kbs:
+            url = get_regional_url(
+                zone_region,
+                f"/api/v1/kb/{kb['id']}",
+                origin_url=zone_origin,
+            )
+            kb_obj = KnowledgeBox(
+                url=url,
+                id=kb["id"],
+                slug=kb["slug"],
+                title=kb["title"],
+                account=account,
+                region=zone_region,
+                origin=zone_origin,
+            )
+            result.append(kb_obj)
+        return result
 
     async def accounts(self, cached: bool = True) -> List[Account]:
         _request = self._cached_request if cached else self._request
@@ -1012,43 +1414,60 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         return result
 
     async def kbs(
-        self, account: str, cached: bool = True, zone: Optional[str] = None
+        self,
+        account: str,
+        cached: bool = True,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
     ) -> List[KnowledgeBox]:
         _request = self._cached_request if cached else self._request
         result: List[KnowledgeBox] = []
-        zones = await self.zones()
+        zones = _zones if _zones is not None else await self.zones()
+        zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
-            zoneSlug = zoneObj.slug
-            if not zoneSlug:
+            zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
+            if not zone_selector:
                 continue
-            if zone is not None and zoneSlug != zone:
+            zone_region, zone_origin = self.resolve_zone_endpoint(zone_selector)
+            if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
                 continue
-            path = get_regional_url(zoneSlug, LIST_KBS.format(account=account))
+            if zone_region in self._failed_zones:
+                continue
+            path = get_regional_url(
+                zone_region, LIST_KBS.format(account=account), origin_url=zone_origin
+            )
             try:
                 kbs = await _request("GET", path)
             except UserTokenExpired:
                 return result
             except ConnectError:
+                self._failed_zones.add(zone_region)
                 logger.error(
-                    f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                    f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                 )
                 continue
             except Exception as e:
+                self._failed_zones.add(zone_region)
                 logger.error(
-                    f"Error fetching KBs from zone {zoneSlug}: {e}, skipping zone"
+                    f"Error fetching KBs from zone {zone_region}: {e}, skipping zone"
                 )
                 continue
             if kbs is not None:
                 for kb in kbs:
-                    url = get_regional_url(zoneSlug, f"/api/v1/kb/{kb['id']}")
+                    url = get_regional_url(
+                        zone_region,
+                        f"/api/v1/kb/{kb['id']}",
+                        origin_url=zone_origin,
+                    )
                     kb_obj = KnowledgeBox(
                         url=url,
                         id=kb["id"],
                         slug=kb["slug"],
                         title=kb["title"],
                         account=account,
-                        region=zoneSlug,
+                        region=zone_region,
+                        origin=zone_origin,
                     )
                     result.append(kb_obj)
         return result
@@ -1076,42 +1495,60 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         if ttl is not None:
             payload["ttl"] = ttl
         resp = await self.client.post(
-            get_regional_url(kb_obj.region, SA_EPHEMERAL_TOKEN),
+            get_regional_url(
+                kb_obj.region,
+                SA_EPHEMERAL_TOKEN,
+                origin_url=kb_obj.origin,
+            ),
             headers={"X-NUCLIA-SERVICEACCOUNT": f"Bearer {kb_obj.token}"},
             json=payload,
         )
         return EphemeralToken(token=resp.json().get("token"))
 
     async def agents(
-        self, account: str, cached: bool = True, zone: Optional[str] = None
+        self,
+        account: str,
+        cached: bool = True,
+        zone: Optional[str] = None,
+        _zones: Optional[List[Zone]] = None,
     ) -> List[RetrievalAgentOrchestrator]:
         _request = self._cached_request if cached else self._request
         result: List[RetrievalAgentOrchestrator] = []
-        zones = await self.zones()
+        zones = _zones if _zones is not None else await self.zones()
+        zone_filter = self.resolve_zone_endpoint(zone) if zone else None
         for zoneObj in zones:
-            zoneSlug = zoneObj.slug
-            if not zoneSlug:
+            zone_selector = zoneObj.origin or zoneObj.slug or zoneObj.id
+            if not zone_selector:
                 continue
-            if zone is not None and zoneSlug != zone:
+            zone_region, zone_origin = self.resolve_zone_endpoint(zone_selector)
+            if zone_filter is not None and (zone_region, zone_origin) != zone_filter:
                 # If a specific zone is provided, skip other zones
+                continue
+            if zone_region in self._failed_zones:
                 continue
             for has_memory, url_template in (
                 (True, LIST_AGENTS),
                 (False, LIST_AGENTS_NO_MEM),
             ):
-                path = get_regional_url(zoneSlug, url_template.format(account=account))
+                path = get_regional_url(
+                    zone_region,
+                    url_template.format(account=account),
+                    origin_url=zone_origin,
+                )
                 try:
                     agents = await _request("GET", path)
                 except UserTokenExpired:
                     return []
                 except ConnectError:
+                    self._failed_zones.add(zone_region)
                     logger.error(
-                        f"Connection error to {get_regional_url(zoneSlug, '')}, skipping zone"
+                        f"Connection error to {get_regional_url(zone_region, '', origin_url=zone_origin)}, skipping zone"
                     )
                     continue
                 except Exception as e:
+                    self._failed_zones.add(zone_region)
                     logger.error(
-                        f"Error fetching agents from zone {zoneSlug}: {e}, skipping zone"
+                        f"Error fetching agents from zone {zone_region}: {e}, skipping zone"
                     )
                     continue
                 if agents is not None:
@@ -1122,7 +1559,8 @@ class AsyncNucliaAuth(BaseNucliaAuth):
                             memory=has_memory,
                             title=agent["title"],
                             slug=agent["slug"],
-                            region=zoneSlug,
+                            region=zone_region,
+                            origin=zone_origin,
                         )
                         result.append(ra_obj)
         return result

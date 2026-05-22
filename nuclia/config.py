@@ -1,6 +1,8 @@
+import logging
 import os
 from datetime import datetime
 from enum import Enum
+from time import time
 from typing import List, Optional, Sequence, Union, overload
 from urllib.parse import urlparse
 
@@ -8,6 +10,9 @@ from pydantic import BaseModel
 
 from nuclia import CLOUD_ID
 from nuclia.exceptions import NotDefinedDefault
+from nuclia.urls import KNOWN_ROOT_DOMAINS, _root_domain
+
+logger = logging.getLogger(__name__)
 
 CONFIG_DIR = "~/.nuclia"
 CONFIG_PATH = CONFIG_DIR + "/config"
@@ -20,6 +25,7 @@ class KnowledgeBox(BaseModel):
     slug: Optional[str] = None
     token: Optional[str] = None
     region: Optional[str] = None
+    origin: Optional[str] = None
     account: Optional[str] = None
 
     def __str__(self):
@@ -41,6 +47,7 @@ class RetrievalAgentOrchestrator(BaseModel):
     id: str
     account: str
     region: str
+    origin: Optional[str] = None
     # Set a default so we can deserialize older configs
     memory: bool = True
     title: Optional[str] = None
@@ -64,6 +71,10 @@ class NuaKey(BaseModel):
     region: str
     account: str
     token: str
+    # Explicit API base URL override. When set, takes priority over the issuer URL
+    # (region) for request routing. Useful for private zones where the auth issuer
+    # and the API endpoint are on different hosts.
+    origin: Optional[str] = None
 
     def __str__(self):
         return f"{self.client_id} {self.account} {self.account_type:30}"
@@ -89,9 +100,22 @@ class Zone(BaseModel):
     id: str
     title: str
     slug: Optional[str] = None
+    private: bool = False
+    origin: Optional[str] = None
+
+    def endpoint(self) -> Optional[str]:
+        return self.origin or self.slug or self.id
+
+    def matches(self, zone: str) -> bool:
+        candidates = {
+            candidate for candidate in (self.id, self.slug, self.origin) if candidate
+        }
+        return zone in candidates
 
     def __str__(self):
-        return f"{self.id:30} - {self.slug}"
+        endpoint = self.endpoint() or "-"
+        visibility = "private" if self.private else "public"
+        return f"{self.id:30} - {endpoint} ({visibility})"
 
 
 class Account(BaseModel):
@@ -121,21 +145,16 @@ class Selection(BaseModel):
 def extract_region(url) -> Optional[str]:
     parsed = urlparse(url)
     hostname = parsed.hostname
-    if hostname:
-        parts = hostname.split(".")
-        region = parts[0] if parts else None
-        if region in [
-            "localhost",
-            "rag",
-            "nuclia",
-            "stashify",
-            "gcp-global-dev-1",
-            CLOUD_ID.split(".")[0],
-        ]:
-            # This means the URL is global, not regional
-            return None
-        return region
-    return None
+    if not hostname:
+        return None
+    root = _root_domain(hostname)
+    # Global root domains (known static list + currently configured domain).
+    if root in KNOWN_ROOT_DOMAINS or root == _root_domain(CLOUD_ID):
+        return None
+    region = hostname.split(".")[0]
+    if region in {"localhost", "rag", "accounts", "oauth"}:
+        return None
+    return region
 
 
 class Config(BaseModel):
@@ -149,6 +168,8 @@ class Config(BaseModel):
     default: Optional[Selection] = Selection()
     user: Optional[str] = None
     token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[float] = None
 
     def get_nua(self, nua_id: str) -> NuaKey:
         nua_obj = next(
@@ -197,6 +218,23 @@ class Config(BaseModel):
     def set_user_token(self, code: str):
         self.token = code
 
+    def set_oauth_tokens(
+        self,
+        access_token: str,
+        refresh_token: Optional[str],
+        expires_in: Optional[int],
+    ):
+        self.token = access_token
+        self.refresh_token = refresh_token
+        self.token_expires_at = (time() + expires_in) if expires_in else None
+        self.save()
+
+    def clear_oauth_tokens(self):
+        self.token = None
+        self.refresh_token = None
+        self.token_expires_at = None
+        self.save()
+
     def remove_user_token(self):
         self.token = None
         self.save()
@@ -208,6 +246,7 @@ class Config(BaseModel):
         base_region: str,
         token: str,
         account_type: Optional[str] = None,
+        origin: Optional[str] = None,
     ):
         if self.nuas_token is None:
             self.nuas_token = []
@@ -224,6 +263,7 @@ class Config(BaseModel):
                 region=base_region,
                 token=token,
                 client_id=client_id,
+                origin=origin,
             )
         )
         self.save()
@@ -251,7 +291,20 @@ class Config(BaseModel):
     ):
         self._del_kbid(kbid)
         region = extract_region(url)
-        kb_obj = KnowledgeBox(id=kbid, url=url, token=token, title=title, region=region)
+        parsed = urlparse(url)
+        origin = (
+            f"{parsed.scheme}://{parsed.netloc}"
+            if parsed.scheme and parsed.netloc
+            else None
+        )
+        kb_obj = KnowledgeBox(
+            id=kbid,
+            url=url,
+            token=token,
+            title=title,
+            region=region,
+            origin=origin,
+        )
         self.kbs_token.append(kb_obj)
 
         if self.default is None:
@@ -266,6 +319,7 @@ class Config(BaseModel):
         agent_id: str,
         memory: bool,
         account_id: str,
+        origin: Optional[str] = None,
         token: Optional[str] = None,
         title: Optional[str] = None,
     ):
@@ -287,6 +341,7 @@ class Config(BaseModel):
             id=agent_id,
             account=account_id,
             region=region,
+            origin=origin,
             memory=memory,
             title=title,
             token=token,
@@ -386,8 +441,16 @@ class Config(BaseModel):
         from nuclia.data import DATA
 
         DATA.config = self
-        with open(os.path.expanduser(CONFIG_PATH), "w") as config_file:
+        config_path = os.path.expanduser(CONFIG_PATH)
+        with open(config_path, "w") as config_file:
             config_file.write(self.model_dump_json())
+        try:
+            os.chmod(config_path, 0o600)
+        except Exception:
+            logger.warning(
+                "Could not set restrictive permissions on config file %s",
+                config_path,
+            )
 
 
 def read_config() -> Config:

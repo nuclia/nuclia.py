@@ -1,12 +1,56 @@
 # Changelog
 
+## 4.11.0 (2026-05-21)
 
-## 4.9.21 (unreleased)
+### New Features
+
+- Add kb resource field deletion
+
+## 4.10.0 (2026-05-19)
+
+- Replaces the old nuclia auth login flow (manual browser redirect + paste token) with a proper OAuth 2.0 Authorization Code + PKCE flow.
+- Implements the oauth offline access refresh mechanism
+- Adds more deterministic url crafting
+- Improvement to avoid refetching recent zone informatino
+- Method to delete field.
 
 
-- Add KB Owner NucliaDB role
-- Update nucliadb_sdk
-- Requires python>=3.10
+## 4.9.26 (2026-05-12)
+
+- Support private zone deployments, where we may need to configure the origin url for the api calls.
+
+## 4.9.25 (2026-05-12)
+
+
+- Delete should work with None
+
+
+## 4.9.24 (2026-05-12)
+
+
+- Status code review on delete
+
+
+## 4.9.23 (2026-05-08)
+
+
+- Allow KB management (list/create/get/delete) with NUA keys.
+- Use NUA listing path when no user token is available.
+- Resolve management zone from NUA region; validate explicit mismatched zones.
+- Prefer NUA account in `@account` when user token is missing.
+- Clarify NUA KB management auth/scopes in docs.
+
+
+## 4.9.22 (2026-05-07)
+
+
+- Enable to access kb enabled functions with the personal token defined on the config
+
+
+## 4.9.21 (2026-04-24)
+
+
+- Fix reading response data in NUA errors
 
 
 ## 4.9.20 (2026-04-21)
