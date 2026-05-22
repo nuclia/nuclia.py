@@ -156,7 +156,7 @@ class BaseNucliaDBClient:
                 "X-NUCLIADB-ROLES": "READER",
             }
             self.writer_headers = {
-                "X-NUCLIADB-ROLES": "WRITER",
+                "X-NUCLIADB-ROLES": "WRITER;OWNER",
                 "X-SYNCHRONOUS": "True",
             }
 
