@@ -45,13 +45,13 @@ logger.setLevel(logging.WARNING)
 # ─── Exceptions ─────────────────────────────────────────────────────────────
 
 
-class topicAlreadyExistsError(Exception):
+class TopicAlreadyExistsError(Exception):
     """Raised when attempting to create a new topic with a slug that already exists."""
 
     pass
 
 
-class topicNotFoundError(Exception):
+class TopicNotFoundError(Exception):
     """Raised when an topic with the specified ID or slug cannot be found."""
 
     pass
@@ -251,7 +251,7 @@ class NucliaMemory:
                     path=path,
                 )
             except NotFoundError:
-                raise topicNotFoundError(f"topic '{topic}' not found.")
+                raise TopicNotFoundError(f"topic '{topic}' not found.")
         else:
             try:
                 self._store_to_new_topic(
@@ -263,7 +263,7 @@ class NucliaMemory:
                     path=path,
                 )
             except ConflictError:
-                raise topicAlreadyExistsError(
+                raise TopicAlreadyExistsError(
                     f"topic with slug '{slug}' already exists."
                 )
 
@@ -1012,7 +1012,7 @@ if __name__ == "__main__":
             title="Vacation Policy",
             slug="vacation-policy",
         )
-    except topicAlreadyExistsError:
+    except TopicAlreadyExistsError:
         print("topic already exists, skipping creation.")
 
     print(f"Annotating topic")
