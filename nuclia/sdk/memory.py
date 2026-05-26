@@ -1,27 +1,27 @@
 from __future__ import annotations
 
+import logging
 import re
 import string
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional, cast
+from typing import cast, overload
 
-from nucliadb_models import FieldTypeName
-from nucliadb_models.conversation import Conversation, InputMessage, InputMessageContent
-from nucliadb_models.filters import (
-    And,
-    Field,
-    FilterExpression,
-    Or,
-    Resource,
+from nucliadb_models import FieldTypeName, filters
+from nucliadb_models.conversation import (
+    Conversation,
+    InputMessage,
+    InputMessageContent,
+    Message,
 )
 from nucliadb_models.link import LinkField
-from nucliadb_models.resource import ResourceField
+from nucliadb_models.resource import Resource, ResourceField
 from nucliadb_models.search import (
     AskRequest,
     CatalogRequest,
     CatalogResponse,
+    ChatContextMessage,
     CitationsType,
     PredictReranker,
     ResourceProperties,
@@ -29,25 +29,30 @@ from nucliadb_models.search import (
 )
 from nucliadb_models.text import TextField, TextFormat
 from nucliadb_sdk.v2.exceptions import ConflictError, NotFoundError
+from pydantic import BaseModel, ValidationError
 
-from nuclia.data import get_async_auth, get_auth
+from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.lib.kb import NucliaDBClient
-from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
+from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.upload import NucliaUpload
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+
 
 # ─── Exceptions ─────────────────────────────────────────────────────────────
 
 
-class EngramAlreadyExistsError(Exception):
-    """Raised when attempting to create a new engram with a slug that already exists."""
+class topicAlreadyExistsError(Exception):
+    """Raised when attempting to create a new topic with a slug that already exists."""
 
     pass
 
 
-class EngramNotFoundError(Exception):
-    """Raised when an engram with the specified ID or slug cannot be found."""
+class topicNotFoundError(Exception):
+    """Raised when an topic with the specified ID or slug cannot be found."""
 
     pass
 
@@ -56,24 +61,71 @@ class EngramNotFoundError(Exception):
 
 
 @dataclass
-class Annotation:
-    """A single annotation message attached to an engram."""
+class AnnotationContextMessage:
+    """A context message attached to an annotation."""
 
-    ident: str
-    timestamp: str
+    author: str
     text: str
-    who: str
+
+
+class AnnotationContent(BaseModel):
+    """The content of the annotation with separate fields for the text, reasoning, and context."""
+
+    text: str
+    reasoning: str | None = None
+    context: list[AnnotationContextMessage] | None = None
+
+
+class Annotation(BaseModel):
+    """A single annotation message attached to an topic."""
+
+    id: str
+    timestamp: datetime
+    content: AnnotationContent
+    attachments: list[str] | None = None
+
+    @classmethod
+    def from_conversation_message(cls, message: Message) -> "Annotation":
+        content = AnnotationContent.model_validate_json(message.content.text or "")
+        return cls(
+            id=message.ident,
+            timestamp=message.timestamp,
+            content=content,
+            attachments=message.content.attachments_fields,
+        )
+
+
+class Fact(BaseModel):
+    """
+    A fact is a special type of annotation that represents an objective piece of information about the topic, as opposed to a subjective note or comment.
+    Facts can be used to store key details or metadata about the topic that may be useful for recall or reference later on.
+    Facts are generated automatically by the system from a specific annotation.
+    """
+
+    id: str
+    timestamp: datetime
+    text: str
+
+    def from_conversation_message(cls, message: Message) -> "Fact":
+        return cls(
+            id=message.ident,
+            timestamp=message.timestamp,
+            text=message.content.text,
+        )
 
 
 @dataclass
-class Engram:
-    """A discrete unit of memory stored in a Nuclia KnowledgeBox resource."""
+class Topic:
+    """A discrete unit of memory stored in the memory.
+    Corresponds to a single resource in a Nuclia Knowledge Box.
+    """
 
     id: str
     slug: str
     title: str
-    summary: Optional[str] = None
-    annotations: list[Annotation] = field(default_factory=list)
+    summary: str | None = None
+    annotations: list[Annotation] | None = None
+    facts: list[Annotation] | None = None
 
 
 @dataclass
@@ -91,10 +143,10 @@ class RecallResult:
 
 
 @dataclass
-class EngramPage:
-    """A paginated listing of engrams."""
+class TopicPage:
+    """A paginated listing of topics."""
 
-    items: list[Engram]
+    items: list[Topic]
     total: int
     has_more: bool
 
@@ -103,24 +155,6 @@ class EngramPage:
 
 
 class NucliaMemory:
-    """
-    Persistent, queryable memory for AI agents backed by a Nuclia KnowledgeBox.
-
-    All methods accept the standard ``url`` / ``api_key`` keyword arguments
-    (or fall back to the configured default KB) that are forwarded to the
-    ``@kb`` decorator.
-
-    Example::
-
-        from nuclia.sdk.memory import NucliaMemory
-
-        mem = NucliaMemory()
-
-        engram_id = mem.remember("The deployment uses GitHub Actions.")
-        result    = mem.recall("How does deployment work?")
-        print(result.answer)
-    """
-
     def __init__(self):
         self.kb = NucliaKB()
         self.upload = NucliaUpload()
@@ -139,51 +173,88 @@ class NucliaMemory:
 
     # ── store ────────────────────────────────────────────────────────────
 
-    @kb
+    @overload
     def store(
         self,
-        text: Optional[str] = None,
+        text: str | None = None,
         *,
-        engram: Optional[str] = None,
-        title: Optional[str] = None,
-        slug: Optional[str] = None,
-        path: Optional[str] = None,
-        url: Optional[str] = None,
-        summary: Optional[str] = None,
+        title: str | None = None,
+        slug: str | None = None,
+        path: str | None = None,
+        url: str | None = None,
+        summary: str | None = None,
         **kwargs,
     ) -> None:
-        """Store a text engram or append content to an existing one.
+        """Create a new topic from text, file, or URL.
 
         Parameters
         ----------
         text:
-            The text content to store.
-        engram:
-            Existing engram ID or slug to append to.
+            The text content to store. Optional if providing a file or URL.
         title:
-            Optional resource title (new engrams only).
+            Optional resource title. If not provided, a default title will be inferred from the content.
         slug:
-            Optional resource slug (new engrams only).
+            Optional resource slug. If not provided, a slug will be generated from the title.
         url:
-            Optional resource URL (new engrams only).
+            Optional resource URL. Use to ingest content from the web into the topic.
         path:
-            Path to a local file to upload as engram content (new engrams only).
+            Path to a local file to upload as topic content. Use to ingest file content into the topic.
         summary:
-            Optional resource summary (new engrams only).
+            Optional resource summary.
         """
-        if engram:
+        ...
+
+    @overload
+    def store(
+        self,
+        text: str | None = None,
+        *,
+        topic: str,
+        path: str | None = None,
+        url: str | None = None,
+        **kwargs,
+    ) -> None:
+        """Append content to an existing topic.
+
+        Parameters
+        ----------
+        text:
+            The text content to append. Optional if providing a file or URL.
+        topic:
+            Existing topic ID or slug to append to.
+        url:
+            Optional resource URL. Use to ingest content from the web into the topic.
+        path:
+            Path to a local file to upload as topic content. Use to ingest file content into the topic.
+        """
+        ...
+
+    @kb
+    def store(
+        self,
+        text: str | None = None,
+        *,
+        topic: str | None = None,
+        title: str | None = None,
+        slug: str | None = None,
+        path: str | None = None,
+        url: str | None = None,
+        summary: str | None = None,
+        **kwargs,
+    ) -> None:
+        if topic:
             try:
-                self._store_to_existing_engram(
-                    engram=engram,
+                self._store_to_existing_topic(
+                    topic=topic,
                     text=text,
                     url=url,
                     path=path,
                 )
             except NotFoundError:
-                raise EngramNotFoundError(f"Engram '{engram}' not found.")
+                raise topicNotFoundError(f"topic '{topic}' not found.")
         else:
             try:
-                self._store_to_new_engram(
+                self._store_to_new_topic(
                     slug=slug,
                     title=title,
                     summary=summary,
@@ -192,60 +263,58 @@ class NucliaMemory:
                     path=path,
                 )
             except ConflictError:
-                raise EngramAlreadyExistsError(
-                    f"Engram with slug '{slug}' already exists."
+                raise topicAlreadyExistsError(
+                    f"topic with slug '{slug}' already exists."
                 )
 
-    def _store_to_existing_engram(
+    def _store_to_existing_topic(
         self,
-        engram: Optional[str] = None,
-        text: Optional[str] = None,
-        url: Optional[str] = None,
-        path: Optional[str] = None,
+        topic: str | None = None,
+        text: str | None = None,
+        url: str | None = None,
+        path: str | None = None,
     ) -> None:
-        """Store content in an existing engram."""
         if not text and not path and not url:
             raise ValueError("At least one of text, path, or url must be provided.")
-
-        # Append to existing engram
         base_args = {}
-        ruuid, rslug = uuid_or_slug(engram)
+        ruuid, rslug = uuid_or_slug(topic)
         if ruuid:
             base_args["rid"] = ruuid
         else:
             assert rslug is not None
             base_args["slug"] = rslug
-
-        update_args = base_args.copy()
+        update_resource_args = base_args.copy()
         field_id = uuid.uuid4().hex
         if text or url:
             if text:
-                update_args["texts"] = {
+                update_resource_args["texts"] = {
                     field_id: TextField(
                         body=text,
                         format=TextFormat.PLAIN,
                     )
                 }
             if url:
-                update_args["links"] = {
+                update_resource_args["links"] = {
                     field_id: LinkField(
                         uri=url,
                     )
                 }
-            self.kb.resource.update(**update_args)
-
+            self.kb.resource.update(**update_resource_args)
         if path:
-            upload_args = {"path": path, "field": field_id, **base_args}
-            self.upload.file(**upload_args)
+            self.upload.file(
+                path=path,
+                field_id=field_id,
+                **base_args,
+            )
 
-    def _store_to_new_engram(
+    def _store_to_new_topic(
         self,
-        slug: Optional[str] = None,
-        title: Optional[str] = None,
-        summary: Optional[str] = None,
-        text: Optional[str] = None,
-        url: Optional[str] = None,
-        path: Optional[str] = None,
+        slug: str | None = None,
+        title: str | None = None,
+        summary: str | None = None,
+        text: str | None = None,
+        url: str | None = None,
+        path: str | None = None,
     ) -> None:
         if not text and not path and not url:
             raise ValueError("At least one of text, path, or url must be provided.")
@@ -287,28 +356,31 @@ class NucliaMemory:
         self,
         query: str,
         *,
-        engram: str,
-        who: Optional[str] = None,
+        topic: str,
+        who: str | None = None,
+        context: list[ChatContextMessage] | None = None,
         **kwargs,
     ) -> RecallResult:
-        """Ask a question and get a generative answer grounded in stored engrams.
+        """Ask a question and get a generative answer grounded in stored topics.
 
         Parameters
         ----------
         query:
             Natural-language question.
-        engram:
-            Scope the answer to a single engram (ID or slug).
+        topic:
+            Scope the answer to a single topic (ID or slug).
         who:
             Filter search context to this user's annotations. Pass ``"*"``
             to include all users' annotations. Defaults to authenticated user.
+        context:
+            Optional list of past messages to include as additional context for the recall. Messages should be ordered from oldest to most recent.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         kbid = ndb.kbid
         if who is None:
             who = self._authenticated_user_email
         filter_expression = self._build_recall_filter_expression(
-            engram=engram,
+            topic=topic,
             who=who,
             ndb=ndb,
         )
@@ -320,6 +392,7 @@ class NucliaMemory:
             reranker=PredictReranker(window=50),
             prefer_markdown=True,
             filter_expression=filter_expression,
+            chat_history=context,
         )
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=kbid, content=ask_request)
         answer, citations = parse_recall_answer(ask_response)
@@ -331,20 +404,33 @@ class NucliaMemory:
     @kb
     def annotate(
         self,
+        text: str | None = None,
         *,
-        engram: str,
-        text: str,
-        who: Optional[str] = None,
+        topic: str,
+        context: list[AnnotationContextMessage] | None = None,
+        reasoning: str | None = None,
+        attachments: list[str] | None = None,
+        metadata: dict | None = None,
+        who: str | None = None,
         **kwargs,
     ) -> None:
-        """Append a note to an existing engram.
+        """Append a note to an existing topic.
 
         Parameters
         ----------
-        engram:
-            Engram ID or slug.
         text:
-            Annotation text.
+            Annotation text (the decision or fact to record).
+        topic:
+            topic ID or slug.
+        context:
+            Optional list of context messages that led to this annotation.
+            Each entry is a dict with ``author`` and ``text`` keys, representing
+            the conversational history or evidence that informed the decision.
+        reasoning:
+            Optional explanation of why this annotation was made. Useful for
+            agents to record the logic behind a decision.
+        attachments:
+            Optional list of file paths to attach as supporting evidence.
         who:
             Author identifier (defaults to authenticated user).
         """
@@ -353,7 +439,7 @@ class NucliaMemory:
         if who is None:
             who = self._authenticated_user_email
         field_id = annotation_field_id(who)
-        ruuid, rslug = uuid_or_slug(engram)
+        ruuid, rslug = uuid_or_slug(topic)
         message = InputMessage(
             timestamp=datetime.now(tz=timezone.utc),
             ident=uuid.uuid4().hex,
@@ -362,15 +448,19 @@ class NucliaMemory:
                 text=text,
             ),
         )
+        add_conversation_args = {
+            "kbid": kbid,
+            "field_id": field_id,
+            "content": [message],
+        }
         if ruuid:
-            ndb.ndb.add_conversation_message(
-                kbid=kbid, rid=ruuid, field_id=field_id, content=[message]
-            )
+            add_conversation_args["rid"] = ruuid
+            add_conversation_message = ndb.ndb.add_conversation_message
         else:
             assert rslug is not None
-            ndb.ndb.add_conversation_message_by_slug(
-                kbid=kbid, slug=rslug, field_id=field_id, content=[message]
-            )
+            add_conversation_args["slug"] = rslug
+            add_conversation_message = ndb.ndb.add_conversation_message_by_slug
+        add_conversation_message(**add_conversation_args)
 
     # ── forget ───────────────────────────────────────────────────────────────
 
@@ -378,36 +468,36 @@ class NucliaMemory:
     def forget(
         self,
         *,
-        engram: str,
-        annotation: Optional[str] = None,
+        topic: str,
+        annotation: str | None = None,
         annotations: bool = False,
-        who: Optional[str] = None,
+        who: str | None = None,
         confirm: bool = False,
         **kwargs,
     ) -> None:
-        """Delete an engram, specific annotation(s), or the entire memory.
+        """Delete an topic, specific annotation(s), or the entire memory.
 
         Parameters
         ----------
-        engram:
-            Engram ID or slug to target.
+        topic:
+            topic ID or slug to target.
         annotation:
             Specific annotation ``ident`` to delete.
         annotations:
-            If ``True``, delete all annotations by ``who`` on the engram.
+            If ``True``, delete all annotations by ``who`` on the topic.
         who:
             Author filter for annotation deletion (defaults to authenticated user).
         confirm:
-            When set to True, confirms the deletion of the engram.
+            When set to True, confirms the deletion of the topic.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = uuid_or_slug(engram)
+        ruuid, rslug = uuid_or_slug(topic)
         if not annotation and not annotations:
             if not confirm:
                 raise ValueError(
-                    "Deleting an entire engram is irreversible. To confirm, set confirm=True."
+                    "Deleting an entire topic is irreversible. To confirm, set confirm=True."
                 )
-            # Delete entire engram
+            # Delete entire topic
             self.kb.resource.delete(rid=ruuid, slug=rslug)
             return
         if who == "*":
@@ -415,8 +505,8 @@ class NucliaMemory:
         if who is None:
             who = self._authenticated_user_email
         if annotations:
-            # Delete all annotatios for the user on this engram
-            self._delete_user_annotations(
+            # Delete all annotatios for the user on this topic
+            self._delete_annotations(
                 rid=ruuid,
                 slug=rslug,
                 who=who,
@@ -432,36 +522,34 @@ class NucliaMemory:
                 ndb=ndb,
             )
 
-    def _delete_user_annotations(
+    def _delete_annotations(
         self,
         *,
-        rid: Optional[str] = None,
-        slug: Optional[str] = None,
+        rid: str | None = None,
+        slug: str | None = None,
         who: str,
         ndb: NucliaDBClient,
     ) -> None:
         # Delete both the raw annotations and the auto-generated summary for that user
         field_ids = [
             annotation_field_id(who),
-            annotation_summary_field_id(who),
+            facts_field_id(who),
         ]
         for field_id in field_ids:
+            delete_field_args = {
+                "kbid": ndb.kbid,
+                "field_type": FieldTypeName.CONVERSATION.value,
+                "field_id": field_id,
+            }
+            if rid:
+                delete_field_args["rid"] = rid
+                delete_field = ndb.ndb.delete_field_by_id
+            else:
+                assert slug is not None
+                delete_field_args["slug"] = slug
+                delete_field = ndb.ndb.delete_field_by_slug
             try:
-                if rid:
-                    ndb.ndb.delete_field_by_id(
-                        kbid=ndb.kbid,
-                        rid=rid,
-                        field_type=FieldTypeName.CONVERSATION.value,
-                        field_id=field_id,
-                    )
-                else:
-                    assert slug is not None
-                    ndb.ndb.delete_field_by_slug(
-                        kbid=ndb.kbid,
-                        slug=slug,
-                        field_type=FieldTypeName.CONVERSATION.value,
-                        field_id=field_id,
-                    )
+                delete_field(**delete_field_args)
             except NotFoundError:
                 # If the summary field doesn't exist, we can ignore the error and continue.
                 pass
@@ -469,8 +557,8 @@ class NucliaMemory:
     def _delete_annotation_by_id(
         self,
         *,
-        rid: Optional[str] = None,
-        slug: Optional[str] = None,
+        rid: str | None = None,
+        slug: str | None = None,
         annotation_id: str,
         who: str,
         ndb: NucliaDBClient,
@@ -479,25 +567,25 @@ class NucliaMemory:
         # summary field for that user (if it exists) to maintain the 1-to-1 mapping.
         field_ids = [
             annotation_field_id(who),
-            annotation_summary_field_id(who),
+            facts_field_id(who),
         ]
         for field_id in field_ids:
+            delete_conversation_message_args = {
+                "kbid": ndb.kbid,
+                "field_id": field_id,
+                "message_id": annotation_id,
+            }
+            if rid:
+                delete_conversation_message_args["rid"] = rid
+                delete_conversation_message = ndb.ndb.delete_conversation_message
+            else:
+                assert slug is not None
+                delete_conversation_message_args["slug"] = slug
+                delete_conversation_message = (
+                    ndb.ndb.delete_conversation_message_by_slug
+                )
             try:
-                if rid:
-                    ndb.ndb.delete_conversation_message(
-                        kbid=ndb.kbid,
-                        rid=rid,
-                        field_id=field_id,
-                        message_id=annotation_id,
-                    )
-                else:
-                    assert slug is not None
-                    ndb.ndb.delete_conversation_message_by_slug(
-                        kbid=ndb.kbid,
-                        slug=slug,
-                        field_id=field_id,
-                        message_id=annotation_id,
-                    )
+                delete_conversation_message(**delete_conversation_message_args)
             except NotFoundError:
                 # If the summary message doesn't exist, we can ignore the error and continue.
                 pass
@@ -508,35 +596,108 @@ class NucliaMemory:
     def get(
         self,
         *,
-        engram: str,
-        who: Optional[str] = None,
+        topic: str,
+        who: str | None = None,
+        annotations: int = 0,
+        facts: int = 0,
         **kwargs,
-    ) -> Engram:
-        """Retrieve an engram by ID or slug."""
+    ) -> Topic:
+        """Retrieve an topic by ID or slug."""
+
+        # TODO: do not get all values on the GET resource.
+        # Replace the ResourceProperties.VALUES.value with a more specific request inside _get_most_recent_messages to
+        # get the corresponding pages of annotations.
+
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = uuid_or_slug(engram)
-        resource = self.kb.resource.get(
-            rid=ruuid,
-            slug=rslug,
-            show=[
-                ResourceProperties.BASIC.value,
-                ResourceProperties.VALUES.value,
-            ],
-        )
-        engram = Engram(
+        ruuid, rslug = uuid_or_slug(topic)
+        get_resource_args = {
+            "kbid": ndb.kbid,
+            "query_params": {
+                "show": [
+                    ResourceProperties.BASIC.value,
+                    ResourceProperties.VALUES.value,
+                ],
+            },
+        }
+        if ruuid:
+            get_resource_func = ndb.ndb.get_resource_by_id
+            get_resource_args["rid"] = ruuid
+        else:
+            assert rslug is not None
+            get_resource_func = ndb.ndb.get_resource_by_slug
+            get_resource_args["slug"] = rslug
+        resource: Resource = get_resource_func(**get_resource_args)
+        topic = Topic(
             id=resource.id,
             slug=resource.slug,
             title=resource.title,
             summary=resource.summary or None,
-            annotations=[],
+            annotations=None,
+            facts=None,
         )
+        if who == "*":
+            raise ValueError("Retrieving all users' annotations is not allowed.")
         if who is None:
             who = self._authenticated_user_email
-        annotations = self._get_most_recent_user_annotations(
-            engram.id, who, ndb=ndb, n=10
+        if annotations > 0:
+            topic.annotations = self._get_annotations(
+                resource, who, ndb=ndb, n=annotations
+            )
+        if facts > 0:
+            topic.facts = self._get_facts(resource, who, ndb=ndb, n=facts)
+        return topic
+
+    def _get_annotations(
+        self,
+        resource: Resource,
+        who: str,
+        ndb: NucliaDBClient,
+        n: int = 10,
+    ) -> list[Annotation]:
+        field_id = annotation_field_id(who)
+        messages = self._get_most_recent_messages(
+            resource=resource,
+            field_id=field_id,
+            ndb=ndb,
+            n=n,
         )
-        engram.annotations = annotations
-        return engram
+        annotations = []
+        for message in messages:
+            try:
+                annotation = Annotation.from_conversation_message(message)
+            except ValidationError:
+                logger.warning(
+                    f"Skipping message with id {message.ident} in facts field {field_id} because it does not conform to the expected format."
+                )
+                continue
+            annotations.append(annotation)
+        return annotations
+
+    def _get_facts(
+        self,
+        resource: Resource,
+        who: str,
+        ndb: NucliaDBClient,
+        n: int = 10,
+    ) -> list[Annotation]:
+        field_id = facts_field_id(who)
+        messages = self._get_most_recent_messages(
+            resource=resource,
+            field_id=field_id,
+            ndb=ndb,
+            n=n,
+        )
+        facts = []
+        for message in messages:
+            try:
+                fact = Fact.from_conversation_message(message)
+            except ValidationError:
+                logger.warning(
+                    f"Skipping message with id {message.ident} in facts field {field_id} because it does not conform to the expected format."
+                )
+                continue
+            facts.append(fact)
+        return facts
 
     # ── list ─────────────────────────────────────────────────────────────────
 
@@ -548,8 +709,8 @@ class NucliaMemory:
         page: int = 0,
         size: int = 20,
         **kwargs,
-    ) -> EngramPage:
-        """List engrams in this memory.
+    ) -> TopicPage:
+        """List topics in this memory.
 
         Parameters
         ----------
@@ -572,36 +733,47 @@ class NucliaMemory:
         catalog_response: CatalogResponse = ndb.ndb.catalog(
             kbid=ndb.kbid, content=catalog_request
         )
-        engram_page = EngramPage(
+        topic_page = TopicPage(
             items=[
-                Engram(
+                topic(
                     id=resource.id,
                     slug=resource.slug,
                     title=resource.title,
                     summary=resource.summary or None,
+                    annotations=[],  # Do not load annotations in list view for performance reasons
                 )
                 for resource in catalog_response.resources.values()
             ],
             total=catalog_response.fulltext.total,
             has_more=catalog_response.fulltext.next_page,
         )
-        return engram_page
+        return topic_page
 
     # ── utils ────────────────────────────────────────────────────────────
 
     def _build_recall_filter_expression(
         self,
-        engram: str,
+        topic: str,
         who: str,
         ndb: NucliaDBClient,
-    ) -> FilterExpression:
-        # First, add the filter for the resource representing the engram
-        ruuid, rslug = uuid_or_slug(engram)
+    ) -> filters.FilterExpression:
+        """
+        To build the filter expression for the recall we need to include the explicit list of fields
+        we want to do retrieval on.
+
+        This implies we need to do an extra get request to obtain the list of fields, which is not ideal.
+        An alternative approach 
+
+
+        
+        """
+        # First, add the filter for the resource representing the topic
+        ruuid, rslug = uuid_or_slug(topic)
         if ruuid:
-            resource_filter = Resource(id=ruuid)
+            resource_filter = filters.Resource(id=ruuid)
         else:
             assert rslug is not None
-            resource_filter = Resource(slug=rslug)
+            resource_filter = filters.Resource(slug=rslug)
 
         # Then add filters for the current user's annotations on that resource (if any)
         field_filter = None
@@ -611,51 +783,58 @@ class NucliaMemory:
             )
             field_filter_operands = []
             for field_type, field_id in resource_fields:
-                is_annotation_field = (
+                is_memory_field = (
                     field_type == FieldTypeName.CONVERSATION
                     and field_id.startswith(f"memory--")
                 )
-                is_user_annotation_field = (
-                    is_annotation_field and field_id == annotation_field_id(who)
+                is_annotation_field = (
+                    is_memory_field and field_id == annotation_field_id(who)
                 )
-                if is_user_annotation_field or not is_annotation_field:
-                    field_filter_operands.append(Field(type=field_type, name=field_id))
+                is_facts_field = is_memory_field and field_id == facts_field_id(who)
+                if is_annotation_field or is_facts_field or not is_memory_field:
+                    field_filter_operands.append(
+                        filters.Field(type=field_type, name=field_id)
+                    )
             if len(field_filter_operands) == 1:
                 field_filter = field_filter_operands[0]
             elif len(field_filter_operands) > 1:
-                field_filter = Or(operands=field_filter_operands)
+                field_filter = filters.Or(operands=field_filter_operands)
 
         # Finally, combine the resource filter and the field filter (if any)
         if field_filter is not None:
-            filter_expression = FilterExpression(
-                field=And(operands=[resource_filter, field_filter])
+            filter_expression = filters.FilterExpression(
+                field=filters.And(operands=[resource_filter, field_filter])
             )
         else:
-            filter_expression = FilterExpression(field=resource_filter)
+            filter_expression = filters.FilterExpression(field=resource_filter)
         return filter_expression
 
     def _get_all_resource_fields(
         self,
         *,
-        rid: Optional[str] = None,
-        slug: Optional[str] = None,
+        rid: str | None = None,
+        slug: str | None = None,
         ndb: NucliaDBClient,
     ) -> list[tuple[FieldTypeName, str]]:
+        get_resource_args = {
+            "kbid": ndb.kbid,
+            "query_params": {
+                "show": [
+                    ResourceProperties.ERRORS.value,
+                ],
+            },
+        }
         if rid:
-            resource = ndb.ndb.get_resource_by_id(
-                kbid=ndb.kbid,
-                rid=rid,
-                query_params={"show": [ResourceProperties.VALUES.value]},
-            )
+            get_resource_args["rid"] = rid
+            get_resource = ndb.ndb.get_resource_by_id
+        elif slug:
+            get_resource_args["slug"] = slug
+            get_resource = ndb.ndb.get_resource_by_slug
         else:
-            assert slug is not None
-            resource = ndb.ndb.get_resource_by_slug(
-                kbid=ndb.kbid,
-                slug=slug,
-                query_params={"show": [ResourceProperties.VALUES.value]},
-            )
-        assert resource.data is not None
-
+            raise ValueError("Either rid or slug must be provided.")
+        resource: Resource = get_resource(**get_resource_args)
+        if resource.data is None:
+            return []
         return [
             *(
                 (FieldTypeName.CONVERSATION, id)
@@ -668,154 +847,79 @@ class NucliaMemory:
             *((FieldTypeName.KEY_VALUE, id) for id in resource.data.key_values or {}),
         ]
 
-    def _get_most_recent_user_annotations(
+    def _get_most_recent_messages(
         self,
-        engram_id: str,
-        who: str,
+        resource: Resource,
+        field_id: str,
         ndb: NucliaDBClient,
         n: int = 10,
-    ) -> list[Annotation]:
-        """
-        TODO: First, get the resource to check how many pages the conversation has.
-        This way, we can easily paginate backwards.
-        """
+    ) -> list[Message]:
+        if (
+            resource.data is None
+            or resource.data.conversations is None
+            or resource.data.conversations.get(field_id) is None
+            or resource.data.conversations[field_id].value is None
+        ):
+            return []
+        conversation = resource.data.conversations[field_id]
+        total_messages = conversation.value.total
+        current_page = conversation.value.pages
+        messages = []
+        # Get from the most recent messages backwards.
+        while True:
+            if current_page <= 0 or total_messages == 0:
+                break
+            page = self._get_page_of_conversation_messages(
+                resource_id=resource.id,
+                field_id=field_id,
+                ndb=ndb,
+                page=str(current_page),
+            )
+            for message in reversed(page):
+                messages.append(message)
+                if len(messages) >= n:
+                    break
+            if len(messages) >= n:
+                break
+            current_page -= 1
+        return messages
+
+    def _get_page_of_conversation_messages(
+        self,
+        resource_id: str,
+        field_id: str,
+        ndb: NucliaDBClient,
+        page: str,
+    ) -> list[Message]:
         kbid = ndb.kbid
-        field_id = annotation_field_id(who)
         field: ResourceField = ndb.ndb.get_resource_field(
             kbid=kbid,
-            rid=engram_id,
+            rid=resource_id,
             field_type=FieldTypeName.CONVERSATION.value,
             field_id=field_id,
-            query_params={"page": "last"},
+            query_params={"page": page},
         )
         if field.value is None:
             return []
         conversation = cast(Conversation, field.value)
-
-        # Return the last n messages by the user on this engram as annotations, in reverse chronological order
-        for message in reversed(conversation.messages or []):
-            if not message.content.text:
-                # Skip deleted messages
-                continue
-            annotations.append(
-                Annotation(
-                    ident=message.ident,
-                    timestamp=message.timestamp,
-                    text=message.content.text or "",
-                    who=message.who,
-                )
-            )
-            if len(annotations) >= n:
-                break
-        return annotations
+        return [
+            message
+            for message in conversation.messages or []
+            if message.content.text  # Skip deleted messages
+        ]
 
 
-# ─── Async Memory ─────────────────────────────────────────────────────────────
+# ─── Async Memory (TODO) ─────────────────────────────────────────────────────────────
 
 
-class AsyncNucliaMemory:
-    """
-    Async version of :class:`NucliaMemory`.
-
-    Example::
-
-        from nuclia.sdk.memory import AsyncNucliaMemory
-
-        mem = AsyncNucliaMemory()
-
-        engram_id = await mem.remember("The deployment uses GitHub Actions.")
-        result    = await mem.recall("How does deployment work?")
-        print(result.answer)
-    """
-
-    @property
-    def _auth(self) -> AsyncNucliaAuth:
-        return get_async_auth()
-
-    # ── remember ────────────────────────────────────────────────────────────
-
-    @kb
-    async def remember(
-        self,
-        text: Optional[str] = None,
-        *,
-        engram: Optional[str] = None,
-        title: Optional[str] = None,
-        slug: Optional[str] = None,
-        format: TextFormat = TextFormat.PLAIN,
-        **kwargs,
-    ) -> str:
-        """Async version of :meth:`NucliaMemory.remember`."""
-        raise NotImplementedError
-
-    # ── recall ───────────────────────────────────────────────────────────────
-
-    @kb
-    async def recall(
-        self,
-        query: str,
-        *,
-        engram: Optional[str] = None,
-        who: Optional[str] = None,
-        **kwargs,
-    ) -> RecallResult:
-        """Async version of :meth:`NucliaMemory.recall`."""
-        raise NotImplementedError
-
-    # ── annotate ─────────────────────────────────────────────────────────────
-
-    @kb
-    async def annotate(
-        self,
-        *,
-        engram: str,
-        text: str,
-        who: Optional[str] = None,
-        **kwargs,
-    ) -> None:
-        """Async version of :meth:`NucliaMemory.annotate`."""
-        raise NotImplementedError
-
-    # ── forget ───────────────────────────────────────────────────────────────
-
-    @kb
-    async def forget(
-        self,
-        *,
-        engram: Optional[str] = None,
-        annotation: Optional[str] = None,
-        annotations: bool = False,
-        who: Optional[str] = None,
-        all: bool = False,
-        confirm: bool = False,
-        **kwargs,
-    ) -> None:
-        """Async version of :meth:`NucliaMemory.forget`."""
-        raise NotImplementedError
-
-    # ── list ─────────────────────────────────────────────────────────────────
-
-    @kb
-    async def list(
-        self,
-        *,
-        query: str = "",
-        page: int = 0,
-        size: int = 20,
-        **kwargs,
-    ) -> EngramPage:
-        """Async version of :meth:`NucliaMemory.list`."""
-        raise NotImplementedError
-
-
-def uuid_or_slug(engram: str) -> tuple[str | None, str | None]:
-    """Helper to determine if engram identifier is a UUID or slug."""
+def uuid_or_slug(topic: str) -> tuple[str | None, str | None]:
+    """Helper to determine if topic identifier is a UUID or slug."""
     ruuid = None
     rslug = None
     try:
-        ruuid = str(uuid.UUID(engram))
+        ruuid = str(uuid.UUID(topic))
     except ValueError:
-        rslug = engram
+        rslug = topic
     return ruuid, rslug
 
 
@@ -823,21 +927,24 @@ def slugify(text: str) -> str:
     """
     Convert text to a URL-friendly slug.
     Slugs cannot contain special characters or spaces, and are typically lowercase with words separated by hyphens.
+    Examples:
+    - "My Vacation Policy" -> "my-vacation-policy"
+    - "Project Plan v2.0!" -> "project-plan-v20"
     """
-    allowed_characters = string.ascii_letters + string.digits + " "
+    allowed_characters = string.ascii_letters + string.digits + " " + "-"
     cleaned_text = "".join(c for c in text if c in allowed_characters)
     return cleaned_text.lower().replace(" ", "-")
 
 
 def infer_title(
     *,
-    slug: Optional[str] = None,
-    text: Optional[str] = None,
-    path: Optional[str] = None,
-    url: Optional[str] = None,
+    slug: str | None = None,
+    text: str | None = None,
+    path: str | None = None,
+    url: str | None = None,
 ):
     """
-    Try to infer a human-friendly title for an engram based on available metadata.
+    Try to infer a human-friendly title for an topic based on available metadata.
     """
     if slug:
         title = slug
@@ -848,7 +955,7 @@ def infer_title(
     elif url:
         title = url.split("/")[-1]
     else:
-        title = "Untitled engram"
+        title = "Untitled topic"
     title = title.replace("-", " ").title()
     return title
 
@@ -885,17 +992,18 @@ def annotation_field_id(user_email: str) -> str:
     return f"memory--{user_email}"
 
 
-def annotation_summary_field_id(user_email: str) -> str:
-    """Helper to generate the field ID for a user's annotation summary field."""
+def facts_field_id(user_email: str) -> str:
+    """Helper to generate the field ID for a user's annotation summary field, where all the extracted facts are stored"""
     user_email = user_email.replace("@", "_at_").replace(".", "_dot_")
     return f"memory--{user_email}--summary"
 
 
 if __name__ == "__main__":
     memory = NucliaMemory()
-
-    # Create a new engram
+    # Create a new topic
     try:
+        print(f"Storing new topic")
+        print("=" * 50)
         memory.store(
             "Employees are entitled to 22 working days of paid vacation per year. "
             "Vacation must be requested at least 2 weeks in advance. "
@@ -904,24 +1012,38 @@ if __name__ == "__main__":
             title="Vacation Policy",
             slug="vacation-policy",
         )
-    except EngramAlreadyExistsError:
-        print("Engram already exists, skipping creation.")
+    except topicAlreadyExistsError:
+        print("topic already exists, skipping creation.")
 
+    print(f"Annotating topic")
+    print("=" * 50)
     memory.annotate(
-        engram="vacation-policy",
+        topic="vacation-policy",
         text="Catalan employees have an exception allowing up to 60 consecutive days.",
     )
 
-    engram = memory.get(engram="vacation-policy")
+    # List topics
+    print(f"List all topics")
+    print("=" * 50)
+    topics = memory.list()
+    for topic in topics.items:
+        print(f"- {topic.title} (id={topic.id}, slug={topic.slug})")
 
-    # List engrams
-    engrams = memory.list()
-    for engram in engrams.items:
-        print(f"- {engram.title} (id={engram.id}, slug={engram.slug})")
+    # Get
+    print(f"Get topic by slug")
+    print("=" * 50)
+    topic = memory.get(topic="vacation-policy")
+    print(f"topic title: {topic.title}")
+    print(f"topic summary: {topic.summary}")
+    print("topic annotations:")
+    for annotation in topic.annotations:
+        print(f"- {annotation.text} (by {annotation.who} at {annotation.timestamp})")
 
     # Recall
+    print(f"Recall answer for a question about the topic")
+    print("=" * 50)
     question = "Can a Catalan employee take 15 consecutive vacation days?"
-    result = memory.recall(question, engram="vacation-policy")
+    result = memory.recall(question, topic="vacation-policy")
     print(f"Question: {question}")
     print()
     print(f"Answer: {result.answer}")

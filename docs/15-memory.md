@@ -5,10 +5,10 @@ Nuclia Memory provides persistent, queryable memory for AI agents backed by Nucl
 ## Core Concepts
 
 - **Memory**: A memory instance maps to a Nuclia KnowledgeBox. It stores and retrieves discrete units of information.
-- **Engram**: A discrete unit of memory stored as a Nuclia resource. Each engram has a unique ID, an optional slug, a title, and one or more content fields.
-- **Annotation**: A conversational note attached to an engram by a specific user. Annotations are stored as conversation fields on the resource.
-- **Recall**: A generative query that returns an AI-generated answer grounded in stored engrams.
-- **Retrieve**: A semantic search that returns matching engrams without generating an answer.
+- **topic**: A discrete unit of memory stored as a Nuclia resource. Each topic has a unique ID, an optional slug, a title, and one or more content fields.
+- **Annotation**: A conversational note attached to an topic by a specific user. Annotations are stored as conversation fields on the resource.
+- **Recall**: A generative query that returns an AI-generated answer grounded in stored topics.
+- **Retrieve**: A semantic search that returns matching topics without generating an answer.
 
 ## Usage
 
@@ -22,34 +22,34 @@ memory = sdk.NucliaMemory()
 
 ### Storing information (`remember`)
 
-Store a new engram:
+Store a new topic:
 
 ```python
-engram_id = memory.remember("The deployment uses GitHub Actions.")
+topic_id = memory.remember("The deployment uses GitHub Actions.")
 ```
 
 Store with a title and slug:
 
 ```python
-engram_id = memory.remember(
+topic_id = memory.remember(
     "The deployment uses GitHub Actions.",
     title="Deployment process",
     slug="deployment-process",
 )
 ```
 
-Append content to an existing engram:
+Append content to an existing topic:
 
 ```python
 memory.remember(
     "Rollbacks are handled via git revert.",
-    engram="deployment-process",
+    topic="deployment-process",
 )
 ```
 
 ### Querying memory (`recall`)
 
-Ask a question and get a generative answer grounded in stored engrams:
+Ask a question and get a generative answer grounded in stored topics:
 
 ```python
 result = memory.recall("How does deployment work?")
@@ -57,15 +57,15 @@ print(result.answer)
 # "The deployment uses GitHub Actions. Rollbacks are handled via git revert."
 ```
 
-Scope the answer to a specific engram:
+Scope the answer to a specific topic:
 
 ```python
-result = memory.recall("How does deployment work?", engram="deployment-process")
+result = memory.recall("How does deployment work?", topic="deployment-process")
 ```
 
 ### Semantic search (`retrieve`)
 
-Return matching engrams without generating an answer:
+Return matching topics without generating an answer:
 
 ```python
 results = memory.retrieve("deployment")
@@ -73,19 +73,19 @@ for r in results:
     print(r.title, r.score, r.text)
 ```
 
-### Annotating engrams (`annotate`)
+### Annotating topics (`annotate`)
 
-Append a note to an existing engram:
+Append a note to an existing topic:
 
 ```python
-memory.annotate(engram="deployment-process", text="Confirmed with the team on 2025-01-15.")
+memory.annotate(topic="deployment-process", text="Confirmed with the team on 2025-01-15.")
 ```
 
 Specify the author:
 
 ```python
 memory.annotate(
-    engram="deployment-process",
+    topic="deployment-process",
     text="Needs review after next sprint.",
     who="alice",
 )
@@ -93,22 +93,22 @@ memory.annotate(
 
 ### Deleting (`forget`)
 
-Delete a single engram:
+Delete a single topic:
 
 ```python
-memory.forget(engram="deployment-process")
+memory.forget(topic="deployment-process")
 ```
 
 Delete a specific annotation:
 
 ```python
-memory.forget(engram="deployment-process", annotation="annotation-0", who="alice")
+memory.forget(topic="deployment-process", annotation="annotation-0", who="alice")
 ```
 
-Delete all annotations by a user on an engram:
+Delete all annotations by a user on an topic:
 
 ```python
-memory.forget(engram="deployment-process", annotations=True, who="alice")
+memory.forget(topic="deployment-process", annotations=True, who="alice")
 ```
 
 Delete the entire memory (destructive — requires confirmation):
@@ -117,12 +117,12 @@ Delete the entire memory (destructive — requires confirmation):
 memory.forget(all=True, confirm=True)
 ```
 
-### Listing engrams (`list`)
+### Listing topics (`list`)
 
 ```python
 page = memory.list(query="deployment", page=0, size=10)
-for engram in page.items:
-    print(engram.id, engram.title)
+for topic in page.items:
+    print(topic.id, topic.title)
 print(f"Total: {page.total}, Has next: {page.has_next}")
 ```
 
@@ -130,11 +130,11 @@ print(f"Total: {page.total}, Has next: {page.has_next}")
 
 | Class | Description |
 |-------|-------------|
-| `Engram` | A discrete unit of memory (id, slug, title, summary, annotations). |
+| `topic` | A discrete unit of memory (id, slug, title, summary, annotations). |
 | `Annotation` | A single annotation message (ident, timestamp, text, who). |
-| `RecallResult` | Result of a generative recall (answer, engrams, citations). |
+| `RecallResult` | Result of a generative recall (answer, topics, citations). |
 | `RetrieveResult` | A single hit from semantic retrieve (id, slug, title, score, text, field). |
-| `EngramPage` | Paginated listing of engrams (items, total, has_next). |
+| `topicPage` | Paginated listing of topics (items, total, has_next). |
 
 ## Async
 
@@ -145,7 +145,7 @@ from nuclia import sdk
 
 memory = sdk.AsyncNucliaMemory()
 
-engram_id = await memory.remember("The deployment uses GitHub Actions.")
+topic_id = await memory.remember("The deployment uses GitHub Actions.")
 result = await memory.recall("How does deployment work?")
 print(result.answer)
 ```
