@@ -15,7 +15,7 @@ jobs:
   blackduck-sca-scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: read   # actions/checkout
+      contents: read
     concurrency:
       group: bd-sca-scan-${{ github.ref_name }}
       cancel-in-progress: true
