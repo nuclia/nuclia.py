@@ -247,7 +247,6 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
-    secrets: inherit
 
   test-prod:
     name: Test (prod)
@@ -263,7 +262,6 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
-    secrets: inherit
 
   test-windows:
     name: Test (windows)
@@ -274,7 +272,6 @@ jobs:
       PROD_API_KEY_FOR_WINDOWS_TEST: ${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
-    secrets: inherit
 
   publish-pypi:
     # Runs only when the PR was merged with the `release` label, AND one of:
