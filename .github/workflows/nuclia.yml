@@ -236,6 +236,8 @@ jobs:
   test-stage:
     name: Test (stage)
     needs: [skip-gate]
+    permissions:
+      contents: read   # actions/checkout
     if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/stage.yml
     secrets:
@@ -251,6 +253,8 @@ jobs:
   test-prod:
     name: Test (prod)
     needs: [skip-gate]
+    permissions:
+      contents: read   # actions/checkout
     if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/prod.yml
     secrets:
@@ -266,6 +270,8 @@ jobs:
   test-windows:
     name: Test (windows)
     needs: [skip-gate]
+    permissions:
+      contents: read   # actions/checkout
     if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/windows.yml
     secrets:
