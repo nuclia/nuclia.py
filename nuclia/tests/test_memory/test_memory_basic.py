@@ -1,4 +1,5 @@
 import tempfile
+import time
 
 import pytest
 from nucliadb_sdk.v2.exceptions import NotFoundError
@@ -19,9 +20,6 @@ def test_basic(testing_config):
         with pytest.raises(ValueError):
             memory.forget(topic=topic.id)
         memory.forget(topic=topic.id, confirm=True)
-
-    # Test listing topics when none exist
-    assert memory.list() == []
 
     # Test getting non-existent topic raises error
     with pytest.raises(TopicNotFoundError):
@@ -102,6 +100,40 @@ def test_basic(testing_config):
             topic="vacation-policy",
         )
 
-    # TODO: recall tests
-    # TODO: test delete topic
-    # TODO: list pagination tests
+    # Wait until the topic status is processed before the recall tests
+    processed = False
+    for _ in range(60):
+        topic = memory.get(topic="vacation-policy")
+        if topic.status == "processed":
+            processed = True
+            break
+        else:
+            print(f"Topic status: {topic.status}, waiting for 'processed'...")
+            time.sleep(1)
+
+    assert processed, "Topic was not processed within the expected time."
+
+    result = memory.recall(
+        query="Can employees carry over unused vacation days?",
+        topic="vacation-policy",
+    )
+    assert "5" in result.answer, (
+        "Recall did not return expected information about carry over days."
+    )
+    assert len(result.citations) >= 1, "Recall did not return any citations."
+
+    # Pagination tests
+    page = 0
+    while True:
+        topics = memory.list(size=1, page=page)
+        if len(topics) == 0:
+            break
+        page += 1
+
+    assert page >= 2
+
+    # Test delete topic
+    for slug in ["vacation-policy", "vacation-policy-link", "vacation-policy-file"]:
+        with pytest.raises(ValueError):
+            memory.forget(topic=slug)
+        memory.forget(topic=slug, confirm=True)

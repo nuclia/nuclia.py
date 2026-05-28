@@ -63,6 +63,7 @@ class Topic(BaseModel):
     slug: str
     title: str
     summary: str | None = None
+    status: str
 
 
 class RecallCitation(BaseModel):
@@ -363,7 +364,9 @@ class NucliaMemory:
         ruuid, rslug = _uuid_or_slug(topic)
         try:
             resource: Resource = self.kb.resource.get(
-                rid=ruuid, slug=rslug, show=[ResourceProperties.BASIC.value]
+                rid=ruuid,
+                slug=rslug,
+                show=[ResourceProperties.BASIC.value, ResourceProperties.ERRORS.value],
             )
         except NotFoundError:
             raise TopicNotFoundError(f"topic '{topic}' not found.")
@@ -372,6 +375,7 @@ class NucliaMemory:
             slug=resource.slug or "",
             title=resource.title or "",
             summary=resource.summary,
+            status=_get_topic_status(resource),
         )
 
     # ── list ─────────────────────────────────────────────────────────────────
@@ -415,6 +419,7 @@ class NucliaMemory:
                     slug=resource.slug or "",
                     title=resource.title or "",
                     summary=resource.summary,
+                    status=_get_topic_status(resource),
                 )
                 for resource in catalog_response.resources.values()
             ],
@@ -535,3 +540,20 @@ def _parse_recall_answer(
                     text=retrieved_paragraphs[chunk_id].text,
                 )
     return answer_text, citations
+
+
+def _get_topic_status(resource: Resource) -> str:
+    """
+    We check for title field status as a proxy for the overall resource processing
+    status, since the title is a required field that is processed in the first steps
+    of resource creation. If the title field has an error or is still being processed,
+    we can infer that the entire resource is not fully processed yet.
+    """
+    try:
+        assert resource.data is not None
+        assert resource.data.generics is not None
+        assert resource.data.generics["title"].status is not None
+        status = resource.data.generics["title"].status.lower()
+    except (AssertionError, KeyError, ValueError):
+        status = "unknown"
+    return status
