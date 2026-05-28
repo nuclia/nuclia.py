@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.11.1 (2026-05-22)
+
+- Add KB Owner NucliaDB role
+- Update nucliadb_sdk
+
 ## 4.11.0 (2026-05-21)
 
 ### New Features
