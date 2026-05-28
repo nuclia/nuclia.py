@@ -143,7 +143,9 @@ class TestParseRecallAnswer:
         assert answer == "Answer text [1] and more [2]."
         assert len(citations) == 2
         assert citations["1"].chunk_id == "chunk-1"
-        assert citations["2"].id == "chunk-2"
+        assert citations["1"].text == "First paragraph"
+        assert citations["2"].chunk_id == "chunk-2"
+        assert citations["2"].text == "Second paragraph"
 
     def test_citation_with_missing_chunk(self):
         """Citation references a block that doesn't map to a retrieved paragraph."""
