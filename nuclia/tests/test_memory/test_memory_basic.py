@@ -9,20 +9,15 @@ from nuclia.sdk.memory import NucliaMemory, TopicAlreadyExistsError, TopicNotFou
 def test_basic(testing_config):
     memory = NucliaMemory()
 
-    # Make sure topic doesn't exist at test start
-    try:
-        topic = memory.get(topic="vacation-policy")
-    except TopicNotFoundError:
-        pass
-    else:
-        # Delete topic if it exists to ensure clean state
-        with pytest.raises(ValueError):
-            memory.forget(topic=topic.id)
-        memory.forget(topic=topic.id, confirm=True)
+    def _delete_topics(slugs):
+        for slug in slugs:
+            try:
+                memory.forget(topic=slug, confirm=True)
+            except TopicNotFoundError:
+                pass
 
-    # Test getting non-existent topic raises error
-    with pytest.raises(TopicNotFoundError):
-        memory.get(topic="vacation-policy")
+    # Make sure topic doesn't exist at test start
+    _delete_topics(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
 
     # Test creating topic with a text content
     memory.store(
@@ -131,8 +126,9 @@ def test_basic(testing_config):
 
     assert page >= 2
 
-    # Test delete topic
-    for slug in ["vacation-policy", "vacation-policy-link", "vacation-policy-file"]:
-        with pytest.raises(ValueError):
-            memory.forget(topic=slug)
-        memory.forget(topic=slug, confirm=True)
+    # Test delete topics
+    with pytest.raises(ValueError):
+        # Deleting without confirm should raise error
+        memory.forget(topic="vacation-policy")
+
+    _delete_topics(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])

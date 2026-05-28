@@ -352,7 +352,7 @@ class NucliaMemory:
         try:
             self.kb.resource.delete(rid=ruuid, slug=rslug)
         except NotFoundError:
-            pass
+            raise TopicNotFoundError(f"topic '{topic}' not found.")
 
     # ── get ─────────────────────────────────────────────────────────────────
 
