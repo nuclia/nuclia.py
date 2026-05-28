@@ -122,7 +122,7 @@ class TestParseRecallAnswer:
         answer, citations = _parse_recall_answer(response)
         assert answer == "The policy allows 10 days [1]."
         assert "1" in citations
-        assert citations["1"].id == "chunk-123"
+        assert citations["1"].chunk_id == "chunk-123"
         assert citations["1"].text == "A maximum of 10 consecutive days."
 
     def test_multiple_citations(self):
@@ -142,7 +142,7 @@ class TestParseRecallAnswer:
         answer, citations = _parse_recall_answer(response)
         assert answer == "Answer text [1] and more [2]."
         assert len(citations) == 2
-        assert citations["1"].id == "chunk-1"
+        assert citations["1"].chunk_id == "chunk-1"
         assert citations["2"].id == "chunk-2"
 
     def test_citation_with_missing_chunk(self):

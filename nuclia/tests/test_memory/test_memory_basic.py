@@ -45,12 +45,12 @@ def test_basic(testing_config):
     )
 
     # Test listing topics after creation
-    topics = memory.list()
-    assert len(topics) == 1
-    assert topics[0].slug == "vacation-policy"
-    assert topics[0].title == "Company Vacation Policy"
+    topic_page = memory.list(query="Company Vacation Policy", size=1)
+    assert len(topic_page.items) == 1
+    assert topic_page.items[0].slug == "vacation-policy"
+    assert topic_page.items[0].title == "Company Vacation Policy"
     assert (
-        topics[0].summary
+        topic_page.items[0].summary
         == "Company's vacation policy including leave days, carry over, and request process."
     )
 
@@ -124,8 +124,8 @@ def test_basic(testing_config):
     # Pagination tests
     page = 0
     while True:
-        topics = memory.list(size=1, page=page)
-        if len(topics) == 0:
+        topic_page = memory.list(size=1, page=page)
+        if len(topic_page.items) == 0 or topic_page.has_more is False:
             break
         page += 1
 
