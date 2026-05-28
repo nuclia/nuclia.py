@@ -349,7 +349,10 @@ class NucliaMemory:
                 "Deleting an entire topic is irreversible. To confirm, set confirm=True."
             )
         # Delete entire topic
-        self.kb.resource.delete(rid=ruuid, slug=rslug)
+        try:
+            self.kb.resource.delete(rid=ruuid, slug=rslug)
+        except NotFoundError:
+            pass
 
     # ── get ─────────────────────────────────────────────────────────────────
 
