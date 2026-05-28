@@ -2,7 +2,6 @@ import tempfile
 import time
 
 import pytest
-from nucliadb_sdk.v2.exceptions import NotFoundError
 
 from nuclia.sdk.memory import NucliaMemory, TopicAlreadyExistsError, TopicNotFoundError
 
