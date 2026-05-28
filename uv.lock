@@ -1172,10 +1172,14 @@ wheels = [
 [[package]]
 name = "nuclia"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "4.11.4"
 =======
 version = "4.11.0"
 >>>>>>> 44e0541 (Memory v0)
+=======
+version = "4.11.1"
+>>>>>>> db27b6e (finish basic tests)
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
