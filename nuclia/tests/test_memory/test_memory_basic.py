@@ -13,7 +13,7 @@ def test_basic(testing_config):
     # Make sure topic doesn't exist at test start
     try:
         topic = memory.get(topic="vacation-policy")
-    except NotFoundError:
+    except TopicNotFoundError:
         pass
     else:
         # Delete topic if it exists to ensure clean state
