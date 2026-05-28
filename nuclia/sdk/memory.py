@@ -67,7 +67,7 @@ class Topic(BaseModel):
 
 
 class RecallCitation(BaseModel):
-    id: str
+    chunk_id: str
     text: str
 
 
@@ -536,7 +536,7 @@ def _parse_recall_answer(
             chunk_id = ask_response.citation_footnote_to_context.get(block_id)
             if chunk_id and chunk_id in retrieved_paragraphs:
                 citations[footnote_id] = RecallCitation(
-                    id=chunk_id,
+                    chunk_id=chunk_id,
                     text=retrieved_paragraphs[chunk_id].text,
                 )
     return answer_text, citations
