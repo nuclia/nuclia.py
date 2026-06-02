@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
-from pydantic import BaseModel, Field, RootModel, model_validator
+from pydantic import BaseModel, Field, RootModel, model_serializer, model_validator
 from typing_extensions import Annotated, Self
 
 
@@ -104,46 +104,9 @@ class Reasoning(BaseModel):
         ),
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def set_budget_tokens_or_effort(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            if "budget_tokens" not in data and "effort" not in data:
-                return data
-
-            effort_map = {
-                "none": 0,
-                "minimal": 0,
-                "low": 7500,
-                "medium": 15_000,
-                "high": 30_000,
-                "xhigh": 50_000,
-            }
-            if "budget_tokens" not in data:
-                if data["effort"] in effort_map:
-                    data["budget_tokens"] = effort_map[data["effort"]]
-                else:
-                    raise ValueError(
-                        f"Invalid effort value: {data['effort']}. "
-                        f"Valid values are: {', '.join(effort_map.keys())}."
-                    )
-            if "effort" not in data:
-                budget_tokens = data["budget_tokens"]
-                if not isinstance(budget_tokens, int):
-                    raise ValueError(
-                        f"Invalid budget_tokens value: {budget_tokens}. "
-                        "It must be an integer."
-                    )
-                if budget_tokens <= effort_map["low"]:
-                    data["effort"] = "low"
-                elif budget_tokens <= effort_map["medium"]:
-                    data["effort"] = "medium"
-                elif budget_tokens <= effort_map["high"]:
-                    data["effort"] = "high"
-                else:
-                    data["effort"] = "xhigh"
-
-        return data
+    @model_serializer(mode="wrap")
+    def serialize_set_fields(self, handler: Any) -> Dict[str, Any]:
+        return {k: v for k, v in handler(self).items() if k in self.model_fields_set}
 
 
 class CitationsType(str, Enum):
@@ -245,15 +208,6 @@ class ChatModel(BaseModel):
             raise ValueError("Can not setup citations and Tools at the same time")
         if len(self.tools) > 0 and self.json_schema is not None:
             raise ValueError("Can not setup Tools and JSON Schema at the same time")
-        return self
-
-    @model_validator(mode="after")
-    def check_reasoning_budget_vs_max_tokens(self) -> "ChatModel":
-        if isinstance(self.reasoning, Reasoning) and self.max_tokens is not None:
-            if self.reasoning.budget_tokens >= self.max_tokens:
-                raise ValueError(
-                    f"`budget_tokens` ({self.reasoning.budget_tokens}) cannot be greater or equal than `max_tokens` ({self.max_tokens})."
-                )
         return self
 
 
