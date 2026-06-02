@@ -87,7 +87,7 @@ class Reasoning(BaseModel):
         default=True,
         description="Whether to display the reasoning steps in the response.",
     )
-    effort: Literal["low", "medium", "high"] = Field(
+    effort: Literal["none", "minimal", "low", "medium", "high", "xhigh"] = Field(
         default="medium",
         description=(
             "Level of reasoning effort. Used by OpenAI models to control the depth of reasoning. "
@@ -111,7 +111,14 @@ class Reasoning(BaseModel):
             if "budget_tokens" not in data and "effort" not in data:
                 return data
 
-            effort_map = {"low": 7500, "medium": 15_000, "high": 30_000}
+            effort_map = {
+                "none": 0,
+                "minimal": 0,
+                "low": 7500,
+                "medium": 15_000,
+                "high": 30_000,
+                "xhigh": 50_000,
+            }
             if "budget_tokens" not in data:
                 if data["effort"] in effort_map:
                     data["budget_tokens"] = effort_map[data["effort"]]
@@ -131,8 +138,10 @@ class Reasoning(BaseModel):
                     data["effort"] = "low"
                 elif budget_tokens <= effort_map["medium"]:
                     data["effort"] = "medium"
-                else:
+                elif budget_tokens <= effort_map["high"]:
                     data["effort"] = "high"
+                else:
+                    data["effort"] = "xhigh"
 
         return data
 
