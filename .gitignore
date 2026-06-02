@@ -16,6 +16,3 @@ venv
 .coverage
 coverage.xml
 
-### Env files (local only)
-nuclia/env.prod
-nuclia/env.stage
