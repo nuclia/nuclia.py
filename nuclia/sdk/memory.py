@@ -5,18 +5,35 @@ import re
 import string
 import unicodedata
 import uuid
-from typing import Any, overload
+from datetime import datetime, timezone
+from typing import Any, Iterator, Union, cast, overload
 from urllib.parse import urlparse
 
-from nucliadb_models import filters
+from nucliadb_models import (
+    augment,
+    filters,
+    graph,
+)
+from nucliadb_models.common import FieldTypeName
+from nucliadb_models.conversation import (
+    Conversation,
+    InputMessage,
+    InputMessageContent,
+    Message,
+    MessageFormat,
+    MessageType,
+)
 from nucliadb_models.link import LinkField
-from nucliadb_models.resource import Resource
+from nucliadb_models.resource import Resource, ResourceField
 from nucliadb_models.search import (
     AskRequest,
     CatalogRequest,
     CatalogResponse,
     ChatContextMessage,
     CitationsType,
+    FindOptions,
+    FindRequest,
+    KnowledgeboxFindResults,
     PredictReranker,
     ResourceProperties,
     SyncAskResponse,
@@ -25,15 +42,16 @@ from nucliadb_models.text import TextField, TextFormat
 from nucliadb_sdk.v2.exceptions import ConflictError, NotFoundError
 from pydantic import BaseModel
 
-from nuclia.data import get_auth
 from nuclia.decorators import kb
 from nuclia.lib.kb import NucliaDBClient
-from nuclia.sdk.auth import NucliaAuth
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.upload import NucliaUpload
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
+MEMORY_FIELD_PREFIX = "__memory__"
+FACTS_FIELD_PREFIX = f"da-facts-{MEMORY_FIELD_PREFIX}"
 
 
 # ─── Exceptions ─────────────────────────────────────────────────────────────
@@ -66,24 +84,120 @@ class Topic(BaseModel):
     status: str
 
 
-class RecallCitation(BaseModel):
-    chunk_id: str
-    text: str
-
-
-class RecallResult(BaseModel):
-    """Result of a generative `recall()` call."""
-
-    answer: str
-    citations: dict[str, RecallCitation]
-
-
 class TopicPage(BaseModel):
     """A paginated listing of topics."""
 
     items: list[Topic]
     total: int
     has_more: bool
+
+
+class ContextBlock(BaseModel):
+    id: str
+    text: str
+
+
+class RelevantContextBlock(ContextBlock):
+    score: float
+
+
+class RecallResult(BaseModel):
+    """Result of a generative `recall()` call."""
+
+    answer: str
+    citations: dict[str, RelevantContextBlock]
+
+
+class AnnotationContextMessage(BaseModel):
+    """A context message attached to an annotation."""
+
+    author: str
+    text: str
+
+
+class AnnotationContent(BaseModel):
+    """The content of the annotation with separate fields for the text, reasoning, and context."""
+
+    text: str
+    reasoning: str | None = None
+    context: list[AnnotationContextMessage] | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class Annotation(BaseModel):
+    """A single annotation message attached to an topic."""
+
+    id: str
+    timestamp: datetime
+    content: AnnotationContent
+
+    @classmethod
+    def from_conversation_message(cls, message: Message) -> "Annotation":
+        content = AnnotationContent.model_validate_json(message.content.text or "")
+        assert message.ident is not None
+        assert message.timestamp is not None
+        return cls(
+            id=message.ident,
+            timestamp=message.timestamp,
+            content=content,
+        )
+
+
+class FactContent(BaseModel):
+    """
+    The content of a fact extracted from an annotation, including the fact text and a list of
+    related annotation IDs that were used as evidence for the fact.
+    """
+
+    text: str
+    related_annotation_ids: list[str] = []
+
+
+class Fact(BaseModel):
+    """A single fact extracted from an annotation"""
+
+    id: str
+    timestamp: datetime
+    content: FactContent
+
+    @classmethod
+    def from_conversation_message(cls, message: Message) -> "Fact":
+        content = FactContent.model_validate_json(message.content.text or "")
+        assert message.ident is not None
+        assert message.timestamp is not None
+        return cls(
+            id=message.ident,
+            timestamp=message.timestamp,
+            content=content,
+        )
+
+
+class GraphNode(BaseModel):
+    """A single node in the graph."""
+
+    type: str
+    value: str
+    group: str | None = None
+
+
+class GraphRelation(BaseModel):
+    """A single relation in the graph."""
+
+    label: str
+    type: str
+
+
+class GraphEdgeMetadata(BaseModel):
+    context_block_id: str | None = None
+
+
+class GraphEdge(BaseModel):
+    """A single edge in the graph."""
+
+    source: GraphNode
+    relation: GraphRelation
+    destination: GraphNode
+    metadata: GraphEdgeMetadata | None = None
 
 
 # ─── Sync Memory ─────────────────────────────────────────────────────────────
@@ -93,18 +207,6 @@ class NucliaMemory:
     def __init__(self):
         self.kb = NucliaKB()
         self.upload = NucliaUpload()
-        self._user_email = None
-
-    @property
-    def _auth(self) -> NucliaAuth:
-        return get_auth()
-
-    @property
-    def _authenticated_user_email(self) -> str:
-        if self._user_email is None:
-            auth = self._auth
-            self._user_email = auth.get_user().email
-        return self._user_email
 
     # ── store ────────────────────────────────────────────────────────────
 
@@ -284,6 +386,187 @@ class NucliaMemory:
                 field=slug,
             )
 
+    # ── annotate ─────────────────────────────────────────────────────────────
+
+    @kb
+    def annotate(
+        self,
+        text: str,
+        *,
+        topic: str,
+        user_id: str,
+        context: list[AnnotationContextMessage] | None = None,
+        reasoning: str | None = None,
+        metadata: dict | None = None,
+        annotation_id: str = uuid.uuid4().hex,
+        **kwargs,
+    ) -> str:
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ruuid, rslug = _uuid_or_slug(topic)
+        annotation_content = AnnotationContent(
+            text=text,
+            reasoning=reasoning,
+            context=context,
+            metadata=metadata,
+        )
+        message = InputMessage(
+            timestamp=datetime.now(tz=timezone.utc),
+            ident=annotation_id,
+            type=MessageType.UNSET,
+            content=InputMessageContent(
+                text=annotation_content.model_dump_json(indent=2, exclude_none=True),
+                format=MessageFormat.JSON,
+                attachments=[],
+                attachments_fields=[],
+            ),
+        )
+        _add_conversation_message(
+            ndb=ndb,
+            kbid=ndb.kbid,
+            rid=ruuid,
+            slug=rslug,
+            field_id=_annotation_field_id(user_id),
+            message=message,
+        )
+        return annotation_id
+
+    # ── (fake) fact extraction ──────────────────────────────────────────────
+
+    @kb
+    def _extract_facts(
+        self,
+        annotation_id: str,
+        *,
+        topic: str,
+        user_id: str,
+        text: str,
+        **kwargs,
+    ) -> None:
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ruuid, rslug = _uuid_or_slug(topic)
+        message = InputMessage(
+            timestamp=datetime.now(tz=timezone.utc),
+            ident=uuid.uuid4().hex,
+            type=MessageType.UNSET,
+            content=InputMessageContent(
+                text=FactContent(
+                    text=text,
+                    related_annotation_ids=[annotation_id],
+                ).model_dump_json(indent=2, exclude_none=True),
+                format=MessageFormat.JSON,
+                attachments=[],
+                attachments_fields=[],
+            ),
+        )
+        _add_conversation_message(
+            ndb=ndb,
+            kbid=ndb.kbid,
+            rid=ruuid,
+            slug=rslug,
+            field_id=_facts_field_id(user_id),
+            message=message,
+        )
+
+    # ── context ─────────────────────────────────────────────────────────────
+
+    @kb
+    def context(
+        self,
+        *,
+        topic: str,
+        user_id: str,
+        include_annotations: bool = False,
+        **kwargs,
+    ) -> list[ContextBlock]:
+        """
+        Return all context for a specific topic and user.
+        This includes all the text fields of the topic as well as any annotations and facts created by the user for that topic.
+
+        Parameters
+        ----------
+        topic:
+            topic ID or slug to retrieve context for.
+        user_id:
+            An identifier for the user requesting the context. Used to include that user's annotations and facts in the context.
+        include_annotations:
+            Whether to include the user's annotations in the context. Defaults to False to reduce noise, but can be set to True to include them.
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ruuid, rslug = _uuid_or_slug(topic)
+        resource = _get_resource_basic(
+            ndb=ndb,
+            kbid=ndb.kbid,
+            rid=ruuid,
+            slug=rslug,
+        )
+        if ruuid is None:
+            ruuid = resource.id
+        user_resource_fields = _get_user_resource_fields(
+            resource, user_id, include_annotations
+        )
+        augment_response: augment.AugmentResponse = ndb.ndb.augment(
+            kbid=ndb.kbid,
+            content=augment.AugmentRequest(
+                fields=[
+                    augment.AugmentFields(
+                        given=user_resource_fields,
+                        text=True,
+                        full_conversation=True,
+                    )
+                ]
+            ),
+        )
+        return [
+            ContextBlock(id=field_id, text=augmented_field.text)
+            for field_id, augmented_field in augment_response.fields.items()
+            if augmented_field.text is not None
+        ]
+
+    # ── retrieve ─────────────────────────────────────────────────────────────
+
+    @kb
+    def retrieve(
+        self,
+        question: str,
+        *,
+        topic: str,
+        user_id: str,
+        top_k: int = 20,
+        **kwargs,
+    ) -> list[RelevantContextBlock]:
+        """
+        Retrieve relevant context blocks from the memory for a given question, scoped to a specific topic and user.
+
+        Parameters
+        ----------
+        question:
+            Natural-language question to retrieve context for.
+        topic:
+            Scope the retrieval to a single topic (ID or slug).
+        user_id:
+            An identifier for the user asking the question. Used to personalize retrieval results by including that user's annotations and facts.
+        top_k:
+            Maximum number of relevant context blocks to retrieve.
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        find_request = FindRequest(
+            query=question,
+            features=[
+                FindOptions.SEMANTIC,
+                FindOptions.KEYWORD,
+            ],
+            filter_expression=filters.FilterExpression(
+                field=_build_field_filter_expression(topic=topic, user_id=user_id)
+            ),
+            top_k=top_k,
+            rephrase=True,
+            reranker=PredictReranker(window=min(top_k * 5, 200)),
+        )
+        find_response: KnowledgeboxFindResults = ndb.ndb.find(
+            kbid=ndb.kbid, content=find_request
+        )
+        return _parse_retrieve_result(find_response)
+
     # ── recall ───────────────────────────────────────────────────────────────
 
     @kb
@@ -292,6 +575,7 @@ class NucliaMemory:
         query: str,
         *,
         topic: str,
+        user_id: str,
         context: list[ChatContextMessage] | None = None,
         **kwargs,
     ) -> RecallResult:
@@ -303,30 +587,159 @@ class NucliaMemory:
             Natural-language question.
         topic:
             Scope the answer to a single topic (ID or slug).
+        user_id:
+            An identifier for the user asking the question. Used for personalization of the answer by including that user's annotations and facts as context.
         context:
             Optional list of past messages to include as additional context for the recall. Messages should be ordered from oldest to most recent.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         kbid = ndb.kbid
-        filter_expression = self._build_recall_filter_expression(topic=topic)
+        top_k = 5
         ask_request = AskRequest(
             query=query,
             top_k=5,
             citations=CitationsType.LLM_FOOTNOTES,
             rephrase=True,
-            reranker=PredictReranker(window=50),
+            reranker=PredictReranker(window=min(top_k * 5, 200)),
             prefer_markdown=True,
-            filter_expression=filter_expression,
+            filter_expression=filters.FilterExpression(
+                field=_build_field_filter_expression(topic=topic, user_id=user_id)
+            ),
             chat_history=context,
         )
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=kbid, content=ask_request)
-        answer, citations = _parse_recall_answer(ask_response)
-        result = RecallResult(answer=answer, citations=citations)
-        return result
+        return _parse_recall_result(ask_response)
 
-    # ── forget ───────────────────────────────────────────────────────────────
+    # ── annotations ─────────────────────────────────────────────────────────
 
     @kb
+    def annotations(
+        self,
+        *,
+        topic: str,
+        user_id: str,
+        **kwargs,
+    ) -> Iterator[Annotation]:
+        """Get all annotations created by a user for a specific topic from most recent to oldest.
+
+        Parameters
+        ----------
+        topic:
+            topic ID or slug to retrieve annotations for.
+        user_id:
+            An identifier for the user whose annotations to retrieve.
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ruuid, rslug = _uuid_or_slug(topic)
+        for message in _iter_conversation_messages(
+            ndb,
+            kbid=ndb.kbid,
+            rid=ruuid,
+            slug=rslug,
+            field_id=_annotation_field_id(user_id),
+        ):
+            yield Annotation.from_conversation_message(message)
+
+    # ── facts ───────────────────────────────────────────────────────────────
+
+    @kb
+    def facts(
+        self,
+        *,
+        topic: str,
+        user_id: str,
+        **kwargs,
+    ) -> Iterator[Fact]:
+        """Get all extracted facts from annotations of a user for a specific topic (from most recent to oldest).
+
+        Parameters
+        ----------
+        topic:
+            topic ID or slug to retrieve annotations for.
+        user_id:
+            An identifier for the user whose annotations to retrieve.
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ruuid, rslug = _uuid_or_slug(topic)
+        for message in _iter_conversation_messages(
+            ndb,
+            kbid=ndb.kbid,
+            rid=ruuid,
+            slug=rslug,
+            field_id=_facts_field_id(user_id),
+        ):
+            yield Fact.from_conversation_message(message)
+
+    # ── graph ───────────────────────────────────────────────────────────────
+
+    @kb
+    def graph(
+        self,
+        *,
+        topic: str,
+        user_id: str,
+        **kwargs,
+    ) -> list[GraphEdge]:
+        """Get the topic graph including all extracted entities and relations from the topic content and the annotations of the specified user.
+
+        Parameters
+        ----------
+        topic:
+            topic ID or slug to retrieve graph for.
+        user_id:
+            An identifier for the user whose annotations to include in the graph.
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        graph_request = graph.requests.GraphSearchRequest(
+            top_k=500,
+            filter_expression=graph.requests.GraphFilterExpression(
+                field=_build_field_filter_expression(topic=topic, user_id=user_id)
+            ),
+            # Ignore all paths that start or end at the resource: we are interested in entity to entity paths.
+            query=graph.requests.And(
+                operands=[
+                    graph.requests.AnyNode(
+                        type=graph.requests.RelationNodeType.ENTITY,
+                    ),
+                    graph.requests.Not(
+                        operand=graph.requests.AnyNode(
+                            type=graph.requests.RelationNodeType.RESOURCE,
+                        )
+                    ),
+                ]
+            ),
+        )
+        graph_response: graph.responses.GraphSearchResponse = ndb.ndb.graph_search(
+            kbid=ndb.kbid,
+            content=graph_request,
+        )
+        return _parse_graph_result(graph_response)
+
+    # ── forget ──────────────────────────────────────────────────────────────
+
+    @overload
+    def forget(
+        self,
+        *,
+        topic: str,
+        user_id: str,
+        annotation_id: str | None = None,
+        **kwargs,
+    ) -> None:
+        """Delete a specific annotation from a topic or all the annotations created by the user.
+
+        Parameters
+        ----------
+        topic:
+            topic ID or slug to target.
+        user_id:
+            An identifier for the user requesting the deletion. Used to ensure users can only delete their own annotations.
+        annotation_id:
+            Optional identifier of the specific annotation to delete. If not provided, all annotations created by the user for the topic will be deleted.
+        """
+        ...
+
+    @overload
     def forget(
         self,
         *,
@@ -343,16 +756,58 @@ class NucliaMemory:
         confirm:
             When set to True, confirms the deletion of the topic.
         """
+        ...
+
+    @kb
+    def forget(
+        self,
+        *,
+        topic: str,
+        user_id: str | None = None,
+        annotation_id: str | None = None,
+        confirm: bool = False,
+        **kwargs,
+    ) -> None:
+        ndb: NucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _uuid_or_slug(topic)
-        if not confirm:
-            raise ValueError(
-                "Deleting an entire topic is irreversible. To confirm, set confirm=True."
-            )
-        # Delete entire topic
-        try:
-            self.kb.resource.delete(rid=ruuid, slug=rslug)
-        except NotFoundError:
-            raise TopicNotFoundError(f"topic '{topic}' not found.")
+        if user_id is not None:
+            if annotation_id is not None:
+                # Delete a specific annotation for that user on that topic
+                try:
+                    _delete_conversation_message(
+                        ndb=ndb,
+                        kbid=ndb.kbid,
+                        rid=ruuid,
+                        slug=rslug,
+                        field_id=_annotation_field_id(user_id),
+                        message_id=annotation_id,
+                    )
+                except NotFoundError:
+                    pass
+            else:
+                # Delete all annotations for that user on that topic
+                try:
+                    _delete_resource_field(
+                        ndb=ndb,
+                        kbid=ndb.kbid,
+                        rid=ruuid,
+                        slug=rslug,
+                        field_type=FieldTypeName.CONVERSATION,
+                        field_id=_annotation_field_id(user_id),
+                    )
+                except NotFoundError:
+                    pass
+        else:
+            # Delete entire topic
+            ruuid, rslug = _uuid_or_slug(topic)
+            if not confirm:
+                raise ValueError(
+                    "Deleting an entire topic is irreversible. To confirm, set confirm=True."
+                )
+            try:
+                self.kb.resource.delete(rid=ruuid, slug=rslug)
+            except NotFoundError:
+                raise TopicNotFoundError(f"topic '{topic}' not found.")
 
     # ── get ─────────────────────────────────────────────────────────────────
 
@@ -433,21 +888,6 @@ class NucliaMemory:
         )
         return topic_page
 
-    # ── utils ────────────────────────────────────────────────────────────
-
-    def _build_recall_filter_expression(
-        self,
-        topic: str,
-    ) -> filters.FilterExpression:
-        ruuid, rslug = _uuid_or_slug(topic)
-        if ruuid:
-            resource_filter = filters.Resource(id=ruuid)
-        else:
-            assert rslug is not None
-            resource_filter = filters.Resource(slug=rslug)
-        filter_expression = filters.FilterExpression(field=resource_filter)
-        return filter_expression
-
 
 # ─── Async Memory (TODO) ─────────────────────────────────────────────────────────────
 
@@ -455,15 +895,50 @@ class NucliaMemory:
 # ─── Utils ─────────────────────────────────────────────────────────────
 
 
-def _uuid_or_slug(topic: str) -> tuple[str | None, str | None]:
+def _build_field_filter_expression(
+    topic: str,
+    user_id: str,
+) -> filters.FieldFilterExpression:
+    """
+    Build a filter expression to scope recall or retrieve to a specific topic and include user annotations and facts while
+    excluding other users' annotations and facts.
+    """
+    ruuid, rslug = _uuid_or_slug(topic)
+    return filters.And(
+        operands=[
+            filters.Resource(id=ruuid, slug=rslug),
+            filters.Or(
+                operands=[
+                    filters.Not(
+                        operand=filters.ResourceFieldPrefix(
+                            resource_id=ruuid,
+                            resource_slug=rslug,
+                            field_type=FieldTypeName.CONVERSATION,
+                            field_name_prefix=MEMORY_FIELD_PREFIX,
+                        )
+                    ),
+                    filters.Field(
+                        type=FieldTypeName.CONVERSATION,
+                        name=_annotation_field_id(user_id),
+                    ),
+                    filters.Field(
+                        type=FieldTypeName.CONVERSATION,
+                        name=_facts_field_id(user_id),
+                    ),
+                ]
+            ),
+        ]
+    )
+
+
+def _uuid_or_slug(topic_uuid_or_slug: str) -> Union[tuple[str, None], tuple[None, str]]:
     """Helper to determine if topic identifier is a UUID or slug."""
-    ruuid = None
-    rslug = None
     try:
-        ruuid = str(uuid.UUID(topic))
+        # If this succeeds, topic is a uuid
+        return str(uuid.UUID(topic_uuid_or_slug)), None
     except ValueError:
-        rslug = topic
-    return ruuid, rslug
+        # Otherwise, treat it as a slug
+        return None, topic_uuid_or_slug
 
 
 def _slugify(text: str) -> str:
@@ -519,13 +994,13 @@ def _infer_title(
         return "Untitled Topic"
 
 
-def _parse_recall_answer(
+def _parse_recall_result(
     ask_response: SyncAskResponse,
-) -> tuple[str, dict[str, RecallCitation]]:
+) -> RecallResult:
     """Parse an LLM footnotes answer into clean text and citations mapping."""
     parts = ask_response.answer.rsplit("\n\n", 1)
     answer_text = parts[0]
-    citations: dict[str, RecallCitation] = {}
+    citations: dict[str, RelevantContextBlock] = {}
     if len(parts) > 1:
         retrieved_paragraphs = {
             paragraph.id: paragraph
@@ -538,11 +1013,61 @@ def _parse_recall_answer(
             block_id = match.group(2)
             chunk_id = ask_response.citation_footnote_to_context.get(block_id)
             if chunk_id and chunk_id in retrieved_paragraphs:
-                citations[footnote_id] = RecallCitation(
-                    chunk_id=chunk_id,
+                citations[footnote_id] = RelevantContextBlock(
+                    id=chunk_id,
                     text=retrieved_paragraphs[chunk_id].text,
+                    score=retrieved_paragraphs[chunk_id].score,
                 )
-    return answer_text, citations
+    return RecallResult(answer=answer_text, citations=citations)
+
+
+def _parse_retrieve_result(
+    find_response: KnowledgeboxFindResults,
+) -> list[RelevantContextBlock]:
+    relevant_paragraphs = {
+        pid: paragraph
+        for resource in find_response.resources.values()
+        for field in resource.fields.values()
+        for pid, paragraph in field.paragraphs.items()
+    }
+    return [
+        RelevantContextBlock(
+            id=pid,
+            text=par.text,
+            score=par.score,
+        )
+        for pid in find_response.best_matches
+        if (par := relevant_paragraphs.get(pid)) is not None
+    ]
+
+
+def _parse_graph_result(
+    graph_response: graph.responses.GraphSearchResponse,
+) -> list[GraphEdge]:
+    edges = []
+    for path in graph_response.paths:
+        context_block_id = (
+            path.metadata.paragraph_id if path.metadata is not None else None
+        )
+        edges.append(
+            GraphEdge(
+                source=GraphNode(
+                    type=path.source.type.value,
+                    value=path.source.value,
+                    group=path.source.group,
+                ),
+                relation=GraphRelation(
+                    type=path.relation.type.value, label=path.relation.label
+                ),
+                destination=GraphNode(
+                    type=path.destination.type.value,
+                    value=path.destination.value,
+                    group=path.destination.group,
+                ),
+                metadata=GraphEdgeMetadata(context_block_id=context_block_id),
+            )
+        )
+    return edges
 
 
 def _get_topic_status(resource: Resource) -> str:
@@ -560,3 +1085,293 @@ def _get_topic_status(resource: Resource) -> str:
     except (AssertionError, KeyError, ValueError):
         status = "unknown"
     return status
+
+
+def _delete_resource_field(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+    field_type: FieldTypeName,
+    field_id: str,
+) -> None:
+    """
+    Deletes a field of a resource.
+    """
+    delete_field_args = {
+        "kbid": kbid,
+        "field_type": field_type.value,
+        "field_id": field_id,
+    }
+    if rid:
+        delete_field_args["rid"] = rid
+        delete_field = ndb.ndb.delete_field_by_id
+    else:
+        assert slug is not None
+        delete_field_args["slug"] = slug
+        delete_field = ndb.ndb.delete_field_by_slug
+    delete_field(**delete_field_args)
+
+
+def _delete_conversation_message(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+    field_id: str,
+    message_id: str,
+) -> None:
+    """
+    Deletes a conversation message from a resource conversation field.
+    """
+    delete_conversation_message_args = {
+        "kbid": kbid,
+        "field_id": field_id,
+        "message_id": message_id,
+    }
+    if rid:
+        delete_conversation_message_args["rid"] = rid
+        delete_conversation_message = ndb.ndb.delete_conversation_message
+    else:
+        assert slug is not None
+        delete_conversation_message_args["slug"] = slug
+        delete_conversation_message = ndb.ndb.delete_conversation_message_by_slug
+    delete_conversation_message(**delete_conversation_message_args)
+
+
+def _add_conversation_message(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+    field_id: str,
+    message: InputMessage,
+) -> None:
+    add_conversation_args = {
+        "kbid": kbid,
+        "field_id": field_id,
+        "content": [message],
+    }
+    if rid:
+        add_conversation_args["rid"] = rid
+        add_conversation_message = ndb.ndb.add_conversation_message
+    else:
+        assert slug is not None
+        add_conversation_args["slug"] = slug
+        add_conversation_message = ndb.ndb.add_conversation_message_by_slug
+    add_conversation_message(**add_conversation_args)
+
+
+def _iter_conversation_messages(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+    field_id: str,
+) -> Iterator[Message]:
+    try:
+        field = _get_resource_field(
+            ndb=ndb,
+            kbid=kbid,
+            rid=rid,
+            slug=slug,
+            field_type=FieldTypeName.CONVERSATION,
+            field_id=field_id,
+        )
+        if field.value is None:
+            return
+    except NotFoundError:
+        return
+    conv = cast(Conversation, field.value)
+    current_page = conv.pages
+    # Get from the most recent messages backwards.
+    while True:
+        if current_page <= 0 or conv.total == 0:
+            break
+        page = _get_page_of_conversation_messages(
+            kbid=kbid,
+            rid=rid,
+            slug=slug,
+            field_id=field_id,
+            ndb=ndb,
+            page=str(current_page),
+        )
+        for message in reversed(page):
+            yield message
+        current_page -= 1
+
+
+def _get_page_of_conversation_messages(
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+    field_id: str,
+    ndb: NucliaDBClient,
+    page: str,
+) -> list[Message]:
+    kbid = ndb.kbid
+    field: ResourceField = _get_resource_field(
+        ndb=ndb,
+        kbid=kbid,
+        rid=rid,
+        slug=slug,
+        field_type=FieldTypeName.CONVERSATION,
+        field_id=field_id,
+        page=page,
+    )
+    if field.value is None:
+        return []
+    conversation = cast(Conversation, field.value)
+    return [
+        message
+        for message in conversation.messages or []
+        if message.content.text  # Skip deleted messages
+    ]
+
+
+def _get_resource_basic(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+) -> Resource:
+    get_resource_args = {
+        "kbid": kbid,
+        "query_params": {
+            "show": [
+                ResourceProperties.BASIC.value,
+                ResourceProperties.ERRORS.value,
+            ],
+        },
+    }
+    if rid:
+        get_resource_args["rid"] = rid
+        get_resource = ndb.ndb.get_resource_by_id
+    else:
+        assert slug is not None
+        get_resource_args["slug"] = slug
+        get_resource = ndb.ndb.get_resource_by_slug
+    resource: Resource = get_resource(**get_resource_args)
+    return resource
+
+
+def _get_resource_field(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+    field_type: FieldTypeName,
+    field_id: str,
+    page: str | None = None,
+) -> ResourceField:
+    get_field_args: dict[str, Any] = {
+        "kbid": kbid,
+        "field_type": field_type.value,
+        "field_id": field_id,
+    }
+    if page is not None:
+        get_field_args["query_params"] = {"page": page}
+    if rid:
+        get_field_args["rid"] = rid
+        get_field = ndb.ndb.get_resource_field
+    else:
+        assert slug is not None
+        get_field_args["slug"] = slug
+        get_field = ndb.ndb.get_resource_field_by_slug
+    field: ResourceField = get_field(**get_field_args)
+    return field
+
+
+def _is_memory_field(field_type: FieldTypeName, field_id: str) -> bool:
+    return field_type == FieldTypeName.CONVERSATION and (
+        field_id.startswith(MEMORY_FIELD_PREFIX)
+        or field_id.startswith(FACTS_FIELD_PREFIX)
+    )
+
+
+def _get_user_resource_fields(
+    resource: Resource, user_id: str, include_annotations: bool
+) -> list[str]:
+    fields: list[tuple[FieldTypeName, str]] = []
+    if resource.data is None:
+        return []
+    fields.extend(
+        (FieldTypeName.GENERIC, field_id)
+        for field_id in (resource.data.generics or {}).keys()
+    )
+    fields.extend(
+        (FieldTypeName.TEXT, field_id)
+        for field_id in (resource.data.texts or {}).keys()
+    )
+    fields.extend(
+        (FieldTypeName.LINK, field_id)
+        for field_id in (resource.data.links or {}).keys()
+    )
+    fields.extend(
+        (FieldTypeName.FILE, field_id)
+        for field_id in (resource.data.files or {}).keys()
+    )
+    fields.extend(
+        (FieldTypeName.CONVERSATION, field_id)
+        for field_id in (resource.data.conversations or {}).keys()
+        if not _is_memory_field(FieldTypeName.CONVERSATION, field_id)
+        or (field_id == _annotation_field_id(user_id) and include_annotations)
+        or field_id == _facts_field_id(user_id)
+    )
+    return [
+        _to_field_id_string(resource.id, field_type, field_id)
+        for field_type, field_id in fields
+    ]
+
+
+def _to_field_id_string(rid: str, field_type: FieldTypeName, field_id: str) -> str:
+    return f"{rid}/{field_type.abbreviation()}/{field_id}"
+
+
+def _annotation_field_id(user_id: str) -> str:
+    return f"{MEMORY_FIELD_PREFIX}{user_id}"
+
+
+def _facts_field_id(user_id: str) -> str:
+    return f"{FACTS_FIELD_PREFIX}{user_id}"
+
+
+if __name__ == "__main__":
+    memory = NucliaMemory()
+
+    topic = "test-topic"
+    user_id = "ferran"
+
+    create = True
+    if create:
+        try:
+            memory.store(
+                text="This is some test content for the topic.",
+                slug=topic,
+                title="Test Topic",
+                summary="A topic created for testing purposes.",
+            )
+        except TopicAlreadyExistsError:
+            print(f"Topic '{topic}' already exists.")
+
+        memory.annotate(
+            text="This is an annotation for the topic.",
+            topic=topic,
+            user_id=user_id,
+        )
+
+    context = memory.context(topic=topic, user_id=user_id)
+    relevant_context = memory.retrieve(
+        question="What is this topic about?",
+        topic=topic,
+        user_id=user_id,
+    )
+    recall_result = memory.recall(
+        query="What is this topic about?",
+        topic=topic,
+        user_id=user_id,
+    )
+    graph_result = memory.graph(
+        topic=topic,
+        user_id=user_id,
+    )
