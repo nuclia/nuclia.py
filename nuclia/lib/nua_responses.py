@@ -207,7 +207,9 @@ class ChatModel(BaseModel):
         return self
 
     @field_serializer("reasoning")
-    def serialize_reasoning(self, v: Union["Reasoning", bool]) -> Union[Dict[str, Any], bool]:
+    def serialize_reasoning(
+        self, v: Union["Reasoning", bool]
+    ) -> Union[Dict[str, Any], bool]:
         if isinstance(v, Reasoning):
             return v.model_dump(exclude_unset=True)
         return v
