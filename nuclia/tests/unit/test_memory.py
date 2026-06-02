@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 from nuclia.sdk.memory import (
     _infer_title,
-    _parse_recall_answer,
+    _parse_recall_result,
     _slugify,
 )
 
@@ -80,7 +80,7 @@ class TestInferTitle:
         assert result == "File.Txt"
 
 
-# ─── _parse_recall_answer ─────────────────────────────────────────────────────
+# ─── _parse_recall_result ─────────────────────────────────────────────────────
 
 
 class TestParseRecallAnswer:
@@ -104,7 +104,7 @@ class TestParseRecallAnswer:
 
     def test_no_citations(self):
         response = self._make_ask_response("Just a plain answer with no citations.")
-        answer, citations = _parse_recall_answer(response)
+        answer, citations = _parse_recall_result(response)
         assert answer == "Just a plain answer with no citations."
         assert citations == {}
 
@@ -119,7 +119,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-123": para},
             footnote_map={"block-AA": "chunk-123"},
         )
-        answer, citations = _parse_recall_answer(response)
+        answer, citations = _parse_recall_result(response)
         assert answer == "The policy allows 10 days [1]."
         assert "1" in citations
         assert citations["1"].chunk_id == "chunk-123"
@@ -139,7 +139,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-1": para1, "chunk-2": para2},
             footnote_map={"block-AA": "chunk-1", "block-BB": "chunk-2"},
         )
-        answer, citations = _parse_recall_answer(response)
+        answer, citations = _parse_recall_result(response)
         assert answer == "Answer text [1] and more [2]."
         assert len(citations) == 2
         assert citations["1"].chunk_id == "chunk-1"
@@ -155,7 +155,7 @@ class TestParseRecallAnswer:
             paragraphs={},
             footnote_map={"block-MISSING": "nonexistent-chunk"},
         )
-        answer, citations = _parse_recall_answer(response)
+        answer, citations = _parse_recall_result(response)
         assert answer == "Answer [1]."
         assert citations == {}
 
@@ -167,7 +167,7 @@ class TestParseRecallAnswer:
             paragraphs={},
             footnote_map={},
         )
-        answer, citations = _parse_recall_answer(response)
+        answer, citations = _parse_recall_result(response)
         assert answer == "Answer [1]."
         assert citations == {}
 
@@ -181,7 +181,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-1": para},
             footnote_map={"block-AA": "chunk-1"},
         )
-        answer, citations = _parse_recall_answer(response)
+        answer, citations = _parse_recall_result(response)
         # rsplit with maxsplit=1 should keep only the last \n\n as the split point
         assert answer == "Line one.\n\nLine two.\n\nLine three."
         assert "1" in citations
@@ -202,7 +202,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-vacation": para},
             footnote_map={"block-AA": "chunk-vacation"},
         )
-        answer, citations = _parse_recall_answer(response)
+        answer, citations = _parse_recall_result(response)
         assert "15 consecutive vacation days" in answer
         assert "\n\n[1]:" not in answer
         assert (
