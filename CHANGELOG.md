@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.11.2 (2026-06-03)
+
+### New Features
+
+- Add new `Reasoning.effort` values: `none`, `minimal`, and `xhigh`.
+
 ## 4.11.1 (2026-05-22)
 
 - Add KB Owner NucliaDB role
