@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
-from pydantic import BaseModel, Field, RootModel, model_serializer, model_validator
+from pydantic import BaseModel, Field, RootModel, field_serializer, model_validator
 from typing_extensions import Annotated, Self
 
 
@@ -91,22 +91,18 @@ class Reasoning(BaseModel):
         default="medium",
         description=(
             "Level of reasoning effort. Used by OpenAI models to control the depth of reasoning. "
-            "This parameter will be automatically mapped to budget_tokens "
-            "if the chosen model does not support effort."
+            "If the chosen model only supports budget_tokens, the server normalizes this value "
+            "to an appropriate token budget automatically."
         ),
     )
     budget_tokens: int = Field(
         default=15_000,
         description=(
             "Token budget for reasoning. Used by Anthropic or Google models to limit the number of "
-            "tokens used for reasoning. This parameter will be automatically mapped to effort "
-            "if the chosen model does not support budget_tokens."
+            "tokens used for reasoning. If the chosen model only supports effort, the server "
+            "normalizes this value to an appropriate effort level automatically."
         ),
     )
-
-    @model_serializer(mode="wrap")
-    def serialize_set_fields(self, handler: Any) -> Dict[str, Any]:
-        return {k: v for k, v in handler(self).items() if k in self.model_fields_set}
 
 
 class CitationsType(str, Enum):
@@ -209,6 +205,12 @@ class ChatModel(BaseModel):
         if len(self.tools) > 0 and self.json_schema is not None:
             raise ValueError("Can not setup Tools and JSON Schema at the same time")
         return self
+
+    @field_serializer("reasoning")
+    def serialize_reasoning(self, v: Union["Reasoning", bool]) -> Union[Dict[str, Any], bool]:
+        if isinstance(v, Reasoning):
+            return v.model_dump(exclude_unset=True)
+        return v
 
 
 class Token(BaseModel):
