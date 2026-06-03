@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
-from pydantic import BaseModel, Field, RootModel, model_validator
+from pydantic import BaseModel, Field, RootModel, field_serializer, model_validator
 from typing_extensions import Annotated, Self
 
 
@@ -91,59 +91,18 @@ class Reasoning(BaseModel):
         default="medium",
         description=(
             "Level of reasoning effort. Used by OpenAI models to control the depth of reasoning. "
-            "This parameter will be automatically mapped to budget_tokens "
-            "if the chosen model does not support effort."
+            "If the chosen model only supports budget_tokens, the server normalizes this value "
+            "to an appropriate token budget automatically."
         ),
     )
     budget_tokens: int = Field(
         default=15_000,
         description=(
             "Token budget for reasoning. Used by Anthropic or Google models to limit the number of "
-            "tokens used for reasoning. This parameter will be automatically mapped to effort "
-            "if the chosen model does not support budget_tokens."
+            "tokens used for reasoning. If the chosen model only supports effort, the server "
+            "normalizes this value to an appropriate effort level automatically."
         ),
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def set_budget_tokens_or_effort(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            if "budget_tokens" not in data and "effort" not in data:
-                return data
-
-            effort_map = {
-                "none": 0,
-                "minimal": 0,
-                "low": 7500,
-                "medium": 15_000,
-                "high": 30_000,
-                "xhigh": 50_000,
-            }
-            if "budget_tokens" not in data:
-                if data["effort"] in effort_map:
-                    data["budget_tokens"] = effort_map[data["effort"]]
-                else:
-                    raise ValueError(
-                        f"Invalid effort value: {data['effort']}. "
-                        f"Valid values are: {', '.join(effort_map.keys())}."
-                    )
-            if "effort" not in data:
-                budget_tokens = data["budget_tokens"]
-                if not isinstance(budget_tokens, int):
-                    raise ValueError(
-                        f"Invalid budget_tokens value: {budget_tokens}. "
-                        "It must be an integer."
-                    )
-                if budget_tokens <= effort_map["low"]:
-                    data["effort"] = "low"
-                elif budget_tokens <= effort_map["medium"]:
-                    data["effort"] = "medium"
-                elif budget_tokens <= effort_map["high"]:
-                    data["effort"] = "high"
-                else:
-                    data["effort"] = "xhigh"
-
-        return data
 
 
 class CitationsType(str, Enum):
@@ -247,14 +206,13 @@ class ChatModel(BaseModel):
             raise ValueError("Can not setup Tools and JSON Schema at the same time")
         return self
 
-    @model_validator(mode="after")
-    def check_reasoning_budget_vs_max_tokens(self) -> "ChatModel":
-        if isinstance(self.reasoning, Reasoning) and self.max_tokens is not None:
-            if self.reasoning.budget_tokens >= self.max_tokens:
-                raise ValueError(
-                    f"`budget_tokens` ({self.reasoning.budget_tokens}) cannot be greater or equal than `max_tokens` ({self.max_tokens})."
-                )
-        return self
+    @field_serializer("reasoning")
+    def serialize_reasoning(
+        self, v: Union["Reasoning", bool]
+    ) -> Union[Dict[str, Any], bool]:
+        if isinstance(v, Reasoning):
+            return v.model_dump(exclude_unset=True)
+        return v
 
 
 class Token(BaseModel):
