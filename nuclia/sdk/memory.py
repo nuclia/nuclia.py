@@ -39,7 +39,7 @@ from nucliadb_models.search import (
     SyncAskResponse,
 )
 from nucliadb_models.text import TextField, TextFormat
-from nucliadb_sdk.v2.exceptions import ConflictError, NotFoundError
+from nucliadb_sdk.v2.exceptions import ConflictError, NotFoundError, UnprocessableEntity
 from pydantic import BaseModel
 
 from nuclia.decorators import kb
@@ -65,6 +65,12 @@ class TopicAlreadyExistsError(Exception):
 
 class TopicNotFoundError(Exception):
     """Raised when an topic with the specified ID or slug cannot be found."""
+
+    pass
+
+
+class AnnotationAlreadyExistsError(Exception):
+    """Raised when attempting to create a new annotation with an ID that already exists for the topic and user."""
 
     pass
 
@@ -401,6 +407,8 @@ class NucliaMemory:
         annotation_id: str = uuid.uuid4().hex,
         **kwargs,
     ) -> str:
+        validate_annotation_id(annotation_id)
+        validate_user_id(user_id)
         ndb: NucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _uuid_or_slug(topic)
         annotation_content = AnnotationContent(
@@ -420,14 +428,20 @@ class NucliaMemory:
                 attachments_fields=[],
             ),
         )
-        _add_conversation_message(
-            ndb=ndb,
-            kbid=ndb.kbid,
-            rid=ruuid,
-            slug=rslug,
-            field_id=_annotation_field_id(user_id),
-            message=message,
-        )
+        try:
+            _add_conversation_message(
+                ndb=ndb,
+                kbid=ndb.kbid,
+                rid=ruuid,
+                slug=rslug,
+                field_id=_annotation_field_id(user_id),
+                message=message,
+            )
+        except UnprocessableEntity as e:
+            if "Message identifiers must be unique field" in e.message:
+                raise AnnotationAlreadyExistsError(
+                    f"Annotation with ID '{annotation_id}' already exists."
+                )
         return annotation_id
 
     # ── (fake) fact extraction ──────────────────────────────────────────────
@@ -442,6 +456,10 @@ class NucliaMemory:
         text: str,
         **kwargs,
     ) -> None:
+        """
+        XXX For demo purposes: in practice, this will not be needed as the facts
+        will be extracted automatically by the processing engine.
+        """
         ndb: NucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _uuid_or_slug(topic)
         message = InputMessage(
@@ -532,6 +550,7 @@ class NucliaMemory:
         topic: str,
         user_id: str,
         top_k: int = 20,
+        facts_only: bool = False,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -547,6 +566,8 @@ class NucliaMemory:
             An identifier for the user asking the question. Used to personalize retrieval results by including that user's annotations and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
+        facts_only:
+            Whether to restrict the retrieval to only use facts extracted from the user's annotations, excluding all other content. Defaults to False.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         find_request = FindRequest(
@@ -556,7 +577,9 @@ class NucliaMemory:
                 FindOptions.KEYWORD,
             ],
             filter_expression=filters.FilterExpression(
-                field=_build_field_filter_expression(topic=topic, user_id=user_id)
+                field=_build_field_filter_expression(
+                    topic=topic, user_id=user_id, facts_only=facts_only
+                )
             ),
             top_k=top_k,
             rephrase=True,
@@ -577,6 +600,7 @@ class NucliaMemory:
         topic: str,
         user_id: str,
         context: list[ChatContextMessage] | None = None,
+        facts_only: bool = False,
         **kwargs,
     ) -> RecallResult:
         """Ask a question and get a generative answer grounded in stored topics.
@@ -591,6 +615,8 @@ class NucliaMemory:
             An identifier for the user asking the question. Used for personalization of the answer by including that user's annotations and facts as context.
         context:
             Optional list of past messages to include as additional context for the recall. Messages should be ordered from oldest to most recent.
+        facts_only:
+            Whether to restrict the recall to only use facts extracted from the user's annotations, excluding all other content. Defaults to False.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         kbid = ndb.kbid
@@ -603,7 +629,9 @@ class NucliaMemory:
             reranker=PredictReranker(window=min(top_k * 5, 200)),
             prefer_markdown=True,
             filter_expression=filters.FilterExpression(
-                field=_build_field_filter_expression(topic=topic, user_id=user_id)
+                field=_build_field_filter_expression(
+                    topic=topic, user_id=user_id, facts_only=facts_only
+                )
             ),
             chat_history=context,
         )
@@ -618,6 +646,7 @@ class NucliaMemory:
         *,
         topic: str,
         user_id: str,
+        recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Annotation]:
         """Get all annotations created by a user for a specific topic from most recent to oldest.
@@ -628,6 +657,8 @@ class NucliaMemory:
             topic ID or slug to retrieve annotations for.
         user_id:
             An identifier for the user whose annotations to retrieve.
+        recent_first:
+            Whether to return the annotations ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _uuid_or_slug(topic)
@@ -637,6 +668,7 @@ class NucliaMemory:
             rid=ruuid,
             slug=rslug,
             field_id=_annotation_field_id(user_id),
+            recent_first=recent_first,
         ):
             yield Annotation.from_conversation_message(message)
 
@@ -648,6 +680,7 @@ class NucliaMemory:
         *,
         topic: str,
         user_id: str,
+        recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
         """Get all extracted facts from annotations of a user for a specific topic (from most recent to oldest).
@@ -658,6 +691,8 @@ class NucliaMemory:
             topic ID or slug to retrieve annotations for.
         user_id:
             An identifier for the user whose annotations to retrieve.
+        recent_first:
+            Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _uuid_or_slug(topic)
@@ -667,6 +702,7 @@ class NucliaMemory:
             rid=ruuid,
             slug=rslug,
             field_id=_facts_field_id(user_id),
+            recent_first=recent_first,
         ):
             yield Fact.from_conversation_message(message)
 
@@ -678,6 +714,7 @@ class NucliaMemory:
         *,
         topic: str,
         user_id: str,
+        facts_only: bool = False,
         **kwargs,
     ) -> list[GraphEdge]:
         """Get the topic graph including all extracted entities and relations from the topic content and the annotations of the specified user.
@@ -688,12 +725,16 @@ class NucliaMemory:
             topic ID or slug to retrieve graph for.
         user_id:
             An identifier for the user whose annotations to include in the graph.
+        facts_only:
+            Whether to restrict the graph to only include entities and relations extracted from the facts, excluding those extracted from all other content. Defaults to False.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         graph_request = graph.requests.GraphSearchRequest(
             top_k=500,
             filter_expression=graph.requests.GraphFilterExpression(
-                field=_build_field_filter_expression(topic=topic, user_id=user_id)
+                field=_build_field_filter_expression(
+                    topic=topic, user_id=user_id, facts_only=facts_only
+                )
             ),
             # Ignore all paths that start or end at the resource: we are interested in entity to entity paths.
             query=graph.requests.And(
@@ -898,37 +939,49 @@ class NucliaMemory:
 def _build_field_filter_expression(
     topic: str,
     user_id: str,
+    facts_only: bool = False,
 ) -> filters.FieldFilterExpression:
     """
     Build a filter expression to scope recall or retrieve to a specific topic and include user annotations and facts while
     excluding other users' annotations and facts.
     """
     ruuid, rslug = _uuid_or_slug(topic)
-    return filters.And(
-        operands=[
-            filters.Resource(id=ruuid, slug=rslug),
-            filters.Or(
-                operands=[
-                    filters.Not(
-                        operand=filters.ResourceFieldPrefix(
-                            resource_id=ruuid,
-                            resource_slug=rslug,
-                            field_type=FieldTypeName.CONVERSATION,
-                            field_name_prefix=MEMORY_FIELD_PREFIX,
-                        )
-                    ),
-                    filters.Field(
-                        type=FieldTypeName.CONVERSATION,
-                        name=_annotation_field_id(user_id),
-                    ),
-                    filters.Field(
-                        type=FieldTypeName.CONVERSATION,
-                        name=_facts_field_id(user_id),
-                    ),
-                ]
-            ),
-        ]
-    )
+    if facts_only:
+        return filters.And(
+            operands=[
+                filters.Resource(id=ruuid, slug=rslug),
+                filters.Field(
+                    type=FieldTypeName.CONVERSATION,
+                    name=_facts_field_id(user_id),
+                ),
+            ]
+        )
+    else:
+        return filters.And(
+            operands=[
+                filters.Resource(id=ruuid, slug=rslug),
+                filters.Or(
+                    operands=[
+                        filters.Not(
+                            operand=filters.ResourceFieldPrefix(
+                                resource_id=ruuid,
+                                resource_slug=rslug,
+                                field_type=FieldTypeName.CONVERSATION,
+                                field_name_prefix=MEMORY_FIELD_PREFIX,
+                            )
+                        ),
+                        filters.Field(
+                            type=FieldTypeName.CONVERSATION,
+                            name=_annotation_field_id(user_id),
+                        ),
+                        filters.Field(
+                            type=FieldTypeName.CONVERSATION,
+                            name=_facts_field_id(user_id),
+                        ),
+                    ]
+                ),
+            ]
+        )
 
 
 def _uuid_or_slug(topic_uuid_or_slug: str) -> Union[tuple[str, None], tuple[None, str]]:
@@ -1168,6 +1221,7 @@ def _iter_conversation_messages(
     rid: str | None,
     slug: str | None,
     field_id: str,
+    recent_first: bool = True,
 ) -> Iterator[Message]:
     try:
         field = _get_resource_field(
@@ -1183,10 +1237,19 @@ def _iter_conversation_messages(
     except NotFoundError:
         return
     conv = cast(Conversation, field.value)
-    current_page = conv.pages
-    # Get from the most recent messages backwards.
+
+    if recent_first:
+        current_page = conv.pages
+    else:
+        current_page = 1
+
     while True:
-        if current_page <= 0 or conv.total == 0:
+        if conv.total == 0:
+            break
+        if (recent_first and current_page <= 0) or (
+            not recent_first and current_page > conv.total
+        ):
+            # No more pages to fetch
             break
         page = _get_page_of_conversation_messages(
             kbid=kbid,
@@ -1196,9 +1259,14 @@ def _iter_conversation_messages(
             ndb=ndb,
             page=str(current_page),
         )
-        for message in reversed(page):
-            yield message
-        current_page -= 1
+        if recent_first:
+            for message in reversed(page):
+                yield message
+            current_page -= 1
+        else:
+            for message in page:
+                yield message
+            current_page += 1
 
 
 def _get_page_of_conversation_messages(
@@ -1336,42 +1404,32 @@ def _facts_field_id(user_id: str) -> str:
     return f"{FACTS_FIELD_PREFIX}{user_id}"
 
 
-if __name__ == "__main__":
-    memory = NucliaMemory()
-
-    topic = "test-topic"
-    user_id = "ferran"
-
-    create = True
-    if create:
-        try:
-            memory.store(
-                text="This is some test content for the topic.",
-                slug=topic,
-                title="Test Topic",
-                summary="A topic created for testing purposes.",
-            )
-        except TopicAlreadyExistsError:
-            print(f"Topic '{topic}' already exists.")
-
-        memory.annotate(
-            text="This is an annotation for the topic.",
-            topic=topic,
-            user_id=user_id,
+def validate_user_id(user_id: str) -> None:
+    field_id_pattern = r"^[a-zA-Z0-9:_-]+$"
+    if not re.match(field_id_pattern, user_id):
+        raise ValueError(
+            f"Invalid User ID '{user_id}'. User IDs can only contain letters, numbers, underscores, colons, and hyphens."
         )
 
-    context = memory.context(topic=topic, user_id=user_id)
-    relevant_context = memory.retrieve(
-        question="What is this topic about?",
-        topic=topic,
-        user_id=user_id,
-    )
-    recall_result = memory.recall(
-        query="What is this topic about?",
-        topic=topic,
-        user_id=user_id,
-    )
-    graph_result = memory.graph(
-        topic=topic,
-        user_id=user_id,
-    )
+
+def validate_annotation_id(annotation_id: str) -> None:
+    """
+    Conditions:
+    - Up to 128 characters
+    - Can only contain letters, numbers, underscores, colons, and hyphens
+    - Cannot be "0"
+    - Cannot contain "/"
+    """
+    if len(annotation_id) > 128:
+        raise ValueError(
+            f"Invalid annotation ID '{annotation_id}'. Annotation IDs must be at most 128 characters."
+        )
+    if annotation_id == "0":
+        raise ValueError('Annotation ID cannot be "0"')
+    if "/" in annotation_id:
+        raise ValueError('Annotation ID cannot contain "/"')
+    id_pattern = r"^[a-zA-Z0-9:_-]+$"
+    if not re.match(id_pattern, annotation_id):
+        raise ValueError(
+            f"Invalid annotation ID '{annotation_id}'. Annotation IDs can only contain letters, numbers, underscores, colons, and hyphens."
+        )

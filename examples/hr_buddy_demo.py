@@ -17,12 +17,11 @@ from __future__ import annotations
 
 import textwrap
 
-from nuclia.sdk import memory
-from nucliadb_sdk.v2.exceptions import UnprocessableEntity
 from nuclia.sdk.memory import (
     AnnotationContextMessage,
     NucliaMemory,
     TopicAlreadyExistsError,
+    AnnotationAlreadyExistsError,
 )
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -59,11 +58,8 @@ def annotate_and_extract(
             user_id=user_id,
             text=fact,
         )
-    except UnprocessableEntity as e:
-        if "Message identifiers must be unique field" in e.message:
-            print(f"\n    ! Annotation with ID '{annotation_id}' already exists. Skipping annotation and fact extraction.")
-            return
-        raise
+    except AnnotationAlreadyExistsError:
+        print(f"\n    ! Annotation with ID '{annotation_id}' already exists. Skipping annotation and fact extraction.")
 
 
 def show_recall(memory: NucliaMemory, *, question: str, topic: str, user_id: str) -> None:
