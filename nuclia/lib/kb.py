@@ -21,7 +21,7 @@ from nuclia_models.events.activity_logs import (  # type: ignore
     EventType,
 )
 from nuclia_models.events.remi import RemiQuery
-from nuclia_models.worker.tasks import TaskStartKB
+from nuclia_models.worker.tasks import PARAMETERS_TYPING, TaskStartKB
 from nucliadb_models.search import AskRequest, SummarizeRequest
 from nucliadb_sdk import NucliaDB, NucliaDBAsync
 from tqdm import tqdm
@@ -63,6 +63,7 @@ LIST_TASKS = "/tasks"
 START_TASK = "/task/start"
 STOP_TASK = "/task/{task_id}/stop"
 DELETE_TASK = "/task/{task_id}"
+UPDATE_TASK = "/task/{task_id}"
 GET_TASK = "/task/{task_id}/inspect"
 RESTART_TASK = "/task/{task_id}/restart"
 EXTRACT_STRATEGIES = "/extract_strategies"
@@ -459,6 +460,21 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.writer_session.post(
             f"{self.url}{START_TASK}",
             json=body.model_dump(mode="json", exclude_unset=True),
+        )
+        handle_http_sync_errors(response)
+        return response
+
+    def update_task(
+        self, task_id: str, parameters: PARAMETERS_TYPING
+    ) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = self.writer_session.patch(
+            f"{self.url}{UPDATE_TASK.format(task_id=task_id)}",
+            json={
+                "parameters": parameters,
+            },
         )
         handle_http_sync_errors(response)
         return response
