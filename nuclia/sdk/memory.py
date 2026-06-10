@@ -9,6 +9,14 @@ from datetime import datetime, timezone
 from typing import Any, Iterator, Union, cast, overload
 from urllib.parse import urlparse
 
+from nuclia_models.worker.proto import (
+    ApplyTo,
+    DataAugmentation,
+    Filter,
+    MemoryOperation,
+    Operation,
+)
+from nuclia_models.worker.tasks import ApplyOptions, TaskName
 from nucliadb_models import (
     augment,
     filters,
@@ -45,6 +53,7 @@ from pydantic import BaseModel
 from nuclia.decorators import kb
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.kb import NucliaKB
+from nuclia.sdk.task import NucliaTask
 from nuclia.sdk.upload import NucliaUpload
 
 logger = logging.getLogger(__name__)
@@ -52,6 +61,7 @@ logger.setLevel(logging.WARNING)
 
 MEMORY_FIELD_PREFIX = "__memory__"
 FACTS_FIELD_PREFIX = f"da-facts-{MEMORY_FIELD_PREFIX}"
+GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX = "memory-global-annotations"
 
 
 # ─── Exceptions ─────────────────────────────────────────────────────────────
@@ -213,6 +223,38 @@ class NucliaMemory:
     def __init__(self):
         self.kb = NucliaKB()
         self.upload = NucliaUpload()
+        self.tasks = NucliaTask()
+
+    # ── initialize ───────────────────────────────────────────────────────
+
+    @kb
+    def initialize(self, **kwargs) -> None:
+        """Ensure the memory task is configured for this knowledge box.
+
+        This method should be called once before using the memory to make sure
+        the required background task is set up in the KB.
+        """
+        kb_tasks = self.tasks.list()
+        if not any(task.task.name == TaskName.MEMORY for task in kb_tasks.configs):
+            self.tasks.start(
+                task_name=TaskName.MEMORY,
+                apply=ApplyOptions.EXISTING,
+                parameters=DataAugmentation(
+                    name="memory",
+                    on=ApplyTo.FIELD,
+                    filter=Filter(
+                        field_types=[FieldTypeName.CONVERSATION.abbreviation()],
+                        apply_to_agent_generated_fields=False,
+                    ),
+                    operations=[
+                        Operation(
+                            memory=MemoryOperation(
+                                ident="memory",
+                            )
+                        )
+                    ],
+                ),
+            )
 
     # ── store ────────────────────────────────────────────────────────────
 
@@ -394,12 +436,77 @@ class NucliaMemory:
 
     # ── annotate ─────────────────────────────────────────────────────────────
 
-    @kb
+    @overload
     def annotate(
         self,
         text: str,
         *,
         topic: str,
+        user_id: str,
+        context: list[AnnotationContextMessage] | None = None,
+        reasoning: str | None = None,
+        metadata: dict | None = None,
+        annotation_id: str = ...,
+        **kwargs,
+    ) -> str:
+        """Add an annotation to a specific topic.
+
+        Parameters
+        ----------
+        text:
+            The annotation text.
+        topic:
+            Topic ID or slug to annotate.
+        user_id:
+            An identifier for the user creating the annotation.
+        context:
+            Optional list of context messages to attach to the annotation.
+        reasoning:
+            Optional reasoning attached to the annotation.
+        metadata:
+            Optional metadata dictionary to attach to the annotation.
+        annotation_id:
+            Optional custom annotation ID. A random ID is generated if not provided.
+        """
+        ...
+
+    @overload
+    def annotate(
+        self,
+        text: str,
+        *,
+        user_id: str,
+        context: list[AnnotationContextMessage] | None = None,
+        reasoning: str | None = None,
+        metadata: dict | None = None,
+        annotation_id: str = ...,
+        **kwargs,
+    ) -> str:
+        """Add a global annotation (not tied to any specific topic).
+
+        Parameters
+        ----------
+        text:
+            The annotation text.
+        user_id:
+            An identifier for the user creating the annotation. Each user gets their own dedicated resource for global annotations.
+        context:
+            Optional list of context messages to attach to the annotation.
+        reasoning:
+            Optional reasoning attached to the annotation.
+        metadata:
+            Optional metadata dictionary to attach to the annotation.
+        annotation_id:
+            Optional custom annotation ID. A random ID is generated if not provided.
+        """
+        ...
+
+    @kb
+    def annotate(
+        self,
+        text: str,
+        *,
+        topic: str | None = None,
         user_id: str,
         context: list[AnnotationContextMessage] | None = None,
         reasoning: str | None = None,
@@ -410,7 +517,11 @@ class NucliaMemory:
         validate_annotation_id(annotation_id)
         validate_user_id(user_id)
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _uuid_or_slug(topic)
+        if topic is not None:
+            ruuid, rslug = _uuid_or_slug(topic)
+        else:
+            ruuid = None
+            rslug = _ensure_global_annotations_resource(ndb, user_id)
         annotation_content = AnnotationContent(
             text=text,
             reasoning=reasoning,
@@ -621,6 +732,7 @@ class NucliaMemory:
         ndb: NucliaDBClient = kwargs["ndb"]
         kbid = ndb.kbid
         top_k = 5
+        user_global_facts = self._get_user_global_facts(ndb, user_id)
         ask_request = AskRequest(
             query=query,
             top_k=5,
@@ -634,13 +746,58 @@ class NucliaMemory:
                 )
             ),
             chat_history=context,
+            extra_context=user_global_facts,
         )
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=kbid, content=ask_request)
         return _parse_recall_result(ask_response)
 
     # ── annotations ─────────────────────────────────────────────────────────
 
-    @kb
+    def _get_user_global_facts(self, ndb: NucliaDBClient, user_id: str) -> list[str]:
+        resource_slug = _global_annotations_slug(user_id)
+        try:
+            resource = _get_resource_basic(
+                ndb, kbid=ndb.kbid, rid=None, slug=resource_slug
+            )
+            resource_id = resource.id
+        except NotFoundError:
+            return []
+        facts_field_id = _facts_field_id(user_id)
+        augment_request = augment.AugmentRequest(
+            resources=[
+                augment.AugmentResources(
+                    given=[resource_id],
+                    fields=[
+                        augment.AugmentResourceFields(
+                            text=True,
+                            filters=[
+                                filters.Field(
+                                    type=FieldTypeName.CONVERSATION,
+                                    name=facts_field_id,
+                                )
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+        augment_response: augment.AugmentResponse = ndb.ndb.augment(
+            kbid=ndb.kbid, content=augment_request
+        )
+        if facts_field_id not in augment_response.fields:
+            return []
+        global_facts = []
+        augmented_field = augment_response.fields[facts_field_id]
+        for message in augmented_field.messages or []:
+            try:
+                fact = Fact.from_conversation_message(message)
+            except Exception as e:
+                logger.warning(f"Failed to parse fact from conversation message: {e}")
+                continue
+            global_facts.append(fact.content.text)
+        return global_facts
+
+    @overload
     def annotations(
         self,
         *,
@@ -649,19 +806,53 @@ class NucliaMemory:
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Annotation]:
-        """Get all annotations created by a user for a specific topic from most recent to oldest.
+        """Get all annotations created by a user for a specific topic.
 
         Parameters
         ----------
         topic:
-            topic ID or slug to retrieve annotations for.
+            Topic ID or slug to retrieve annotations for.
         user_id:
             An identifier for the user whose annotations to retrieve.
         recent_first:
             Whether to return the annotations ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
+        ...
+
+    @overload
+    def annotations(
+        self,
+        *,
+        user_id: str,
+        recent_first: bool = True,
+        **kwargs,
+    ) -> Iterator[Annotation]:
+        """Get all global annotations created by a user (not tied to any specific topic).
+
+        Parameters
+        ----------
+        user_id:
+            An identifier for the user whose global annotations to retrieve.
+        recent_first:
+            Whether to return the annotations ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
+        """
+        ...
+
+    @kb
+    def annotations(
+        self,
+        *,
+        topic: str | None = None,
+        user_id: str,
+        recent_first: bool = True,
+        **kwargs,
+    ) -> Iterator[Annotation]:
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _uuid_or_slug(topic)
+        if topic is not None:
+            ruuid, rslug = _uuid_or_slug(topic)
+        else:
+            ruuid = None
+            rslug = _global_annotations_slug(user_id)
         for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
@@ -784,6 +975,25 @@ class NucliaMemory:
     def forget(
         self,
         *,
+        user_id: str,
+        annotation_id: str | None = None,
+        **kwargs,
+    ) -> None:
+        """Delete a specific global annotation or all global annotations created by the user.
+
+        Parameters
+        ----------
+        user_id:
+            An identifier for the user requesting the deletion.
+        annotation_id:
+            Optional identifier of the specific global annotation to delete. If not provided, all global annotations created by the user will be deleted.
+        """
+        ...
+
+    @overload
+    def forget(
+        self,
+        *,
         topic: str,
         confirm: bool = False,
         **kwargs,
@@ -803,17 +1013,21 @@ class NucliaMemory:
     def forget(
         self,
         *,
-        topic: str,
+        topic: str | None = None,
         user_id: str | None = None,
         annotation_id: str | None = None,
         confirm: bool = False,
         **kwargs,
     ) -> None:
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _uuid_or_slug(topic)
         if user_id is not None:
+            if topic is not None:
+                ruuid, rslug = _uuid_or_slug(topic)
+            else:
+                ruuid = None
+                rslug = _global_annotations_slug(user_id)
             if annotation_id is not None:
-                # Delete a specific annotation for that user on that topic
+                # Delete a specific annotation for that user on that topic (or global)
                 try:
                     _delete_conversation_message(
                         ndb=ndb,
@@ -826,7 +1040,7 @@ class NucliaMemory:
                 except NotFoundError:
                     pass
             else:
-                # Delete all annotations for that user on that topic
+                # Delete all annotations for that user on that topic (or global)
                 try:
                     _delete_resource_field(
                         ndb=ndb,
@@ -840,6 +1054,7 @@ class NucliaMemory:
                     pass
         else:
             # Delete entire topic
+            assert topic is not None, "Either user_id or topic must be provided."
             ruuid, rslug = _uuid_or_slug(topic)
             if not confirm:
                 raise ValueError(
@@ -949,7 +1164,12 @@ def _build_field_filter_expression(
     if facts_only:
         return filters.And(
             operands=[
-                filters.Resource(id=ruuid, slug=rslug),
+                filters.Or(
+                    operands=[
+                        filters.Resource(id=ruuid, slug=rslug),
+                        filters.Resource(slug=_global_annotations_slug(user_id)),
+                    ]
+                ),
                 filters.Field(
                     type=FieldTypeName.CONVERSATION,
                     name=_facts_field_id(user_id),
@@ -959,7 +1179,12 @@ def _build_field_filter_expression(
     else:
         return filters.And(
             operands=[
-                filters.Resource(id=ruuid, slug=rslug),
+                filters.Or(
+                    operands=[
+                        filters.Resource(id=ruuid, slug=rslug),
+                        filters.Resource(slug=_global_annotations_slug(user_id)),
+                    ]
+                ),
                 filters.Or(
                     operands=[
                         filters.Not(
@@ -1402,6 +1627,25 @@ def _annotation_field_id(user_id: str) -> str:
 
 def _facts_field_id(user_id: str) -> str:
     return f"{FACTS_FIELD_PREFIX}{user_id}"
+
+
+def _global_annotations_slug(user_id: str) -> str:
+    """Return the predictable slug for the per-user global-annotations resource."""
+    return f"{GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX}-{user_id}"
+
+
+def _ensure_global_annotations_resource(ndb: NucliaDBClient, user_id: str) -> str:
+    """
+    Ensure the per-user global-annotations resource exists, creating it if necessary.
+    Returns the resource slug.
+    """
+    slug = _global_annotations_slug(user_id)
+    if not ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
+        ndb.ndb.create_resource(
+            kbid=ndb.kbid,
+            content={"title": f"Memory global annotations - {user_id}", "slug": slug},
+        )
+    return slug
 
 
 def validate_user_id(user_id: str) -> None:

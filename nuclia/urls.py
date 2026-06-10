@@ -40,7 +40,7 @@ def get_oauth_base(base_domain: str) -> str:
 
 
 def _regional_template(base_domain: str) -> str:
-    return f"https://{{region}}.dp.{_root_domain(base_domain)}"
+    return f"https://{{region}}.rag.{_root_domain(base_domain)}"
 
 
 def get_regional_base(region: str, base_domain: str) -> str:
