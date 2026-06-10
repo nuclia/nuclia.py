@@ -663,7 +663,6 @@ class NucliaMemory:
         topic: str,
         user_id: str,
         top_k: int = 20,
-        facts_only: bool = False,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -679,8 +678,6 @@ class NucliaMemory:
             An identifier for the user asking the question. Used to personalize retrieval results by including that user's annotations and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
-        facts_only:
-            Whether to restrict the retrieval to only use facts extracted from the user's annotations, excluding all other content. Defaults to False.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         find_request = FindRequest(
@@ -691,7 +688,12 @@ class NucliaMemory:
             ],
             filter_expression=filters.FilterExpression(
                 field=_build_field_filter_expression(
-                    topic=topic, user_id=user_id, facts_only=facts_only
+                    topic=topic,
+                    user_id=user_id,
+                    include_annotations=False,
+                    include_content=True,
+                    include_facts=True,
+                    include_global_facts=True,
                 )
             ),
             top_k=top_k,
@@ -713,7 +715,7 @@ class NucliaMemory:
         topic: str,
         user_id: str,
         context: list[ChatContextMessage] | None = None,
-        facts_only: bool = False,
+        include_global_facts: bool = True,
         **kwargs,
     ) -> RecallResult:
         """Ask a question and get a generative answer grounded in stored topics.
@@ -728,13 +730,13 @@ class NucliaMemory:
             An identifier for the user asking the question. Used for personalization of the answer by including that user's annotations and facts as context.
         context:
             Optional list of past messages to include as additional context for the recall. Messages should be ordered from oldest to most recent.
-        facts_only:
-            Whether to restrict the recall to only use facts extracted from the user's annotations, excluding all other content. Defaults to False.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         kbid = ndb.kbid
         top_k = 5
-        user_global_facts = self._get_user_global_facts(ndb, user_id)
+        user_global_facts = []
+        if include_global_facts:
+            user_global_facts = self._get_user_global_facts(ndb, user_id)
         ask_request = AskRequest(
             query=query,
             top_k=5,
@@ -744,7 +746,12 @@ class NucliaMemory:
             prefer_markdown=True,
             filter_expression=filters.FilterExpression(
                 field=_build_field_filter_expression(
-                    topic=topic, user_id=user_id, facts_only=facts_only
+                    topic=topic,
+                    user_id=user_id,
+                    include_global_facts=include_global_facts,
+                    include_annotations=False,
+                    include_facts=True,
+                    include_content=True,
                 )
             ),
             chat_history=context,
@@ -907,7 +914,6 @@ class NucliaMemory:
         *,
         topic: str,
         user_id: str,
-        facts_only: bool = False,
         **kwargs,
     ) -> list[GraphEdge]:
         """Get the topic graph including all extracted entities and relations from the topic content and the annotations of the specified user.
@@ -918,15 +924,14 @@ class NucliaMemory:
             topic ID or slug to retrieve graph for.
         user_id:
             An identifier for the user whose annotations to include in the graph.
-        facts_only:
-            Whether to restrict the graph to only include entities and relations extracted from the facts, excluding those extracted from all other content. Defaults to False.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         graph_request = graph.requests.GraphSearchRequest(
             top_k=500,
             filter_expression=graph.requests.GraphFilterExpression(
                 field=_build_field_filter_expression(
-                    topic=topic, user_id=user_id, facts_only=facts_only
+                    topic=topic,
+                    user_id=user_id,
                 )
             ),
             # Ignore all paths that start or end at the resource: we are interested in entity to entity paths.
@@ -1156,59 +1161,69 @@ class NucliaMemory:
 def _build_field_filter_expression(
     topic: str,
     user_id: str,
-    facts_only: bool = False,
+    include_annotations: bool = False,
+    include_facts: bool = True,
+    include_content: bool = True,
+    include_global_facts: bool = True,
 ) -> filters.FieldFilterExpression:
     """
     Build a filter expression to scope recall or retrieve to a specific topic and include user annotations and facts while
     excluding other users' annotations and facts.
+
+    Parameters
+    ----------
+    topic:
+        topic ID or slug to scope the retrieval to.
+    user_id:
+        An identifier for the user whose annotations and facts to include in the retrieval results.
     """
     ruuid, rslug = _uuid_or_slug(topic)
-    if facts_only:
-        return filters.And(
-            operands=[
-                filters.Or(
-                    operands=[
-                        filters.Resource(id=ruuid, slug=rslug),
-                        filters.Resource(slug=_global_annotations_slug(user_id)),
-                    ]
-                ),
-                filters.Field(
-                    type=FieldTypeName.CONVERSATION,
-                    name=_facts_field_id(user_id),
-                ),
-            ]
+
+    # First off, make sure any retrieval is scoped to the specified topic
+    # Include the global annotations resource if the flag is set, to allow retrieval of global facts.
+    resource_filter: filters.FieldFilterExpression = filters.Or(
+        operands=[
+            filters.Resource(id=ruuid, slug=rslug),
+            filters.Resource(slug=_global_annotations_slug(user_id)),
+        ]
+        if include_global_facts
+        else [filters.Resource(id=ruuid, slug=rslug)]
+    )
+
+    fields_filter_ops: list[filters.FieldFilterExpression] = []
+    if include_content:
+        # Any other resource field that is not memory annotations or facts
+        fields_filter_ops.append(
+            filters.Not(
+                operand=filters.ResourceFieldPrefix(
+                    resource_id=ruuid,
+                    resource_slug=rslug,
+                    field_type=FieldTypeName.CONVERSATION,
+                    field_name_prefix=MEMORY_FIELD_PREFIX,
+                )
+            )
         )
-    else:
-        return filters.And(
-            operands=[
-                filters.Or(
-                    operands=[
-                        filters.Resource(id=ruuid, slug=rslug),
-                        filters.Resource(slug=_global_annotations_slug(user_id)),
-                    ]
-                ),
-                filters.Or(
-                    operands=[
-                        filters.Not(
-                            operand=filters.ResourceFieldPrefix(
-                                resource_id=ruuid,
-                                resource_slug=rslug,
-                                field_type=FieldTypeName.CONVERSATION,
-                                field_name_prefix=MEMORY_FIELD_PREFIX,
-                            )
-                        ),
-                        filters.Field(
-                            type=FieldTypeName.CONVERSATION,
-                            name=_annotation_field_id(user_id),
-                        ),
-                        filters.Field(
-                            type=FieldTypeName.CONVERSATION,
-                            name=_facts_field_id(user_id),
-                        ),
-                    ]
-                ),
-            ]
+    if include_annotations:
+        fields_filter_ops.append(
+            filters.Field(
+                type=FieldTypeName.CONVERSATION,
+                name=_annotation_field_id(user_id),
+            )
         )
+    if include_facts:
+        fields_filter_ops.append(
+            filters.Field(
+                type=FieldTypeName.CONVERSATION,
+                name=_facts_field_id(user_id),
+            )
+        )
+    assert len(fields_filter_ops) > 0, (
+        "At least one of content, annotations, or facts must be included."
+    )
+    # Combine the resource filter with the fields filters (if any)
+    return filters.And(
+        operands=[resource_filter, filters.Or(operands=fields_filter_ops)]
+    )
 
 
 def _uuid_or_slug(topic_uuid_or_slug: str) -> Union[tuple[str, None], tuple[None, str]]:
