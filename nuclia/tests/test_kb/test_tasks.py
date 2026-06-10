@@ -42,6 +42,17 @@ def test_worker_manager_tasks(testing_config):
     assert isinstance(output, TaskResponse)
     task_id = output.id
 
+    output = nkb.task.update(
+        task_id=task_id,
+        parameters=DataAugmentation(
+            name="test",
+            on=ApplyTo.TEXT_BLOCK,
+            filter=Filter(),
+            operations=[Operation()],
+            llm=LLMConfig(),
+        ),
+    )
+
     output = nkb.task.get(task_id=task_id)
     assert output.request.id == task_id
 
