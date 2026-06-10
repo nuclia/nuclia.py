@@ -13,6 +13,7 @@ from nuclia_models.worker.proto import (
     ApplyTo,
     DataAugmentation,
     Filter,
+    LLMConfig,
     MemoryOperation,
     Operation,
 )
@@ -253,6 +254,7 @@ class NucliaMemory:
                             )
                         )
                     ],
+                    llm=LLMConfig(),
                 ),
             )
 
@@ -767,17 +769,15 @@ class NucliaMemory:
             resources=[
                 augment.AugmentResources(
                     given=[resource_id],
-                    fields=[
-                        augment.AugmentResourceFields(
-                            text=True,
-                            filters=[
-                                filters.Field(
-                                    type=FieldTypeName.CONVERSATION,
-                                    name=facts_field_id,
-                                )
-                            ],
-                        )
-                    ],
+                    fields=augment.AugmentResourceFields(
+                        text=True,
+                        filters=[
+                            filters.Field(
+                                type=FieldTypeName.CONVERSATION,
+                                name=facts_field_id,
+                            )
+                        ],
+                    ),
                 )
             ],
         )
@@ -787,14 +787,16 @@ class NucliaMemory:
         if facts_field_id not in augment_response.fields:
             return []
         global_facts = []
-        augmented_field = augment_response.fields[facts_field_id]
+        augmented_field = cast(
+            augment.AugmentedConversationField, augment_response.fields[facts_field_id]
+        )
         for message in augmented_field.messages or []:
             try:
-                fact = Fact.from_conversation_message(message)
+                fact = FactContent.model_validate_json(message.text or "")
             except Exception as e:
                 logger.warning(f"Failed to parse fact from conversation message: {e}")
                 continue
-            global_facts.append(fact.content.text)
+            global_facts.append(fact.text)
         return global_facts
 
     @overload
