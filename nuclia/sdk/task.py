@@ -98,7 +98,7 @@ class NucliaTask:
         task_name: Union[TaskName, str],
         parameters: Union[PARAMETERS_TYPING, dict],
         **kwargs,
-    ) -> TaskResponse:
+    ) -> None:
         """
         Update task
 
@@ -116,11 +116,10 @@ class NucliaTask:
             parameters = parameters_model.model_validate(parameters)
 
         ndb: NucliaDBClient = kwargs["ndb"]
-        response = ndb.update_task(
+        ndb.update_task(
             task_id=task_id,
             parameters=parameters,
         )
-        return TaskResponse.model_validate(response.json())
 
     @kb
     def get(self, *args, task_id: str, **kwargs) -> PublicTaskSet:
