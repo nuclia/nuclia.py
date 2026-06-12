@@ -40,6 +40,7 @@ from nucliadb_models.search import (
     CatalogResponse,
     ChatContextMessage,
     CitationsType,
+    CustomPrompt,
     FindOptions,
     FindRequest,
     KnowledgeboxFindResults,
@@ -617,9 +618,11 @@ class NucliaMemory:
         query: str,
         *,
         topic: str,
-        user_id: str,
+        user_id: str | None = None,
         context: list[ChatContextMessage] | None = None,
         include_global_facts: bool = False,
+        extra_context: list[str] | None = None,
+        custom_prompt: CustomPrompt | None = None,
         **kwargs,
     ) -> RecallResult:
         """Ask a question and get a generative answer grounded in stored topics.
@@ -641,11 +644,15 @@ class NucliaMemory:
 
         global_facts: list[str] = []
         global_facts_rid = None
-        if include_global_facts:
-            global_facts_rid, global_facts = self._get_user_global_facts(ndb, user_id)
-        topic_facts = [
-            fact.content.text for fact in self.facts(topic=topic, user_id=user_id)
-        ]
+        topic_facts: list[str] = []
+        if user_id:
+            if include_global_facts:
+                global_facts_rid, global_facts = self._get_user_global_facts(
+                    ndb, user_id
+                )
+            topic_facts = [
+                fact.content.text for fact in self.facts(topic=topic, user_id=user_id)
+            ]
 
         ask_request = AskRequest(
             query=query,
@@ -654,6 +661,7 @@ class NucliaMemory:
             rephrase=True,
             reranker=PredictReranker(window=min(top_k * 5, 200)),
             prefer_markdown=True,
+            prompt=custom_prompt,
             filter_expression=filters.FilterExpression(
                 field=_build_field_filter_expression(
                     self.task_ident,
@@ -664,7 +672,7 @@ class NucliaMemory:
                 )
             ),
             chat_history=context,
-            extra_context=global_facts + topic_facts,
+            extra_context=(extra_context or []) + global_facts + topic_facts,
         )
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=kbid, content=ask_request)
         return _parse_recall_result(ask_response)
@@ -1074,7 +1082,7 @@ class NucliaMemory:
 def _build_field_filter_expression(
     task_ident: str,
     topic: str,
-    user_id: str,
+    user_id: str | None,
     include_content: bool = True,
     include_facts: bool = True,
     include_annotations: bool = False,
@@ -1109,23 +1117,35 @@ def _build_field_filter_expression(
     if include_content:
         # Any other resource field that is not memory annotations or facts
         fields_filter_ops.append(
-            filters.Not(
-                operand=filters.ResourceFieldPrefix(
-                    resource_id=ruuid,
-                    resource_slug=rslug,
-                    field_type=FieldTypeName.CONVERSATION,
-                    field_name_prefix=MEMORY_FIELD_PREFIX,
-                )
+            filters.And(
+                operands=[
+                    filters.Not(
+                        operand=filters.ResourceFieldPrefix(
+                            resource_id=ruuid,
+                            resource_slug=rslug,
+                            field_type=FieldTypeName.CONVERSATION,
+                            field_name_prefix=MEMORY_FIELD_PREFIX,
+                        )
+                    ),
+                    filters.Not(
+                        operand=filters.ResourceFieldPrefix(
+                            resource_id=ruuid,
+                            resource_slug=rslug,
+                            field_type=FieldTypeName.CONVERSATION,
+                            field_name_prefix=FACTS_FIELD_PREFIX,
+                        )
+                    ),
+                ]
             )
         )
-    if include_annotations:
+    if include_annotations and user_id:
         fields_filter_ops.append(
             filters.Field(
                 type=FieldTypeName.CONVERSATION,
                 name=_annotation_field_id(user_id),
             )
         )
-    if include_facts:
+    if include_facts and user_id:
         fields_filter_ops.append(
             filters.Field(
                 type=FieldTypeName.CONVERSATION,
