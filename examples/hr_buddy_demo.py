@@ -39,7 +39,7 @@ def subsection(title: str) -> None:
     print(f"\n  ▸ {title}")
 
 
-def annotate_and_extract(
+def annotate(
     memory: NucliaMemory,
     *,
     annotation_id: str,
@@ -58,12 +58,6 @@ def annotate_and_extract(
             annotation_id=annotation_id,
             **kwargs,
         )
-        # memory._extract_facts(
-        #     annotation_id,
-        #     topic=topic,
-        #     user_id=user_id,
-        #     text=fact,
-        # )
     except AnnotationAlreadyExistsError:
         print(
             f"\n    ! Annotation with ID '{annotation_id}' already exists. Skipping annotation and fact extraction."
@@ -227,7 +221,7 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 1 — Vacation carry-over exception
     subsection("Request 1: Maria asks for a carry-over exception (8 days)")
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="alice-annotation-001",
         text="Approved carry-over exception for Maria (employee ID: EMP-1042). "
@@ -262,7 +256,7 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 2 — Remote work 4 days/week
     subsection("Request 2: James asks to work remotely 4 days per week")
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="alice-annotation-002",
         text="Denied remote work extension for James (EMP-2317). "
@@ -292,7 +286,7 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 3 — Parental leave start date
     subsection("Request 3: Sophie asks to start parental leave 3 weeks early")
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="alice-annotation-003",
         text="Approved early start of parental leave for Sophie (EMP-3891) — 3 weeks before due date "
@@ -328,7 +322,7 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 4 — Performance review appeal
     subsection("Request 4: David appeals his performance rating of 2")
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="alice-annotation-004",
         text="Appeal accepted for David (EMP-4455). Rating revised from 2 to 3 after reviewing additional "
@@ -367,7 +361,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 1 — Vacation carry-over exception (different stance)
     subsection("Request 1: Leo asks for a carry-over exception (6 days)")
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="bob-annotation-001",
         text="Denied carry-over exception for Leo (EMP-5512). "
@@ -398,7 +392,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 2 — Remote work during probation
     subsection("Request 2: Nina asks to work remotely while still in probation")
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="bob-annotation-002",
         text="Denied remote work request for Nina (EMP-6780). "
@@ -431,7 +425,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
     subsection(
         "Request 3: Carlos asks to split his secondary caregiver leave into two blocks"
     )
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="bob-annotation-003",
         text="Approved split parental leave for Carlos (EMP-7023). "
@@ -470,7 +464,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 4 — PIP challenge
     subsection("Request 4: Rachel disputes being placed on a PIP")
-    annotate_and_extract(
+    annotate(
         memory,
         annotation_id="bob-annotation-004",
         text="PIP upheld for Rachel (EMP-8899). "
@@ -620,7 +614,6 @@ def main() -> None:
     print("═" * 72)
 
     memory = NucliaMemory()
-    breakpoint()
     memory.initialize(llm_config={"model": "chatgpt-azure-5-mini"})
     upload_policies(memory)
     alice_handles_requests(memory)
