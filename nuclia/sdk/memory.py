@@ -598,10 +598,6 @@ class NucliaMemory:
                     self.task_ident,
                     topic=topic,
                     user_id=user_id,
-                    include_annotations=False,
-                    include_content=True,
-                    include_facts=True,
-                    include_global_facts=False,
                 )
             ),
             top_k=top_k,
@@ -642,9 +638,14 @@ class NucliaMemory:
         ndb: NucliaDBClient = kwargs["ndb"]
         kbid = ndb.kbid
         top_k = 5
-        user_global_facts = []
+
+        user_global_facts: list[str] = []
+        user_global_facts_resource_id = None
         if include_global_facts:
-            user_global_facts = self._get_user_global_facts(ndb, user_id)
+            user_global_facts_resource_id, user_global_facts = (
+                self._get_user_global_facts(ndb, user_id)
+            )
+
         ask_request = AskRequest(
             query=query,
             top_k=5,
@@ -658,6 +659,7 @@ class NucliaMemory:
                     topic=topic,
                     user_id=user_id,
                     include_global_facts=include_global_facts,
+                    user_global_facts_resource_id=user_global_facts_resource_id,
                     include_annotations=False,
                     include_facts=True,
                     include_content=False,
@@ -671,7 +673,9 @@ class NucliaMemory:
 
     # ── annotations ─────────────────────────────────────────────────────────
 
-    def _get_user_global_facts(self, ndb: NucliaDBClient, user_id: str) -> list[str]:
+    def _get_user_global_facts(
+        self, ndb: NucliaDBClient, user_id: str
+    ) -> tuple[str | None, list[str]]:
         resource_slug = _global_annotations_slug(user_id)
         try:
             resource = _get_resource_basic(
@@ -679,7 +683,7 @@ class NucliaMemory:
             )
             resource_id = resource.id
         except NotFoundError:
-            return []
+            return None, []
         facts_field_id = _facts_field_id(user_id, self.task_ident)
         augment_request = augment.AugmentRequest(
             resources=[
@@ -701,7 +705,7 @@ class NucliaMemory:
             kbid=ndb.kbid, content=augment_request
         )
         if facts_field_id not in augment_response.fields:
-            return []
+            return None, []
         global_facts = []
         augmented_field = cast(
             augment.AugmentedConversationField, augment_response.fields[facts_field_id]
@@ -713,7 +717,7 @@ class NucliaMemory:
                 logger.warning(f"Failed to parse fact from conversation message: {e}")
                 continue
             global_facts.append(fact.text)
-        return global_facts
+        return resource_id, global_facts
 
     @overload
     def annotations(
@@ -1073,10 +1077,11 @@ def _build_field_filter_expression(
     task_ident: str,
     topic: str,
     user_id: str,
-    include_annotations: bool = False,
-    include_facts: bool = True,
     include_content: bool = True,
-    include_global_facts: bool = True,
+    include_facts: bool = True,
+    include_annotations: bool = False,
+    include_global_facts: bool = False,
+    user_global_facts_resource_id: str | None = None,
 ) -> filters.FieldFilterExpression:
     """
     Build a filter expression to scope recall or retrieve to a specific topic and include user annotations and facts while
@@ -1096,9 +1101,9 @@ def _build_field_filter_expression(
     resource_filter: filters.FieldFilterExpression = filters.Or(
         operands=[
             filters.Resource(id=ruuid, slug=rslug),
-            filters.Resource(slug=_global_annotations_slug(user_id)),
+            filters.Resource(id=user_global_facts_resource_id),
         ]
-        if include_global_facts
+        if include_global_facts and user_global_facts_resource_id is not None
         else [filters.Resource(id=ruuid, slug=rslug)]
     )
 
