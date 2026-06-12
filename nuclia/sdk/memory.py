@@ -229,7 +229,7 @@ class NucliaMemory:
     # ── initialize ───────────────────────────────────────────────────────
 
     @kb
-    def initialize(self, **kwargs) -> None:
+    def initialize(self, llm_config: LLMConfig | None = None, **kwargs) -> None:
         """Ensure the memory task is configured for this knowledge box.
 
         This method should be called once before using the memory to make sure
@@ -239,7 +239,7 @@ class NucliaMemory:
         if not any(task.task.name == TaskName.MEMORY for task in kb_tasks.configs):
             self.tasks.start(
                 task_name=TaskName.MEMORY,
-                apply=ApplyOptions.EXISTING,
+                apply=ApplyOptions.NEW,
                 parameters=DataAugmentation(
                     name="memory",
                     on=ApplyTo.FIELD,
@@ -254,7 +254,7 @@ class NucliaMemory:
                             )
                         )
                     ],
-                    llm=LLMConfig(),
+                    llm=llm_config or LLMConfig(),
                 ),
             )
 

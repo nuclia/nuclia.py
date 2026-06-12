@@ -33,7 +33,6 @@ from nuclia.sdk.memory import (
     TopicAlreadyExistsError,
 )
 
-
 # ─── Domain models ────────────────────────────────────────────────────────────
 
 
@@ -52,9 +51,9 @@ class EmployeeRequest:
 class RequestDecision:
     """The HR operator's decision on an employee request."""
 
-    decision: str                                    # e.g. "approved" / "denied"
-    summary: str                                     # brief decision text stored as annotation
-    fact: str                                        # condensed one-liner stored as a fact
+    decision: str  # e.g. "approved" / "denied"
+    summary: str  # brief decision text stored as annotation
+    fact: str  # condensed one-liner stored as a fact
     reasoning: str | None = None
     context_messages: list[AnnotationContextMessage] = field(default_factory=list)
     extra_metadata: dict = field(default_factory=dict)
@@ -74,6 +73,7 @@ class HRBuddy:
 
     def __init__(self) -> None:
         self._memory = NucliaMemory()
+        self._memory.initialize(llm_config={"model": "chatgpt-azure-5-mini"})
 
     # ── Policy management ────────────────────────────────────────────────────
 
@@ -94,7 +94,9 @@ class HRBuddy:
             )
             print(f"  [HRBuddy] Policy uploaded: '{title}' (slug={slug})")
         except TopicAlreadyExistsError:
-            print(f"  [HRBuddy] Policy already exists, skipping: '{title}' (slug={slug})")
+            print(
+                f"  [HRBuddy] Policy already exists, skipping: '{title}' (slug={slug})"
+            )
 
     # ── Request handling ─────────────────────────────────────────────────────
 
@@ -132,12 +134,12 @@ class HRBuddy:
                 context=decision.context_messages or None,
                 metadata=metadata,
             )
-            self._memory._extract_facts(
-                aid,
-                topic=request.policy_slug,
-                user_id=operator_id,
-                text=decision.fact,
-            )
+            # self._memory._extract_facts(
+            #     aid,
+            #     topic=request.policy_slug,
+            #     user_id=operator_id,
+            #     text=decision.fact,
+            # )
             print(
                 f"  [HRBuddy] {operator_id} handled request from {request.employee_name}"
                 f" ({request.employee_id}) → {decision.decision}"
@@ -202,7 +204,9 @@ class HRBuddy:
         policy_slug: str,
     ) -> list[GraphEdge]:
         """Return the entity graph scoped to a policy and an operator."""
-        return self._memory.graph(topic=policy_slug, user_id=operator_id, facts_only=True)
+        return self._memory.graph(
+            topic=policy_slug, user_id=operator_id, facts_only=True
+        )
 
 
 # ─── CLI helpers ─────────────────────────────────────────────────────────────
@@ -220,7 +224,9 @@ def subsection(title: str) -> None:
 
 def print_recall(result: RecallResult, operator_id: str) -> None:
     indent = "       "
-    print(f"    A ({operator_id}): {textwrap.fill(result.answer, width=68, subsequent_indent=indent)}")
+    print(
+        f"    A ({operator_id}): {textwrap.fill(result.answer, width=68, subsequent_indent=indent)}"
+    )
     if result.citations:
         print("\n    Citations:")
         for key, block in result.citations.items():
@@ -350,7 +356,9 @@ POLICIES = {
 def load_policies(buddy: HRBuddy) -> None:
     section("STEP 1 — Loading Company HR Policies")
     for slug, p in POLICIES.items():
-        buddy.add_policy(slug=slug, title=p["title"], text=p["text"], summary=p["summary"])
+        buddy.add_policy(
+            slug=slug, title=p["title"], text=p["text"], summary=p["summary"]
+        )
 
 
 # ─── 2. Operator request handling ────────────────────────────────────────────
@@ -382,10 +390,23 @@ def alice_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-1042 (Maria Santos, Engineering): carry-over exception approved for 8 days — Q4 product launch prevented vacation use; manager confirmed business-critical need.",
             reasoning="The Q4 launch was a company priority that required Maria's continuous presence. Denying the exception would penalise her for meeting business needs.",
             context_messages=[
-                AnnotationContextMessage(author="Maria (employee)", text="I had 8 vacation days remaining but couldn't take them because of the Q4 launch. Can I carry them over?"),
-                AnnotationContextMessage(author="Maria's manager", text="Confirmed — Maria's presence was essential during the entire Q4 period."),
+                AnnotationContextMessage(
+                    author="Maria (employee)",
+                    text="I had 8 vacation days remaining but couldn't take them because of the Q4 launch. Can I carry them over?",
+                ),
+                AnnotationContextMessage(
+                    author="Maria's manager",
+                    text="Confirmed — Maria's presence was essential during the entire Q4 period.",
+                ),
             ],
-            extra_metadata={"days_requested": 8, "exception_type": "carry-over", "supporting_evidence": ["manager_confirmation", "business_critical_event"]},
+            extra_metadata={
+                "days_requested": 8,
+                "exception_type": "carry-over",
+                "supporting_evidence": [
+                    "manager_confirmation",
+                    "business_critical_event",
+                ],
+            },
         ),
         annotation_id="alice-001",
     )
@@ -409,9 +430,15 @@ def alice_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-2317 (James Liu, Product): request for 4 remote days/week denied — policy cap is 3 days; no medical or business exception presented.",
             reasoning="No compelling exception justification (medical, disability, etc.) was provided.",
             context_messages=[
-                AnnotationContextMessage(author="James (employee)", text="I'd like to work remotely 4 days a week — I find I'm more productive at home."),
+                AnnotationContextMessage(
+                    author="James (employee)",
+                    text="I'd like to work remotely 4 days a week — I find I'm more productive at home.",
+                ),
             ],
-            extra_metadata={"days_requested": 4, "exception_type": "remote-work-extension"},
+            extra_metadata={
+                "days_requested": 4,
+                "exception_type": "remote-work-extension",
+            },
         ),
         annotation_id="alice-002",
     )
@@ -435,10 +462,20 @@ def alice_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-3891 (Sophie Martin, Finance): parental leave approved to start 3 weeks early — high-risk pregnancy; OB-GYN medical note on file.",
             reasoning="Sophie's physician recommended reduced activity due to a high-risk pregnancy. The extra week is medically warranted.",
             context_messages=[
-                AnnotationContextMessage(author="Sophie (employee)", text="My doctor recommends I start leave 3 weeks before the due date due to complications."),
-                AnnotationContextMessage(author="Sophie's OB-GYN (note)", text="Patient advised to avoid commuting and office work from week 37."),
+                AnnotationContextMessage(
+                    author="Sophie (employee)",
+                    text="My doctor recommends I start leave 3 weeks before the due date due to complications.",
+                ),
+                AnnotationContextMessage(
+                    author="Sophie's OB-GYN (note)",
+                    text="Patient advised to avoid commuting and office work from week 37.",
+                ),
             ],
-            extra_metadata={"caregiver_role": "primary", "weeks_early": 3, "supporting_evidence": ["medical_note"]},
+            extra_metadata={
+                "caregiver_role": "primary",
+                "weeks_early": 3,
+                "supporting_evidence": ["medical_note"],
+            },
         ),
         annotation_id="alice-003",
     )
@@ -462,10 +499,24 @@ def alice_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-4455 (David Osei, Engineering): performance appeal accepted for 2026-H1 — rating raised from 2 to 3; three overlooked deliverables verified.",
             reasoning="David provided evidence of three on-time deliverables his manager had missed. Evidence confirmed by skip-level manager.",
             context_messages=[
-                AnnotationContextMessage(author="David (employee)", text="I believe my rating of 2 is unfair. I delivered three major projects on time this period."),
-                AnnotationContextMessage(author="David's skip-level manager", text="I can confirm David's contributions to the platform migration were significant."),
+                AnnotationContextMessage(
+                    author="David (employee)",
+                    text="I believe my rating of 2 is unfair. I delivered three major projects on time this period.",
+                ),
+                AnnotationContextMessage(
+                    author="David's skip-level manager",
+                    text="I can confirm David's contributions to the platform migration were significant.",
+                ),
             ],
-            extra_metadata={"original_rating": 2, "revised_rating": 3, "review_cycle": "2026-H1", "supporting_evidence": ["skip_level_confirmation", "project_deliverables"]},
+            extra_metadata={
+                "original_rating": 2,
+                "revised_rating": 3,
+                "review_cycle": "2026-H1",
+                "supporting_evidence": [
+                    "skip_level_confirmation",
+                    "project_deliverables",
+                ],
+            },
         ),
         annotation_id="alice-004",
     )
@@ -493,7 +544,10 @@ def bob_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-5512 (Leo Fernandez, Sales): carry-over exception denied for 6 days — personal planning choice; no business reason; standard forfeiture applies.",
             reasoning="Unlike business-critical situations, Leo's unused days reflect personal scheduling choices. Policy must be applied as written.",
             context_messages=[
-                AnnotationContextMessage(author="Leo (employee)", text="I forgot to use 6 vacation days. Can I carry them over to next year?"),
+                AnnotationContextMessage(
+                    author="Leo (employee)",
+                    text="I forgot to use 6 vacation days. Can I carry them over to next year?",
+                ),
             ],
             extra_metadata={"days_requested": 6, "exception_type": "carry-over"},
         ),
@@ -519,9 +573,16 @@ def bob_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-6780 (Nina Patel, Customer Success): remote work denied — 45 days into 90-day probation; must reapply after day 90.",
             reasoning="Eligibility explicitly requires completing the 90-day probationary period.",
             context_messages=[
-                AnnotationContextMessage(author="Nina (employee)", text="I've been here 45 days and would like to work from home 2 days a week."),
+                AnnotationContextMessage(
+                    author="Nina (employee)",
+                    text="I've been here 45 days and would like to work from home 2 days a week.",
+                ),
             ],
-            extra_metadata={"days_in_company": 45, "probation_days_remaining": 45, "exception_type": "pre-probation-remote-work"},
+            extra_metadata={
+                "days_in_company": 45,
+                "probation_days_remaining": 45,
+                "exception_type": "pre-probation-remote-work",
+            },
         ),
         annotation_id="bob-002",
     )
@@ -545,10 +606,20 @@ def bob_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-7023 (Carlos Romero, Design): 4-week secondary caregiver leave approved in two blocks (2 weeks at birth + 2 weeks at month 4) — policy permits splitting; manager confirmed coverage.",
             reasoning="Policy does not prohibit splitting. Splitting benefits the family and team continuity. Manager confirmed coverage for both windows.",
             context_messages=[
-                AnnotationContextMessage(author="Carlos (employee)", text="Can I take my 4-week secondary caregiver leave in two separate blocks?"),
-                AnnotationContextMessage(author="Carlos's manager", text="Happy to accommodate — we can plan around both windows."),
+                AnnotationContextMessage(
+                    author="Carlos (employee)",
+                    text="Can I take my 4-week secondary caregiver leave in two separate blocks?",
+                ),
+                AnnotationContextMessage(
+                    author="Carlos's manager",
+                    text="Happy to accommodate — we can plan around both windows.",
+                ),
             ],
-            extra_metadata={"caregiver_role": "secondary", "exception_type": "split-leave", "supporting_evidence": ["manager_confirmation"]},
+            extra_metadata={
+                "caregiver_role": "secondary",
+                "exception_type": "split-leave",
+                "supporting_evidence": ["manager_confirmation"],
+            },
         ),
         annotation_id="bob-003",
     )
@@ -572,16 +643,30 @@ def bob_handles_requests(buddy: HRBuddy) -> None:
             fact="EMP-8899 (Rachel Kim, Operations): PIP upheld for 2026-H1 — rating 1 confirmed; 7/10 milestones missed; 90-day improvement plan issued.",
             reasoning="Manager provided detailed evidence of missed deadlines. Workload was comparable to peers. No procedural errors found.",
             context_messages=[
-                AnnotationContextMessage(author="Rachel (employee)", text="I don't think it's fair that I'm on a PIP. My workload was unreasonable."),
-                AnnotationContextMessage(author="Rachel's manager", text="Rachel missed 7 out of 10 delivery milestones. Workload was comparable to peers."),
+                AnnotationContextMessage(
+                    author="Rachel (employee)",
+                    text="I don't think it's fair that I'm on a PIP. My workload was unreasonable.",
+                ),
+                AnnotationContextMessage(
+                    author="Rachel's manager",
+                    text="Rachel missed 7 out of 10 delivery milestones. Workload was comparable to peers.",
+                ),
             ],
-            extra_metadata={"rating": 1, "pip_duration_days": 90, "review_cycle": "2026-H1", "milestones_missed": 7, "milestones_total": 10, "supporting_evidence": ["manager_documentation", "peer_comparison"]},
+            extra_metadata={
+                "rating": 1,
+                "pip_duration_days": 90,
+                "review_cycle": "2026-H1",
+                "milestones_missed": 7,
+                "milestones_total": 10,
+                "supporting_evidence": ["manager_documentation", "peer_comparison"],
+            },
         ),
         annotation_id="bob-004",
     )
 
 
 # ─── 3. Inspect extracted facts ──────────────────────────────────────────────
+
 
 def show_facts(buddy: HRBuddy) -> None:
     section("STEP 3 — Extracted Facts per Operator")
@@ -604,10 +689,22 @@ def show_facts(buddy: HRBuddy) -> None:
 # ─── 4. Personalised ask ─────────────────────────────────────────────────────
 
 QUESTIONS = [
-    ("vacation-policy",          "Have you ever approved a carry-over exception beyond the 5-day cap, and under what conditions?"),
-    ("remote-work-policy",       "Have any remote-work requests above the 3-day limit come up on your end, and how did you resolve them?"),
-    ("parental-leave-policy",    "Have you handled any non-standard parental leave arrangements, such as an early start or split blocks?"),
-    ("performance-review-policy","Were there any performance rating appeals or PIP disputes on your end this cycle, and what was the outcome?"),
+    (
+        "vacation-policy",
+        "Have you ever approved a carry-over exception beyond the 5-day cap, and under what conditions?",
+    ),
+    (
+        "remote-work-policy",
+        "Have any remote-work requests above the 3-day limit come up on your end, and how did you resolve them?",
+    ),
+    (
+        "parental-leave-policy",
+        "Have you handled any non-standard parental leave arrangements, such as an early start or split blocks?",
+    ),
+    (
+        "performance-review-policy",
+        "Were there any performance rating appeals or PIP disputes on your end this cycle, and what was the outcome?",
+    ),
 ]
 
 
@@ -628,6 +725,7 @@ def show_personalised_answers(buddy: HRBuddy) -> None:
 
 # ─── 5. Personalised graph ───────────────────────────────────────────────────
 
+
 def show_personalised_graphs(buddy: HRBuddy) -> None:
     section("STEP 5 — Personalised Knowledge Graphs: Alice vs Bob")
     print(
@@ -642,6 +740,7 @@ def show_personalised_graphs(buddy: HRBuddy) -> None:
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     print("\n" + "═" * 72)

@@ -18,10 +18,10 @@ from __future__ import annotations
 import textwrap
 
 from nuclia.sdk.memory import (
+    AnnotationAlreadyExistsError,
     AnnotationContextMessage,
     NucliaMemory,
     TopicAlreadyExistsError,
-    AnnotationAlreadyExistsError,
 )
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -51,22 +51,34 @@ def annotate_and_extract(
 ) -> None:
     """Annotate a topic and immediately extract a condensed fact from that annotation."""
     try:
-        memory.annotate(text=text, topic=topic, user_id=user_id, annotation_id=annotation_id, **kwargs)
-        memory._extract_facts(
-            annotation_id,
+        memory.annotate(
+            text=text,
             topic=topic,
             user_id=user_id,
-            text=fact,
+            annotation_id=annotation_id,
+            **kwargs,
         )
+        # memory._extract_facts(
+        #     annotation_id,
+        #     topic=topic,
+        #     user_id=user_id,
+        #     text=fact,
+        # )
     except AnnotationAlreadyExistsError:
-        print(f"\n    ! Annotation with ID '{annotation_id}' already exists. Skipping annotation and fact extraction.")
+        print(
+            f"\n    ! Annotation with ID '{annotation_id}' already exists. Skipping annotation and fact extraction."
+        )
 
 
-def show_recall(memory: NucliaMemory, *, question: str, topic: str, user_id: str) -> None:
+def show_recall(
+    memory: NucliaMemory, *, question: str, topic: str, user_id: str
+) -> None:
     result = memory.recall(query=question, topic=topic, user_id=user_id)
     indent = "       "
     print(f"\n    Q: {question}")
-    print(f"    A ({user_id}): {textwrap.fill(result.answer, width=68, subsequent_indent=indent)}")
+    print(
+        f"    A ({user_id}): {textwrap.fill(result.answer, width=68, subsequent_indent=indent)}"
+    )
     if result.citations:
         print(f"\n    Citations:")
         for key, block in result.citations.items():
@@ -219,13 +231,13 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         memory,
         annotation_id="alice-annotation-001",
         text="Approved carry-over exception for Maria (employee ID: EMP-1042). "
-             "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
-             "Exception approved for the full 8 days as a one-time allowance.",
+        "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
+        "Exception approved for the full 8 days as a one-time allowance.",
         fact="EMP-1042 (Maria Santos, Engineering): carry-over exception approved for 8 days — business-critical Q4 product launch prevented vacation use; manager confirmed.",
         topic="vacation-policy",
         user_id=ALICE_ID,
         reasoning="The product launch was a company-wide priority that required Maria's presence. "
-                  "Denying the exception would penalise her for meeting business needs.",
+        "Denying the exception would penalise her for meeting business needs.",
         context=[
             AnnotationContextMessage(
                 author="Maria (employee)",
@@ -254,12 +266,12 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         memory,
         annotation_id="alice-annotation-002",
         text="Denied remote work extension for James (EMP-2317). "
-             "Policy allows a maximum of 3 remote days per week; no exceptions are currently being granted.",
+        "Policy allows a maximum of 3 remote days per week; no exceptions are currently being granted.",
         fact="EMP-2317 (James Liu, Product): request for 4 remote days/week denied — policy cap is 3 days and no medical or business exception was presented.",
         topic="remote-work-policy",
         user_id=ALICE_ID,
         reasoning="Standard policy cap is 3 days. James has not provided a compelling reason (e.g. medical) "
-                  "that would warrant a policy exception review.",
+        "that would warrant a policy exception review.",
         context=[
             AnnotationContextMessage(
                 author="James (employee)",
@@ -284,13 +296,13 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         memory,
         annotation_id="alice-annotation-003",
         text="Approved early start of parental leave for Sophie (EMP-3891) — 3 weeks before due date "
-             "(1 week beyond the standard 2-week pre-birth allowance). "
-             "Medical note from her OB-GYN on file.",
+        "(1 week beyond the standard 2-week pre-birth allowance). "
+        "Medical note from her OB-GYN on file.",
         fact="EMP-3891 (Sophie Martin, Finance): parental leave start approved 3 weeks before due date — high-risk pregnancy; OB-GYN medical note on file.",
         topic="parental-leave-policy",
         user_id=ALICE_ID,
         reasoning="Sophie's physician recommended reduced activity due to a high-risk pregnancy. "
-                  "An extra week pre-birth is warranted on medical grounds.",
+        "An extra week pre-birth is warranted on medical grounds.",
         context=[
             AnnotationContextMessage(
                 author="Sophie (employee)",
@@ -320,12 +332,12 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         memory,
         annotation_id="alice-annotation-004",
         text="Appeal accepted for David (EMP-4455). Rating revised from 2 to 3 after reviewing additional "
-             "project contributions that were not reflected in the original evaluation.",
+        "project contributions that were not reflected in the original evaluation.",
         fact="EMP-4455 (David Osei, Engineering): performance appeal accepted for 2026-H1 — rating raised from 2 to 3 after overlooked project deliverables were verified.",
         topic="performance-review-policy",
         user_id=ALICE_ID,
         reasoning="David provided evidence of three successful deliverables completed in the review period "
-                  "that his manager had overlooked. Evidence reviewed and found credible.",
+        "that his manager had overlooked. Evidence reviewed and found credible.",
         context=[
             AnnotationContextMessage(
                 author="David (employee)",
@@ -359,13 +371,13 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         memory,
         annotation_id="bob-annotation-001",
         text="Denied carry-over exception for Leo (EMP-5512). "
-             "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
-             "The 6 days will be forfeited per standard policy.",
+        "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
+        "The 6 days will be forfeited per standard policy.",
         fact="EMP-5512 (Leo Fernandez, Sales): carry-over exception denied for 6 days — no business reason; personal planning choice; standard forfeiture applies.",
         topic="vacation-policy",
         user_id=BOB_ID,
         reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
-                  "personal planning choices. Policy should be applied as written.",
+        "personal planning choices. Policy should be applied as written.",
         context=[
             AnnotationContextMessage(
                 author="Leo (employee)",
@@ -390,12 +402,12 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         memory,
         annotation_id="bob-annotation-002",
         text="Denied remote work request for Nina (EMP-6780). "
-             "Nina is 45 days into her 90-day probationary period and is not yet eligible.",
+        "Nina is 45 days into her 90-day probationary period and is not yet eligible.",
         fact="EMP-6780 (Nina Patel, Customer Success): remote work denied — 45 days into 90-day probation; ineligible until probation is complete.",
         topic="remote-work-policy",
         user_id=BOB_ID,
         reasoning="Eligibility is explicitly tied to completing the 90-day probationary period. "
-                  "Nina should reapply after day 90.",
+        "Nina should reapply after day 90.",
         context=[
             AnnotationContextMessage(
                 author="Nina (employee)",
@@ -416,18 +428,20 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
     print("    ✓ Annotation recorded.")
 
     # Request 3 — Secondary caregiver parental leave split
-    subsection("Request 3: Carlos asks to split his secondary caregiver leave into two blocks")
+    subsection(
+        "Request 3: Carlos asks to split his secondary caregiver leave into two blocks"
+    )
     annotate_and_extract(
         memory,
         annotation_id="bob-annotation-003",
         text="Approved split parental leave for Carlos (EMP-7023). "
-             "He will take 2 weeks immediately after birth and the remaining 2 weeks in month 4. "
-             "Both blocks are fully paid.",
+        "He will take 2 weeks immediately after birth and the remaining 2 weeks in month 4. "
+        "Both blocks are fully paid.",
         fact="EMP-7023 (Carlos Romero, Design): 4-week secondary caregiver leave approved in two blocks (weeks 1–2 at birth; weeks 3–4 at month 4) — policy permits splitting; manager confirmed coverage.",
         topic="parental-leave-policy",
         user_id=BOB_ID,
         reasoning="Policy does not prohibit splitting leave. Splitting benefits both the family and "
-                  "continuity of Carlos's team project. Manager has confirmed coverage is available.",
+        "continuity of Carlos's team project. Manager has confirmed coverage is available.",
         context=[
             AnnotationContextMessage(
                 author="Carlos (employee)",
@@ -460,13 +474,13 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         memory,
         annotation_id="bob-annotation-004",
         text="PIP upheld for Rachel (EMP-8899). "
-             "Rating of 1 was confirmed after reviewing her manager's documentation. "
-             "Rachel has been provided with the formal PIP plan and 90-day improvement timeline.",
+        "Rating of 1 was confirmed after reviewing her manager's documentation. "
+        "Rachel has been provided with the formal PIP plan and 90-day improvement timeline.",
         fact="EMP-8899 (Rachel Kim, Operations): PIP upheld for 2026-H1 — rating 1 confirmed; 7/10 milestones missed; 90-day improvement plan issued.",
         topic="performance-review-policy",
         user_id=BOB_ID,
         reasoning="Manager provided detailed evidence of missed deadlines and quality issues "
-                  "over the review period. No procedural errors found in the evaluation process.",
+        "over the review period. No procedural errors found in the evaluation process.",
         context=[
             AnnotationContextMessage(
                 author="Rachel (employee)",
@@ -494,6 +508,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
 
 
 # ─── 2.5. Inspect Extracted Facts ────────────────────────────────────────────
+
 
 def show_extracted_facts(memory: NucliaMemory) -> None:
     section("STEP 2.5 — Extracted Facts (simulated data-augmentation task)")
@@ -558,6 +573,7 @@ def demonstrate_personalisation(memory: NucliaMemory) -> None:
 
 # ─── 4. Graph Personalisation ─────────────────────────────────────────────────
 
+
 def show_graph(memory: NucliaMemory, *, topic: str, user_id: str, label: str) -> None:
     edges = memory.graph(topic=topic, user_id=user_id)
     if not edges:
@@ -567,7 +583,11 @@ def show_graph(memory: NucliaMemory, *, topic: str, user_id: str, label: str) ->
     for edge in edges:
         src_group = f"/{edge.source.group}" if edge.source.group else ""
         dst_group = f"/{edge.destination.group}" if edge.destination.group else ""
-        ctx = f"  ← block {edge.metadata.context_block_id}" if edge.metadata and edge.metadata.context_block_id else ""
+        ctx = (
+            f"  ← block {edge.metadata.context_block_id}"
+            if edge.metadata and edge.metadata.context_block_id
+            else ""
+        )
         print(
             f"      [{edge.source.type}{src_group}] {edge.source.value!r}"
             f"  ──{edge.relation.label}({edge.relation.type})──▶ "
@@ -593,12 +613,15 @@ def demonstrate_graph_personalisation(memory: NucliaMemory) -> None:
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     print("\n" + "═" * 72)
     print("  HR BUDDY DEMO  —  Personalised HR Assistant with NucliaMemory")
     print("═" * 72)
 
     memory = NucliaMemory()
+    breakpoint()
+    memory.initialize(llm_config={"model": "chatgpt-azure-5-mini"})
     upload_policies(memory)
     alice_handles_requests(memory)
     bob_handles_requests(memory)
