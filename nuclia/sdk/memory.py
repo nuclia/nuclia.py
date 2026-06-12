@@ -639,12 +639,13 @@ class NucliaMemory:
         kbid = ndb.kbid
         top_k = 5
 
-        user_global_facts: list[str] = []
-        user_global_facts_resource_id = None
+        global_facts: list[str] = []
+        global_facts_rid = None
         if include_global_facts:
-            user_global_facts_resource_id, user_global_facts = (
-                self._get_user_global_facts(ndb, user_id)
-            )
+            global_facts_rid, global_facts = self._get_user_global_facts(ndb, user_id)
+        topic_facts = [
+            fact.content.text for fact in self.facts(topic=topic, user_id=user_id)
+        ]
 
         ask_request = AskRequest(
             query=query,
@@ -659,14 +660,11 @@ class NucliaMemory:
                     topic=topic,
                     user_id=user_id,
                     include_global_facts=include_global_facts,
-                    user_global_facts_resource_id=user_global_facts_resource_id,
-                    include_annotations=False,
-                    include_facts=True,
-                    include_content=False,
+                    user_global_facts_resource_id=global_facts_rid,
                 )
             ),
             chat_history=context,
-            extra_context=user_global_facts,
+            extra_context=global_facts + topic_facts,
         )
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=kbid, content=ask_request)
         return _parse_recall_result(ask_response)
@@ -1138,9 +1136,12 @@ def _build_field_filter_expression(
         "At least one of content, annotations, or facts must be included."
     )
     # Combine the resource filter with the fields filters (if any)
-    return filters.And(
-        operands=[resource_filter, filters.Or(operands=fields_filter_ops)]
-    )
+    if len(fields_filter_ops) == 1:
+        return filters.And(operands=[resource_filter, fields_filter_ops[0]])
+    else:
+        return filters.And(
+            operands=[resource_filter, filters.Or(operands=fields_filter_ops)]
+        )
 
 
 def _uuid_or_slug(topic_uuid_or_slug: str) -> Union[tuple[str, None], tuple[None, str]]:
