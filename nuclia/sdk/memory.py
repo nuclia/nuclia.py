@@ -167,6 +167,7 @@ class FactContent(BaseModel):
     """
 
     text: str
+    reasoning: str | None = None
     related_annotation_ids: list[str] = []
 
 
@@ -556,47 +557,6 @@ class NucliaMemory:
                     f"Annotation with ID '{annotation_id}' already exists."
                 )
         return annotation_id
-
-    # ── (fake) fact extraction ──────────────────────────────────────────────
-
-    @kb
-    def _extract_facts(
-        self,
-        annotation_id: str,
-        *,
-        topic: str,
-        user_id: str,
-        text: str,
-        **kwargs,
-    ) -> None:
-        """
-        XXX For demo purposes: in practice, this will not be needed as the facts
-        will be extracted automatically by the processing engine.
-        """
-        ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _uuid_or_slug(topic)
-        message = InputMessage(
-            timestamp=datetime.now(tz=timezone.utc),
-            ident=uuid.uuid4().hex,
-            type=MessageType.UNSET,
-            content=InputMessageContent(
-                text=FactContent(
-                    text=text,
-                    related_annotation_ids=[annotation_id],
-                ).model_dump_json(indent=2, exclude_none=True),
-                format=MessageFormat.JSON,
-                attachments=[],
-                attachments_fields=[],
-            ),
-        )
-        _add_conversation_message(
-            ndb=ndb,
-            kbid=ndb.kbid,
-            rid=ruuid,
-            slug=rslug,
-            field_id=_facts_field_id(user_id),
-            message=message,
-        )
 
     # ── context ─────────────────────────────────────────────────────────────
 
