@@ -66,10 +66,20 @@ def annotate(
 
 
 def show_recall(
-    memory: NucliaMemory, *, question: str, topic: str, user_id: str, use_facts: bool = True
+    memory: NucliaMemory,
+    *,
+    question: str,
+    topic: str,
+    user_id: str,
+    use_facts: bool = True,
 ) -> None:
     user_name = USER_NAMES.get(user_id, user_id)
-    result = memory.recall(query=question, topic=topic, user_id=user_id if use_facts else None, custom_prompt=_hr_custom_prompt(user_id))
+    result = memory.recall(
+        query=question,
+        topic=topic,
+        user_id=user_id if use_facts else None,
+        custom_prompt=_hr_custom_prompt(user_id),
+    )
     indent = "       "
     print(f"\n    Q: {question}")
     print(
@@ -84,7 +94,7 @@ def show_recall(
                 initial_indent="        ",
                 subsequent_indent="        ",
             )
-#            print(f"      [{key}] (score={block.score:.3f}) id={block.id}")
+            #            print(f"      [{key}] (score={block.score:.3f}) id={block.id}")
             print(f"      [{key}] (score={block.score:.3f})")
             print(snippet)
 
@@ -374,9 +384,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
 def show_extracted_facts(memory: NucliaMemory) -> None:
     section("STEP 2.5 — Extracted Facts (data-augmentation task)")
 
-    print(
-        "\n  Each annotation was immediately distilled into a concise fact.\n"
-    )
+    print("\n  Each annotation was immediately distilled into a concise fact.\n")
 
     for user_id, label in [(ALICE_ID, "Alice"), (BOB_ID, "Bob")]:
         print(f"\n  ── {label}'s facts ──")
@@ -472,7 +480,10 @@ def main() -> None:
     print("═" * 72)
 
     memory = NucliaMemory()
-    memory.initialize(llm_config={"model": "chatgpt-azure-5-mini"})
+    memory.initialize(
+        llm_config={"model": "gcp-claude-4-5-haiku"},
+    )
+    breakpoint()
     upload_policies(memory)
     alice_handles_requests(memory)
     bob_handles_requests(memory)
