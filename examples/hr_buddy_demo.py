@@ -18,10 +18,10 @@ from __future__ import annotations
 import textwrap
 
 from nuclia.sdk.memory import (
+    AnnotationAlreadyExistsError,
     AnnotationContextMessage,
     NucliaMemory,
     TopicAlreadyExistsError,
-    AnnotationAlreadyExistsError,
 )
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────

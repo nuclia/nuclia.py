@@ -3,12 +3,14 @@ import time
 
 import pytest
 
-from nuclia.sdk.memory import (
+from nuclia.sdk.memory.memory import (
     AnnotationAlreadyExistsError,
-    AnnotationContextMessage,
     NucliaMemory,
     TopicAlreadyExistsError,
     TopicNotFoundError,
+)
+from nuclia.sdk.memory.models import (
+    AnnotationContextMessage,
 )
 
 

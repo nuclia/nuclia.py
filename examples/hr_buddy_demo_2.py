@@ -33,7 +33,6 @@ from nuclia.sdk.memory import (
     TopicAlreadyExistsError,
 )
 
-
 # ─── Domain models ────────────────────────────────────────────────────────────
 
 

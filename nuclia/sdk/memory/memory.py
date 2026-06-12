@@ -12,13 +12,18 @@ from urllib.parse import urlparse
 from nuclia_models.worker.proto import (
     ApplyTo,
     DataAugmentation,
+    EntityDefinition,
     Filter,
+    GraphExtractionExample,
     LLMConfig,
     MemoryOperation,
     Operation,
 )
 from nuclia_models.worker.tasks import ApplyOptions, TaskName
 from nucliadb_models import (
+    Relation,
+    UpdateResourcePayload,
+    UserMetadata,
     augment,
     filters,
     graph,
@@ -49,11 +54,26 @@ from nucliadb_models.search import (
 )
 from nucliadb_models.text import TextField, TextFormat
 from nucliadb_sdk.v2.exceptions import ConflictError, NotFoundError, UnprocessableEntity
-from pydantic import BaseModel
 
 from nuclia.decorators import kb
 from nuclia.lib.kb import NucliaDBClient
 from nuclia.sdk.kb import NucliaKB
+from nuclia.sdk.memory.models import (
+    Annotation,
+    AnnotationContent,
+    AnnotationContextMessage,
+    ContextBlock,
+    Fact,
+    FactContent,
+    GraphEdge,
+    GraphEdgeMetadata,
+    GraphNode,
+    GraphRelation,
+    RecallResult,
+    RelevantContextBlock,
+    Topic,
+    TopicPage,
+)
 from nuclia.sdk.task import NucliaTask
 from nuclia.sdk.upload import NucliaUpload
 
@@ -89,134 +109,6 @@ class AnnotationAlreadyExistsError(Exception):
 # ─── Data models ─────────────────────────────────────────────────────────────
 
 
-class Topic(BaseModel):
-    """A discrete unit of memory stored in the memory.
-    Corresponds to a single resource in a Nuclia Knowledge Box.
-    """
-
-    id: str
-    slug: str
-    title: str
-    summary: str | None = None
-    status: str
-
-
-class TopicPage(BaseModel):
-    """A paginated listing of topics."""
-
-    items: list[Topic]
-    total: int
-    has_more: bool
-
-
-class ContextBlock(BaseModel):
-    id: str
-    text: str
-
-
-class RelevantContextBlock(ContextBlock):
-    score: float
-
-
-class RecallResult(BaseModel):
-    """Result of a generative `recall()` call."""
-
-    answer: str
-    citations: dict[str, RelevantContextBlock]
-
-
-class AnnotationContextMessage(BaseModel):
-    """A context message attached to an annotation."""
-
-    author: str
-    text: str
-
-
-class AnnotationContent(BaseModel):
-    """The content of the annotation with separate fields for the text, reasoning, and context."""
-
-    text: str
-    reasoning: str | None = None
-    context: list[AnnotationContextMessage] | None = None
-    metadata: dict[str, Any] | None = None
-
-
-class Annotation(BaseModel):
-    """A single annotation message attached to an topic."""
-
-    id: str
-    timestamp: datetime
-    content: AnnotationContent
-
-    @classmethod
-    def from_conversation_message(cls, message: Message) -> "Annotation":
-        content = AnnotationContent.model_validate_json(message.content.text or "")
-        assert message.ident is not None
-        assert message.timestamp is not None
-        return cls(
-            id=message.ident,
-            timestamp=message.timestamp,
-            content=content,
-        )
-
-
-class FactContent(BaseModel):
-    """
-    The content of a fact extracted from an annotation, including the fact text and a list of
-    related annotation IDs that were used as evidence for the fact.
-    """
-
-    text: str
-    related_annotation_ids: list[str] = []
-
-
-class Fact(BaseModel):
-    """A single fact extracted from an annotation"""
-
-    id: str
-    timestamp: datetime
-    content: FactContent
-
-    @classmethod
-    def from_conversation_message(cls, message: Message) -> "Fact":
-        content = FactContent.model_validate_json(message.content.text or "")
-        assert message.ident is not None
-        assert message.timestamp is not None
-        return cls(
-            id=message.ident,
-            timestamp=message.timestamp,
-            content=content,
-        )
-
-
-class GraphNode(BaseModel):
-    """A single node in the graph."""
-
-    type: str
-    value: str
-    group: str | None = None
-
-
-class GraphRelation(BaseModel):
-    """A single relation in the graph."""
-
-    label: str
-    type: str
-
-
-class GraphEdgeMetadata(BaseModel):
-    context_block_id: str | None = None
-
-
-class GraphEdge(BaseModel):
-    """A single edge in the graph."""
-
-    source: GraphNode
-    relation: GraphRelation
-    destination: GraphNode
-    metadata: GraphEdgeMetadata | None = None
-
-
 # ─── Sync Memory ─────────────────────────────────────────────────────────────
 
 
@@ -229,7 +121,12 @@ class NucliaMemory:
     # ── initialize ───────────────────────────────────────────────────────
 
     @kb
-    def initialize(self, **kwargs) -> None:
+    def initialize(
+        self,
+        graph_entities: list[EntityDefinition] | None = None,
+        graph_examples: list[GraphExtractionExample] | None = None,
+        **kwargs,
+    ) -> None:
         """Ensure the memory task is configured for this knowledge box.
 
         This method should be called once before using the memory to make sure
@@ -237,26 +134,29 @@ class NucliaMemory:
         """
         kb_tasks = self.tasks.list()
         if not any(task.task.name == TaskName.MEMORY for task in kb_tasks.configs):
-            self.tasks.start(
-                task_name=TaskName.MEMORY,
-                apply=ApplyOptions.EXISTING,
-                parameters=DataAugmentation(
-                    name="memory",
-                    on=ApplyTo.FIELD,
-                    filter=Filter(
-                        field_types=[FieldTypeName.CONVERSATION.abbreviation()],
-                        apply_to_agent_generated_fields=False,
-                    ),
-                    operations=[
-                        Operation(
-                            memory=MemoryOperation(
-                                ident="memory",
+            try:
+                self.tasks.start(
+                    task_name=TaskName.MEMORY,
+                    apply=ApplyOptions.EXISTING,
+                    parameters=DataAugmentation(
+                        name="memory",
+                        on=ApplyTo.FIELD,
+                        filter=Filter(
+                            field_types=[FieldTypeName.CONVERSATION.abbreviation()],
+                            apply_to_agent_generated_fields=False,
+                        ),
+                        operations=[
+                            Operation(
+                                memory=MemoryOperation(
+                                    ident="memory",
+                                )
                             )
-                        )
-                    ],
-                    llm=LLMConfig(),
-                ),
-            )
+                        ],
+                        llm=LLMConfig(),
+                    ),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to start memory task: {e}")
 
     # ── store ────────────────────────────────────────────────────────────
 
@@ -567,6 +467,7 @@ class NucliaMemory:
         topic: str,
         user_id: str,
         text: str,
+        reasoning: str | None = None,
         **kwargs,
     ) -> None:
         """
@@ -582,6 +483,7 @@ class NucliaMemory:
             content=InputMessageContent(
                 text=FactContent(
                     text=text,
+                    reasoning=reasoning,
                     related_annotation_ids=[annotation_id],
                 ).model_dump_json(indent=2, exclude_none=True),
                 format=MessageFormat.JSON,
@@ -596,6 +498,38 @@ class NucliaMemory:
             slug=rslug,
             field_id=_facts_field_id(user_id),
             message=message,
+        )
+
+    # ── (fake) graph extraction ─────────────────────────────────────────────────────────────
+
+    @kb
+    def _extract_graph(
+        self,
+        topic: str,
+        relations: list[Relation],
+        **kwargs,
+    ):
+        """
+        XXX For demo purposes: in practice, this will not be needed as the graph will be
+        extracted automatically by the processing engine.
+        """
+        ndb: NucliaDBClient = kwargs["ndb"]
+        ruuid, rslug = _uuid_or_slug(topic)
+        update_resource_args = {"kbid": ndb.kbid}
+        if ruuid:
+            update_resource_args["rid"] = ruuid
+            update_resource = ndb.ndb.update_resource
+        else:
+            assert rslug is not None
+            update_resource_args["rslug"] = rslug
+            update_resource = ndb.ndb.update_resource_by_slug
+        update_resource(
+            **update_resource_args,
+            content=UpdateResourcePayload(
+                usermetadata=UserMetadata(
+                    relations=relations,
+                )
+            ),
         )
 
     # ── context ─────────────────────────────────────────────────────────────
@@ -913,7 +847,7 @@ class NucliaMemory:
         self,
         *,
         topic: str,
-        user_id: str,
+        user_id: str | None = None,
         **kwargs,
     ) -> list[GraphEdge]:
         """Get the topic graph including all extracted entities and relations from the topic content and the annotations of the specified user.
@@ -932,6 +866,7 @@ class NucliaMemory:
                 field=_build_field_filter_expression(
                     topic=topic,
                     user_id=user_id,
+                    include_global_facts=False,
                 )
             ),
             # Ignore all paths that start or end at the resource: we are interested in entity to entity paths.
@@ -1160,7 +1095,7 @@ class NucliaMemory:
 
 def _build_field_filter_expression(
     topic: str,
-    user_id: str,
+    user_id: str | None,
     include_annotations: bool = False,
     include_facts: bool = True,
     include_content: bool = True,
@@ -1178,6 +1113,9 @@ def _build_field_filter_expression(
         An identifier for the user whose annotations and facts to include in the retrieval results.
     """
     ruuid, rslug = _uuid_or_slug(topic)
+    if user_id is None:
+        # Simply filter by topic
+        return filters.Resource(id=ruuid, slug=rslug)
 
     # First off, make sure any retrieval is scoped to the specified topic
     # Include the global annotations resource if the flag is set, to allow retrieval of global facts.
