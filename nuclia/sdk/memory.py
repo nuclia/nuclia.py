@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 MEMORY_FIELD_PREFIX = "__memory__"
-FACTS_FIELD_PREFIX = f"da-facts-{MEMORY_FIELD_PREFIX}"
+FACTS_FIELD_PREFIX = "da-facts-"
 GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX = "memory-global-annotations"
 
 
@@ -222,6 +222,8 @@ class GraphEdge(BaseModel):
 
 
 class NucliaMemory:
+    task_ident = "memory"
+
     def __init__(self):
         self.kb = NucliaKB()
         self.upload = NucliaUpload()
@@ -242,7 +244,7 @@ class NucliaMemory:
                 task_name=TaskName.MEMORY,
                 apply=ApplyOptions.NEW,
                 parameters=DataAugmentation(
-                    name="memory",
+                    name=self.task_ident,
                     on=ApplyTo.FIELD,
                     filter=Filter(
                         field_types=[FieldTypeName.CONVERSATION.abbreviation()],
@@ -251,7 +253,7 @@ class NucliaMemory:
                     operations=[
                         Operation(
                             memory=MemoryOperation(
-                                ident="memory",
+                                ident=self.task_ident,
                             )
                         )
                     ],
@@ -558,61 +560,6 @@ class NucliaMemory:
                 )
         return annotation_id
 
-    # ── context ─────────────────────────────────────────────────────────────
-
-    @kb
-    def context(
-        self,
-        *,
-        topic: str,
-        user_id: str,
-        include_annotations: bool = False,
-        **kwargs,
-    ) -> list[ContextBlock]:
-        """
-        Return all context for a specific topic and user.
-        This includes all the text fields of the topic as well as any annotations and facts created by the user for that topic.
-
-        Parameters
-        ----------
-        topic:
-            topic ID or slug to retrieve context for.
-        user_id:
-            An identifier for the user requesting the context. Used to include that user's annotations and facts in the context.
-        include_annotations:
-            Whether to include the user's annotations in the context. Defaults to False to reduce noise, but can be set to True to include them.
-        """
-        ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _uuid_or_slug(topic)
-        resource = _get_resource_basic(
-            ndb=ndb,
-            kbid=ndb.kbid,
-            rid=ruuid,
-            slug=rslug,
-        )
-        if ruuid is None:
-            ruuid = resource.id
-        user_resource_fields = _get_user_resource_fields(
-            resource, user_id, include_annotations
-        )
-        augment_response: augment.AugmentResponse = ndb.ndb.augment(
-            kbid=ndb.kbid,
-            content=augment.AugmentRequest(
-                fields=[
-                    augment.AugmentFields(
-                        given=user_resource_fields,
-                        text=True,
-                        full_conversation=True,
-                    )
-                ]
-            ),
-        )
-        return [
-            ContextBlock(id=field_id, text=augmented_field.text)
-            for field_id, augmented_field in augment_response.fields.items()
-            if augmented_field.text is not None
-        ]
-
     # ── retrieve ─────────────────────────────────────────────────────────────
 
     @kb
@@ -648,12 +595,13 @@ class NucliaMemory:
             ],
             filter_expression=filters.FilterExpression(
                 field=_build_field_filter_expression(
+                    self.task_ident,
                     topic=topic,
                     user_id=user_id,
                     include_annotations=False,
                     include_content=True,
                     include_facts=True,
-                    include_global_facts=True,
+                    include_global_facts=False,
                 )
             ),
             top_k=top_k,
@@ -675,7 +623,7 @@ class NucliaMemory:
         topic: str,
         user_id: str,
         context: list[ChatContextMessage] | None = None,
-        include_global_facts: bool = True,
+        include_global_facts: bool = False,
         **kwargs,
     ) -> RecallResult:
         """Ask a question and get a generative answer grounded in stored topics.
@@ -706,12 +654,13 @@ class NucliaMemory:
             prefer_markdown=True,
             filter_expression=filters.FilterExpression(
                 field=_build_field_filter_expression(
+                    self.task_ident,
                     topic=topic,
                     user_id=user_id,
                     include_global_facts=include_global_facts,
                     include_annotations=False,
                     include_facts=True,
-                    include_content=True,
+                    include_content=False,
                 )
             ),
             chat_history=context,
@@ -731,7 +680,7 @@ class NucliaMemory:
             resource_id = resource.id
         except NotFoundError:
             return []
-        facts_field_id = _facts_field_id(user_id)
+        facts_field_id = _facts_field_id(user_id, self.task_ident)
         augment_request = augment.AugmentRequest(
             resources=[
                 augment.AugmentResources(
@@ -861,7 +810,7 @@ class NucliaMemory:
             kbid=ndb.kbid,
             rid=ruuid,
             slug=rslug,
-            field_id=_facts_field_id(user_id),
+            field_id=_facts_field_id(user_id, self.task_ident),
             recent_first=recent_first,
         ):
             yield Fact.from_conversation_message(message)
@@ -890,8 +839,10 @@ class NucliaMemory:
             top_k=500,
             filter_expression=graph.requests.GraphFilterExpression(
                 field=_build_field_filter_expression(
+                    self.task_ident,
                     topic=topic,
                     user_id=user_id,
+                    include_global_facts=False,
                 )
             ),
             # Ignore all paths that start or end at the resource: we are interested in entity to entity paths.
@@ -1119,6 +1070,7 @@ class NucliaMemory:
 
 
 def _build_field_filter_expression(
+    task_ident: str,
     topic: str,
     user_id: str,
     include_annotations: bool = False,
@@ -1174,7 +1126,7 @@ def _build_field_filter_expression(
         fields_filter_ops.append(
             filters.Field(
                 type=FieldTypeName.CONVERSATION,
-                name=_facts_field_id(user_id),
+                name=_facts_field_id(user_id, task_ident),
             )
         )
     assert len(fields_filter_ops) > 0, (
@@ -1552,58 +1504,14 @@ def _get_resource_field(
     return field
 
 
-def _is_memory_field(field_type: FieldTypeName, field_id: str) -> bool:
-    return field_type == FieldTypeName.CONVERSATION and (
-        field_id.startswith(MEMORY_FIELD_PREFIX)
-        or field_id.startswith(FACTS_FIELD_PREFIX)
-    )
-
-
-def _get_user_resource_fields(
-    resource: Resource, user_id: str, include_annotations: bool
-) -> list[str]:
-    fields: list[tuple[FieldTypeName, str]] = []
-    if resource.data is None:
-        return []
-    fields.extend(
-        (FieldTypeName.GENERIC, field_id)
-        for field_id in (resource.data.generics or {}).keys()
-    )
-    fields.extend(
-        (FieldTypeName.TEXT, field_id)
-        for field_id in (resource.data.texts or {}).keys()
-    )
-    fields.extend(
-        (FieldTypeName.LINK, field_id)
-        for field_id in (resource.data.links or {}).keys()
-    )
-    fields.extend(
-        (FieldTypeName.FILE, field_id)
-        for field_id in (resource.data.files or {}).keys()
-    )
-    fields.extend(
-        (FieldTypeName.CONVERSATION, field_id)
-        for field_id in (resource.data.conversations or {}).keys()
-        if not _is_memory_field(FieldTypeName.CONVERSATION, field_id)
-        or (field_id == _annotation_field_id(user_id) and include_annotations)
-        or field_id == _facts_field_id(user_id)
-    )
-    return [
-        _to_field_id_string(resource.id, field_type, field_id)
-        for field_type, field_id in fields
-    ]
-
-
-def _to_field_id_string(rid: str, field_type: FieldTypeName, field_id: str) -> str:
-    return f"{rid}/{field_type.abbreviation()}/{field_id}"
-
-
 def _annotation_field_id(user_id: str) -> str:
+    # __memory__bob123
     return f"{MEMORY_FIELD_PREFIX}{user_id}"
 
 
-def _facts_field_id(user_id: str) -> str:
-    return f"{FACTS_FIELD_PREFIX}{user_id}"
+def _facts_field_id(user_id: str, ident: str) -> str:
+    # da-facts-memory-c-__memory__-bob123
+    return f"{FACTS_FIELD_PREFIX}{ident}-c-{MEMORY_FIELD_PREFIX}{user_id}"
 
 
 def _global_annotations_slug(user_id: str) -> str:
@@ -1623,6 +1531,24 @@ def _ensure_global_annotations_resource(ndb: NucliaDBClient, user_id: str) -> st
             content={"title": f"Memory global annotations - {user_id}", "slug": slug},
         )
     return slug
+
+
+def _get_global_annotations_resource_id(
+    ndb: NucliaDBClient, user_id: str
+) -> str | None:
+    """
+    Get the resource ID of the per-user global-annotations resource, creating the resource if it doesn't exist.
+    """
+    slug = _ensure_global_annotations_resource(ndb, user_id)
+    try:
+        resource = ndb.ndb.get_resource_by_slug(
+            kbid=ndb.kbid,
+            slug=slug,
+            query_params={"show": [ResourceProperties.BASIC.value]},
+        )
+        return resource.id
+    except NotFoundError:
+        return None
 
 
 def validate_user_id(user_id: str) -> None:

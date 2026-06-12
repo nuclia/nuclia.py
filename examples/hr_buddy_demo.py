@@ -44,7 +44,6 @@ def annotate(
     *,
     annotation_id: str,
     text: str,
-    fact: str,
     topic: str,
     user_id: str,
     **kwargs,
@@ -227,7 +226,6 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         text="Approved carry-over exception for Maria (employee ID: EMP-1042). "
         "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
         "Exception approved for the full 8 days as a one-time allowance.",
-        fact="EMP-1042 (Maria Santos, Engineering): carry-over exception approved for 8 days — business-critical Q4 product launch prevented vacation use; manager confirmed.",
         topic="vacation-policy",
         user_id=ALICE_ID,
         reasoning="The product launch was a company-wide priority that required Maria's presence. "
@@ -261,7 +259,6 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         annotation_id="alice-annotation-002",
         text="Denied remote work extension for James (EMP-2317). "
         "Policy allows a maximum of 3 remote days per week; no exceptions are currently being granted.",
-        fact="EMP-2317 (James Liu, Product): request for 4 remote days/week denied — policy cap is 3 days and no medical or business exception was presented.",
         topic="remote-work-policy",
         user_id=ALICE_ID,
         reasoning="Standard policy cap is 3 days. James has not provided a compelling reason (e.g. medical) "
@@ -292,7 +289,6 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         text="Approved early start of parental leave for Sophie (EMP-3891) — 3 weeks before due date "
         "(1 week beyond the standard 2-week pre-birth allowance). "
         "Medical note from her OB-GYN on file.",
-        fact="EMP-3891 (Sophie Martin, Finance): parental leave start approved 3 weeks before due date — high-risk pregnancy; OB-GYN medical note on file.",
         topic="parental-leave-policy",
         user_id=ALICE_ID,
         reasoning="Sophie's physician recommended reduced activity due to a high-risk pregnancy. "
@@ -327,7 +323,6 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         annotation_id="alice-annotation-004",
         text="Appeal accepted for David (EMP-4455). Rating revised from 2 to 3 after reviewing additional "
         "project contributions that were not reflected in the original evaluation.",
-        fact="EMP-4455 (David Osei, Engineering): performance appeal accepted for 2026-H1 — rating raised from 2 to 3 after overlooked project deliverables were verified.",
         topic="performance-review-policy",
         user_id=ALICE_ID,
         reasoning="David provided evidence of three successful deliverables completed in the review period "
@@ -367,7 +362,6 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         text="Denied carry-over exception for Leo (EMP-5512). "
         "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
         "The 6 days will be forfeited per standard policy.",
-        fact="EMP-5512 (Leo Fernandez, Sales): carry-over exception denied for 6 days — no business reason; personal planning choice; standard forfeiture applies.",
         topic="vacation-policy",
         user_id=BOB_ID,
         reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
@@ -397,7 +391,6 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         annotation_id="bob-annotation-002",
         text="Denied remote work request for Nina (EMP-6780). "
         "Nina is 45 days into her 90-day probationary period and is not yet eligible.",
-        fact="EMP-6780 (Nina Patel, Customer Success): remote work denied — 45 days into 90-day probation; ineligible until probation is complete.",
         topic="remote-work-policy",
         user_id=BOB_ID,
         reasoning="Eligibility is explicitly tied to completing the 90-day probationary period. "
@@ -431,7 +424,6 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         text="Approved split parental leave for Carlos (EMP-7023). "
         "He will take 2 weeks immediately after birth and the remaining 2 weeks in month 4. "
         "Both blocks are fully paid.",
-        fact="EMP-7023 (Carlos Romero, Design): 4-week secondary caregiver leave approved in two blocks (weeks 1–2 at birth; weeks 3–4 at month 4) — policy permits splitting; manager confirmed coverage.",
         topic="parental-leave-policy",
         user_id=BOB_ID,
         reasoning="Policy does not prohibit splitting leave. Splitting benefits both the family and "
@@ -470,7 +462,6 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         text="PIP upheld for Rachel (EMP-8899). "
         "Rating of 1 was confirmed after reviewing her manager's documentation. "
         "Rachel has been provided with the formal PIP plan and 90-day improvement timeline.",
-        fact="EMP-8899 (Rachel Kim, Operations): PIP upheld for 2026-H1 — rating 1 confirmed; 7/10 milestones missed; 90-day improvement plan issued.",
         topic="performance-review-policy",
         user_id=BOB_ID,
         reasoning="Manager provided detailed evidence of missed deadlines and quality issues "
