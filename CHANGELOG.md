@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.11.3 (2026-06-15)
+
+### Bug Fixes
+
+- use json= instead of data=/content= for httpx request body serialization
+
 ## 4.11.2 (2026-06-03)
 
 - Add new reasoning effort values `none`, `minimal`, `xhigh`
