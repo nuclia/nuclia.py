@@ -239,7 +239,7 @@ class NucliaMemory:
         self,
         llm_config: LLMConfig | None = None,
         rules: list[str] | None = None,
-        graph_extraction: bool = False,
+        graph_extraction: bool = True,
         entity_defs: list[EntityDefinition] | None = None,
         examples: list[GraphExtractionExample] | None = None,
         force: bool = False,
