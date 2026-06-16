@@ -15,7 +15,29 @@ from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import kb
 from nuclia.exceptions import InvalidPayload
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.sdk import logger
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
+
+_KNOWN_TASK_NAMES = {t.value for t in TaskName}
+
+
+def _filter_unknown_tasks(data: dict) -> dict:
+    """Drop task definitions with unknown names to avoid validation errors
+    when the server returns task types not yet present in the local models."""
+    unknown = [
+        t["name"]
+        for t in data.get("tasks", [])
+        if t.get("name") not in _KNOWN_TASK_NAMES
+    ]
+    if unknown:
+        logger.warning(
+            "Ignoring unknown task type(s) returned by the server: %s", unknown
+        )
+        data = {
+            **data,
+            "tasks": [t for t in data["tasks"] if t.get("name") in _KNOWN_TASK_NAMES],
+        }
+    return data
 
 
 class NucliaTask:
@@ -31,7 +53,7 @@ class NucliaTask:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         response = ndb.list_tasks()
-        return TaskList.model_validate(response.json())
+        return TaskList.model_validate(_filter_unknown_tasks(response.json()))
 
     @kb
     def start(
@@ -125,7 +147,7 @@ class AsyncNucliaTask:
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         response = await ndb.list_tasks()
-        return TaskList.model_validate(response.json())
+        return TaskList.model_validate(_filter_unknown_tasks(response.json()))
 
     @kb
     async def start(
