@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.11.3 (2026-06-16)
+
+### Bug Fixes
+
+- Update nuclia-models for more resilient task parsing
+
 ## 4.11.2 (2026-06-03)
 
 - Add new reasoning effort values `none`, `minimal`, `xhigh`
