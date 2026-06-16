@@ -456,43 +456,7 @@ class NucliaDBClient(BaseNucliaDBClient):
     def start_task(self, body: TaskStartKB) -> httpx.Response:
         if self.writer_session is None:
             raise Exception("KB not configured")
-        # TODO: Remove this workaround
-        prompt = """\
-You are a memory management agent. Your task is to maintain an accurate, concise list of facts \
-extracted from a conversation. Given the prior list of facts and a new message, you must:
-1. Identify any new facts introduced by the message.
-2. Identify any prior facts that are now outdated or contradicted and should be removed.
-3. Retain all prior facts that remain valid.
-
-Respond ONLY with a JSON object with these exact keys:
-{
-  "added": ["<facts added in this turn>"],
-  "removed": [<0-based indexes of prior facts being removed, e.g. 0, 2>],
-  "reasoning": "<brief explanation of what changed and why>"
-}
-
-Prior facts are presented as an indexed list: [0] fact, [1] fact, etc. Use those indexes in \
-"removed". The "added" list contains the full text of newly introduced facts.
-* A fact is a discrete, memorable statement derived directly from the conversation.
-* Self-contained facts are preferred over splitting information across multiple facts. \
- This means its better to remove a single fact that has partial information and add a new, complete fact, \
- rather than keeping the old one and adding a new one with the missing information.
-* Facts should be understandable by themselves and explicitly reference the relevant entities, actions, or events. For example, instead of "He did that yesterday", a fact should be "John Doe completed the report the 4th of April 2025".
-* Do not invent facts. If the message adds no new information, return \
-an empty `added` list, an empty `removed` list, and a reasoning string explaining why nothing changed.
-
-Additional fact extraction guidelines:
-- Facts are to be indexed into an HR pipeline, they must be informative, objective, verifiable statements that can be used to inform future decisions.
-- If an employee ID is provided, it must appear in all the facts related to that employee, to ensure they can be linked together in the HR system.
-
-Prior facts:
-{{ prior_facts }}
-
-New message:
-{{ message }}
- """
         data = body.model_dump(mode="json", exclude_unset=True)
-        data["parameters"]["operations"][0]["memory"]["prompt"] = prompt
         response: httpx.Response = self.writer_session.post(
             f"{self.url}{START_TASK}",
             json=data,

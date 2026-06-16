@@ -12,7 +12,9 @@ from urllib.parse import urlparse
 from nuclia_models.worker.proto import (
     ApplyTo,
     DataAugmentation,
+    EntityDefinition,
     Filter,
+    GraphExtractionExample,
     LLMConfig,
     MemoryOperation,
     Operation,
@@ -233,13 +235,23 @@ class NucliaMemory:
     # ── initialize ───────────────────────────────────────────────────────
 
     @kb
-    def initialize(self, llm_config: LLMConfig | None = None, **kwargs) -> None:
+    def initialize(
+        self,
+        llm_config: LLMConfig | None = None,
+        rules: list[str] | None = None,
+        graph_extraction: bool = False,
+        entity_defs: list[EntityDefinition] | None = None,
+        examples: list[GraphExtractionExample] | None = None,
+        force: bool = False,
+        **kwargs,
+    ) -> None:
         """Ensure the memory task is configured for this knowledge box.
 
         This method should be called once before using the memory to make sure
         the required background task is set up in the KB.
         """
         kb_tasks = self.tasks.list()
+        # TODO: What happens if we want to initialize a new memory task with a different config from an existing one?
         if not any(task.task.name == TaskName.MEMORY for task in kb_tasks.configs):
             self.tasks.start(
                 task_name=TaskName.MEMORY,
@@ -255,6 +267,10 @@ class NucliaMemory:
                         Operation(
                             memory=MemoryOperation(
                                 ident=self.task_ident,
+                                rules=rules or [],
+                                graph_extraction=graph_extraction,
+                                entity_defs=entity_defs or [],
+                                examples=examples or [],
                             )
                         )
                     ],

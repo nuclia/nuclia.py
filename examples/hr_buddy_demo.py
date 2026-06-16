@@ -481,7 +481,10 @@ def main() -> None:
 
     memory = NucliaMemory()
     memory.initialize(
-        llm_config={"model": "gcp-claude-4-5-haiku"},
+        rules=[
+            "Facts are to be indexed into an HR pipeline, they must be informative, objective, verifiable statements that can be used to inform future decisions.",
+            "If an employee ID is provided, it must appear in all the facts related to that employee, to ensure they can be linked together in the HR system.",
+        ],
     )
     breakpoint()
     upload_policies(memory)
