@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.11.4 (2026-06-17)
+
+### Bug Fixes
+
+- use json= instead of data=/content= for httpx request body serialization
+- 
 ## 4.11.3 (2026-06-16)
 
 ### Bug Fixes
