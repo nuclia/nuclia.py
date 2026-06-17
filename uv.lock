@@ -1107,7 +1107,7 @@ wheels = [
 
 [[package]]
 name = "nuclia"
-version = "4.11.2"
+version = "4.11.3"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -1213,13 +1213,13 @@ wheels = [
 
 [[package]]
 name = "nucliadb-models"
-version = "6.13.1.post6334"
+version = "6.15.0.post6555"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/41/2b25e3babfc1eec01408804c10982fc78621f52387eb8b4e303a04120fae/nucliadb_models-6.13.1.post6334-py3-none-any.whl", hash = "sha256:86dcbf5155cba88f9d9ae3ce730da5f3073b60b9616477c05842f853bbfe051a", size = 79654, upload-time = "2026-05-20T09:35:25.56Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/3f/49c0710a6c9c61408e9fd7b789620f322f1ebe5a02e26edfec6eb71cc6e9/nucliadb_models-6.15.0.post6555-py3-none-any.whl", hash = "sha256:0b4aff34f961541315432857d42b929c5eb05bb0ac61f5a53c8d53eea36f38f9", size = 81986, upload-time = "2026-06-16T15:16:11.19Z" },
 ]
 
 [[package]]
@@ -1237,7 +1237,7 @@ wheels = [
 
 [[package]]
 name = "nucliadb-sdk"
-version = "6.13.1.post6334"
+version = "6.15.0.post6555"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -1247,7 +1247,7 @@ dependencies = [
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/39/e2/803f8f75d233057cd04b6969cee5c4ca43c152ec3bfcd2cbc7dd2fa116d1/nucliadb_sdk-6.13.1.post6334-py3-none-any.whl", hash = "sha256:b95453ff5a62d7915cfdb0fc9f22a3b6e8683dbd740c2d7f43b3032ce3e5345d", size = 17948, upload-time = "2026-05-20T09:35:32.915Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/b7/25f05065be23a249779ec0133410071a00abc046d20aeb94889fd1e3f7f4/nucliadb_sdk-6.15.0.post6555-py3-none-any.whl", hash = "sha256:4dea5345fc42882e6c5f3b5baaa02be4a843b85fe36bb60771434d8b07073ca2", size = 18021, upload-time = "2026-06-16T15:16:16.688Z" },
 ]
 
 [[package]]

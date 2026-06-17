@@ -1,11 +1,17 @@
 # Changelog
 
+## 4.11.5 (2026-06-17)
+
+### Bug fixes
+
+- Enables compatibility with newer nucliadb_sdk versions
+
 ## 4.11.4 (2026-06-17)
 
 ### Bug Fixes
 
 - use json= instead of data=/content= for httpx request body serialization
-- 
+- more resilient parsing of data augmentation tasks
 ## 4.11.3 (2026-06-16)
 
 ### Bug Fixes

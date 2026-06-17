@@ -147,13 +147,13 @@ class NucliaResource:
 
         if rid:
             res = ndb.ndb.ask_on_resource(
-                req,
+                content=req,
                 kbid=ndb.kbid,
                 rid=rid,
             )
         elif slug:
             res = ndb.ndb.ask_on_resource_by_slug(
-                req,
+                content=req,
                 kbid=ndb.kbid,
                 slug=slug,
             )
