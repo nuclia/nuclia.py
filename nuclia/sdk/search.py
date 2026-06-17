@@ -106,7 +106,7 @@ class NucliaSearch:
         else:
             raise TypeError("query must be 'str', 'dict' or 'SearchRequest'")
 
-        return ndb.ndb.search(req, kbid=ndb.kbid)
+        return ndb.ndb.search(content=req, kbid=ndb.kbid)
 
     @kb
     @pretty
@@ -146,7 +146,7 @@ class NucliaSearch:
         if relations:
             req.features.append(FindOptions.RELATIONS)
 
-        return ndb.ndb.find(req, kbid=ndb.kbid)
+        return ndb.ndb.find(content=req, kbid=ndb.kbid)
 
     @kb
     @pretty
@@ -180,7 +180,7 @@ class NucliaSearch:
         else:
             raise TypeError("query must be 'str', 'dict', or 'CatalogRequest'")
 
-        return ndb.ndb.catalog(req, kbid=ndb.kbid)
+        return ndb.ndb.catalog(content=req, kbid=ndb.kbid)
 
     @kb
     def ask(
@@ -383,7 +383,7 @@ class NucliaSearch:
         else:
             raise TypeError("query must be 'dict' or 'GraphSearchRequest'")
 
-        return ndb.ndb.graph_search(req, kbid=ndb.kbid)
+        return ndb.ndb.graph_search(content=req, kbid=ndb.kbid)
 
 
 class AsyncNucliaSearch:
@@ -428,7 +428,7 @@ class AsyncNucliaSearch:
         else:
             raise TypeError("query must be 'str', 'dict' or 'SearchRequest'")
 
-        return await ndb.ndb.search(req, kbid=ndb.kbid)
+        return await ndb.ndb.search(content=req, kbid=ndb.kbid)
 
     @kb
     @pretty
@@ -466,7 +466,7 @@ class AsyncNucliaSearch:
         if relations:
             req.features.append(FindOptions.RELATIONS)
 
-        return await ndb.ndb.find(req, kbid=ndb.kbid)
+        return await ndb.ndb.find(content=req, kbid=ndb.kbid)
 
     @kb
     @pretty
@@ -500,7 +500,7 @@ class AsyncNucliaSearch:
         else:
             raise TypeError("query must be 'str', 'dict', or 'CatalogRequest'")
 
-        return await ndb.ndb.catalog(req, kbid=ndb.kbid)
+        return await ndb.ndb.catalog(content=req, kbid=ndb.kbid)
 
     @kb
     async def ask(
@@ -807,4 +807,4 @@ class AsyncNucliaSearch:
         else:
             raise TypeError("query must be 'dict' or 'GraphSearchRequest'")
 
-        return await ndb.ndb.graph_search(req, kbid=ndb.kbid)
+        return await ndb.ndb.graph_search(content=req, kbid=ndb.kbid)
