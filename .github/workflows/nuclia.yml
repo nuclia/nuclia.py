@@ -54,15 +54,21 @@ on:
 # lives in bump.yml (labeled-only trigger) so that label events never create skipped
 # check runs that would override passing ones and block branch-protection merges.
 
+permissions: {}
+
 jobs:
   check-changes:
     name: Check changed files
     if: github.event_name == 'pull_request' && github.event.action != 'labeled' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read   # actions/checkout, dorny/paths-filter
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
         id: filter
         with:
@@ -230,29 +236,48 @@ jobs:
   test-stage:
     name: Test (stage)
     needs: [skip-gate]
+    permissions:
+      contents: read   # actions/checkout
     if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/stage.yml
+    secrets:
+      STAGE_TESTING_SERVICE_TOKEN: ${{ secrets.STAGE_TESTING_SERVICE_TOKEN }}
+      STAGE_TESTING_TOKEN: ${{ secrets.STAGE_TESTING_TOKEN }}
+      TEST_EUROPE1_STASHIFY_NUA: ${{ secrets.TEST_EUROPE1_STASHIFY_NUA }}
+      STAGE_TESTING_AGENT_TOKEN: ${{ secrets.STAGE_TESTING_AGENT_TOKEN }}
+      STAGE_TESTING_AGENT_NO_MEM_TOKEN: ${{ secrets.STAGE_TESTING_AGENT_NO_MEM_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
-    secrets: inherit
 
   test-prod:
     name: Test (prod)
     needs: [skip-gate]
+    permissions:
+      contents: read   # actions/checkout
     if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/prod.yml
+    secrets:
+      PROD_TESTING_SERVICE_TOKEN: ${{ secrets.PROD_TESTING_SERVICE_TOKEN }}
+      PROD_TESTING_TOKEN: ${{ secrets.PROD_TESTING_TOKEN }}
+      PROD_TESTING_NUA: ${{ secrets.PROD_TESTING_NUA }}
+      PROD_TESTING_AGENT_TOKEN: ${{ secrets.PROD_TESTING_AGENT_TOKEN }}
+      PROD_TESTING_AGENT_NO_MEM_TOKEN: ${{ secrets.PROD_TESTING_AGENT_NO_MEM_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
-    secrets: inherit
 
   test-windows:
     name: Test (windows)
     needs: [skip-gate]
+    permissions:
+      contents: read   # actions/checkout
     if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
     uses: ./.github/workflows/windows.yml
+    secrets:
+      PROD_API_KEY_FOR_WINDOWS_TEST: ${{ secrets.PROD_API_KEY_FOR_WINDOWS_TEST }}
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
-    secrets: inherit
 
   publish-pypi:
     # Runs only when the PR was merged with the `release` label, AND one of:
@@ -281,7 +306,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: pypi  # requires approval from designated reviewers (repo Settings → Environments)
     permissions:
-      id-token: write
+      id-token: write   # pypa/gh-action-pypi-publish (OIDC)
     steps:
       - name: Generate bot token
         id: app-token
@@ -290,10 +315,13 @@ jobs:
           app-id: ${{ vars.GHAPP_NUCLIA_SERVICE_BOT_ID }}
           private-key: ${{ secrets.GHAPP_NUCLIA_SERVICE_BOT_PK }}
           owner: nuclia
+          repositories: nuclia.py
+          permission-contents: write         # git push tag
 
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Configure git identity for bot commit
         run: |
@@ -305,6 +333,8 @@ jobs:
           python-version: "3.12"
 
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: false
 
       - name: Verify version tag does not already exist
         # Guards against merging with `release` but without a prior bump — i.e. VERSION
@@ -334,6 +364,12 @@ jobs:
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'release')
     needs: [publish-pypi]
+    permissions:
+      id-token: write   # docs.yml -> aws-actions/configure-aws-credentials (OIDC)
+      contents: read    # docs.yml -> actions/checkout
     uses: ./.github/workflows/docs.yml
-    secrets: inherit
+    secrets:
+      AWS_DOCS_SYNC_ROLE: ${{ secrets.AWS_DOCS_SYNC_ROLE }}
+      AWS_DOCS_SYNC_REGION: ${{ secrets.AWS_DOCS_SYNC_REGION }}
+      DOCS_STORAGE: ${{ secrets.DOCS_STORAGE }}
 
