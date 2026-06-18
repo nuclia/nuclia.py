@@ -23,8 +23,8 @@ dependencies = [
     "httpx",
     "httpcore>=1.0.0",
     "prompt_toolkit",
-    "nucliadb_sdk>=6.13.0,<7",
-    "nucliadb_models>=6.9.0,<7",
+    "nucliadb_sdk>=6.15.0,<7",
+    "nucliadb_models>=6.15.0,<7",
     "nuclia-models>=0.58.2",
     "tqdm",
     "aiofiles",
@@ -97,4 +97,3 @@ test = "Tests"
 build = "Build System"
 ci = "CI/CD"
 chore = "Chores"
-
