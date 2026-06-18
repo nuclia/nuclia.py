@@ -28,6 +28,7 @@ from nuclia.sdk.extract_strategy import (
     AsyncNucliaExtractStrategy,
     NucliaExtractStrategy,
 )
+from nuclia.sdk.kv_schemas import AsyncNucliaKVSchemas, NucliaKVSchemas
 from nuclia.sdk.logger import logger
 from nuclia.sdk.logs import AsyncNucliaLogs, NucliaLogs
 from nuclia.sdk.remi import AsyncNucliaRemi, NucliaRemi
@@ -58,6 +59,7 @@ class NucliaKB:
         self.remi = NucliaRemi()
         self.extract_strategies = NucliaExtractStrategy()
         self.split_strategies = NucliaSplitStrategy()
+        self.kv_schemas = NucliaKVSchemas()
 
     @kb
     def list(
@@ -499,6 +501,7 @@ class AsyncNucliaKB:
         self.remi = AsyncNucliaRemi()
         self.extract_strategies = AsyncNucliaExtractStrategy()
         self.split_strategies = AsyncNucliaSplitStrategy()
+        self.kv_schemas = AsyncNucliaKVSchemas()
 
     @kb
     async def list(self, **kwargs) -> ResourceList:
