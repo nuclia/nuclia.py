@@ -25,14 +25,14 @@ dependencies = [
     "prompt_toolkit",
     "nucliadb_sdk>=6.13.0,<7",
     "nucliadb_models>=6.9.0,<7",
-    "nuclia-models>=0.58.2",
+    "nuclia-models>=0.58.3",
     "tqdm",
     "aiofiles",
     "backoff",
     "deprecated",
     "tabulate",
     "websockets",
-    "rich"
+    "rich",
 ]
 
 [dependency-groups]
@@ -54,7 +54,7 @@ dev = [
     "types-Deprecated",
     "types-tabulate",
     # Automated release in CI
-    "commitizen"
+    "commitizen",
 ]
 
 [project.optional-dependencies]
@@ -97,4 +97,3 @@ test = "Tests"
 build = "Build System"
 ci = "CI/CD"
 chore = "Chores"
-
