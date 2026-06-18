@@ -65,6 +65,7 @@ logger.setLevel(logging.WARNING)
 
 MEMORY_FIELD_PREFIX = "__memory__"
 FACTS_FIELD_PREFIX = "da-facts-"
+GRAPH_EXTRACTION_TEMPLATE = "memory-graph-{task_ident}"
 GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX = "memory-global-annotations"
 
 
@@ -196,7 +197,7 @@ class Fact(BaseModel):
 class GraphNode(BaseModel):
     """A single node in the graph."""
 
-    type: str
+    # type: str
     value: str
     group: str | None = None
 
@@ -205,7 +206,7 @@ class GraphRelation(BaseModel):
     """A single relation in the graph."""
 
     label: str
-    type: str
+    # type: str
 
 
 class GraphEdgeMetadata(BaseModel):
@@ -882,7 +883,13 @@ class NucliaMemory:
                             type=graph.requests.RelationNodeType.RESOURCE,
                         )
                     ),
-                ]
+                    graph.requests.Generated(
+                        by=graph.requests.Generator.DATA_AUGMENTATION,
+                        da_task=GRAPH_EXTRACTION_TEMPLATE.format(
+                            task_ident=self.task_ident
+                        ),
+                    ),
+                ],
             ),
         )
         graph_response: graph.responses.GraphSearchResponse = ndb.ndb.graph_search(
@@ -1301,15 +1308,16 @@ def _parse_graph_result(
         edges.append(
             GraphEdge(
                 source=GraphNode(
-                    type=path.source.type.value,
+                    # type=path.source.type.value,
                     value=path.source.value,
                     group=path.source.group,
                 ),
                 relation=GraphRelation(
-                    type=path.relation.type.value, label=path.relation.label
+                    # type=path.relation.type.value,
+                    label=path.relation.label
                 ),
                 destination=GraphNode(
-                    type=path.destination.type.value,
+                    # type=path.destination.type.value,
                     value=path.destination.value,
                     group=path.destination.group,
                 ),

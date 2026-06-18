@@ -396,6 +396,16 @@ def show_extracted_facts(memory: NucliaMemory) -> None:
             for fact in reversed(facts):  # oldest-first for readability
                 ts = fact.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
                 print(f"      • [{ts}] {fact.content.text}")
+        print(f"\n -- {label} graph --")
+        for slug in POLICIES:
+            graph = memory.graph(topic=slug, user_id=user_id)
+            if not graph:
+                continue
+            print(f"\n    [{slug}]")
+            for edge in graph:
+                print(
+                    f"      • {edge.source.value} ({edge.source.group}) --{edge.relation.label}--> {edge.destination.value} ({edge.destination.group})"
+                )
 
 
 # ─── 3. Personalised Recall ───────────────────────────────────────────────────
