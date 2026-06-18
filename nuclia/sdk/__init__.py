@@ -5,6 +5,7 @@ from .backup import AsyncNucliaBackup, NucliaBackup
 from .export_import import AsyncNucliaExports, NucliaExports, NucliaImports
 from .kb import AsyncNucliaKB, NucliaKB
 from .kbs import AsyncNucliaKBS, NucliaKBS
+from .kv_schemas import AsyncNucliaKVSchemas, NucliaKVSchemas
 from .nua import NucliaNUA
 from .nucliadb import NucliaDB
 from .predict import AsyncNucliaPredict, NucliaPredict
@@ -24,6 +25,8 @@ __all__ = [
     "NucliaImports",
     "AsyncNucliaKB",
     "NucliaKB",
+    "AsyncNucliaKVSchemas",
+    "NucliaKVSchemas",
     "NucliaKBS",
     "AsyncNucliaKBS",
     "NucliaBackup",
