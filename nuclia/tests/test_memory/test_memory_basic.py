@@ -12,7 +12,7 @@ from nuclia.sdk.memory import (
 )
 
 
-def test_basic(testing_config):
+def test_basic(testing_config) -> None:
     memory = NucliaMemory()
 
     def _delete_topics(slugs):
@@ -142,7 +142,7 @@ def test_basic(testing_config):
     _delete_topics(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
 
 
-def test_basic_nontopic(testing_config):
+def test_basic_nontopic(testing_config) -> None:
     """Test the memory API without attaching any content to a topic.
 
     Covers global entries: remember, listing, deduplication, and deletion.
@@ -164,7 +164,7 @@ def test_basic_nontopic(testing_config):
         "I prefer concise bullet-point summaries.",
         user_id=USER_A,
     )
-    assert entry_id_1, "remember() should return a non-empty annotation ID."
+    assert entry_id_1, "remember() should return a non-empty entry ID."
 
     entry_id_2 = memory.remember(
         "Always respond in Spanish.",
@@ -181,7 +181,7 @@ def test_basic_nontopic(testing_config):
         user_id=USER_B,
     )
 
-    # ── duplicate annotation ID is rejected ────────────────────────────────
+    # ── duplicate entry ID is rejected ────────────────────────────────
 
     with pytest.raises(EntryAlreadyExistsError):
         memory.remember(
@@ -190,53 +190,53 @@ def test_basic_nontopic(testing_config):
             entry_id=entry_id_1,
         )
 
-    # ── list global annotations ─────────────────────────────────────────────
+    # ── list global entrys ─────────────────────────────────────────────
 
-    user_a_annotations = list(memory.entries(user_id=USER_A))
-    assert len(user_a_annotations) == 2, (
-        f"Expected 2 global annotations for {USER_A}, got {len(user_a_annotations)}."
+    user_a_entrys = list(memory.entries(user_id=USER_A))
+    assert len(user_a_entrys) == 2, (
+        f"Expected 2 global entrys for {USER_A}, got {len(user_a_entrys)}."
     )
     # Most-recent-first: entry_id_2 should come before entry_id_1
-    assert user_a_annotations[0].id == entry_id_2
-    assert user_a_annotations[1].id == entry_id_1
+    assert user_a_entrys[0].id == entry_id_2
+    assert user_a_entrys[1].id == entry_id_1
 
-    user_b_annotations = list(memory.entries(user_id=USER_B))
-    assert len(user_b_annotations) == 1
-    assert user_b_annotations[0].id == entry_id_3
+    user_b_entrys = list(memory.entries(user_id=USER_B))
+    assert len(user_b_entrys) == 1
+    assert user_b_entrys[0].id == entry_id_3
 
     # oldest-first ordering
     user_a_oldest_first = list(memory.entries(user_id=USER_A, recent_first=False))
     assert user_a_oldest_first[0].id == entry_id_1
     assert user_a_oldest_first[1].id == entry_id_2
 
-    # ── annotation content is preserved ────────────────────────────────────
+    # ── entry content is preserved ────────────────────────────────────
 
-    annotation = user_a_annotations[0]  # entry_id_2
-    assert annotation.content.text == "Always respond in Spanish."
-    assert annotation.content.reasoning == "User's preferred language is Spanish."
-    assert annotation.content.context is not None
-    assert annotation.content.context[0].author == USER_A
+    entry = user_a_entrys[0]  # entry_id_2
+    assert entry.content.text == "Always respond in Spanish."
+    assert entry.content.reasoning == "User's preferred language is Spanish."
+    assert entry.content.context is not None
+    assert entry.content.context[0].author == USER_A
 
-    # ── delete a single global annotation ──────────────────────────────────
+    # ── delete a single global entry ──────────────────────────────────
 
-    memory.forget(user_id=USER_A, entry_id=entry_id_1)
-    user_a_annotations = list(memory.entries(user_id=USER_A))
-    assert len(user_a_annotations) == 1
-    assert user_a_annotations[0].id == entry_id_2
+    memory.forget_entry(user_id=USER_A, entry_id=entry_id_1)
+    user_a_entrys = list(memory.entries(user_id=USER_A))
+    assert len(user_a_entrys) == 1
+    assert user_a_entrys[0].id == entry_id_2
 
-    # Forgetting a non-existent annotation should be a no-op
-    memory.forget(user_id=USER_A, entry_id="nonexistent-id")
+    # Forgetting a non-existent entry should be a no-op
+    memory.forget_entry(user_id=USER_A, entry_id="nonexistent-id")
 
-    # ── delete all global annotations for a user ────────────────────────────
+    # ── delete all global entrys for a user ────────────────────────────
 
-    memory.forget(user_id=USER_A)
-    user_a_annotations = list(memory.entries(user_id=USER_A))
-    assert len(user_a_annotations) == 0, (
-        "All global annotations for user A should have been deleted."
+    memory.forget_entries(user_id=USER_A)
+    user_a_entrys = list(memory.entries(user_id=USER_A))
+    assert len(user_a_entrys) == 0, (
+        "All global entrys for user A should have been deleted."
     )
 
-    # User B's annotations are unaffected
-    user_b_annotations = list(memory.entries(user_id=USER_B))
-    assert len(user_b_annotations) == 1
+    # User B's entrys are unaffected
+    user_b_entrys = list(memory.entries(user_id=USER_B))
+    assert len(user_b_entrys) == 1
 
     _cleanup()

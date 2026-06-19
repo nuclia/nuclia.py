@@ -7,7 +7,6 @@ import unicodedata
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Iterator, Union, cast, overload
-from urllib.parse import urlparse
 
 from nuclia_models.worker.proto import (
     ApplyTo,
@@ -66,7 +65,7 @@ logger.setLevel(logging.WARNING)
 MEMORY_FIELD_PREFIX = "__memory__"
 FACTS_FIELD_PREFIX = "da-facts-"
 GRAPH_EXTRACTION_TEMPLATE = "memory-graph-{task_ident}"
-GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX = "memory-global-annotations"
+GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX = "memory-global-entries"
 
 
 # ─── Exceptions ─────────────────────────────────────────────────────────────
@@ -85,7 +84,7 @@ class TopicNotFoundError(Exception):
 
 
 class EntryAlreadyExistsError(Exception):
-    """Raised when attempting to create a new annotation with an ID that already exists for the topic and user."""
+    """Raised when attempting to create a new entry with an ID that already exists for the topic and user."""
 
     pass
 
@@ -130,14 +129,14 @@ class RecallResult(BaseModel):
 
 
 class EntryContextMessage(BaseModel):
-    """A context message attached to an annotation."""
+    """A context message attached to an entry."""
 
     author: str
     text: str
 
 
 class EntryContent(BaseModel):
-    """The content of the annotation with separate fields for the text, reasoning, and context."""
+    """The content of the entry with separate fields for the text, reasoning, and context."""
 
     text: str
     reasoning: str | None = None
@@ -146,7 +145,7 @@ class EntryContent(BaseModel):
 
 
 class Entry(BaseModel):
-    """A single annotation message attached to an topic."""
+    """A single entry message attached to an topic."""
 
     id: str
     timestamp: datetime
@@ -166,17 +165,17 @@ class Entry(BaseModel):
 
 class FactContent(BaseModel):
     """
-    The content of a fact extracted from an annotation, including the fact text and a list of
-    related annotation IDs that were used as evidence for the fact.
+    The content of a fact extracted from an entry, including the fact text and a list of
+    related entry IDs that were used as evidence for the fact.
     """
 
     text: str
     reasoning: str | None = None
-    related_annotation_ids: list[str] = []
+    related_entry_ids: list[str] = []
 
 
 class Fact(BaseModel):
-    """A single fact extracted from an annotation"""
+    """A single fact extracted from an entry"""
 
     id: str
     timestamp: datetime
@@ -676,7 +675,7 @@ class NucliaMemory:
         else:
             ruuid = None
             rslug = _ensure_global_entries_resource(ndb, user_id)
-        annotation_content = EntryContent(
+        entry_content = EntryContent(
             text=text,
             reasoning=reasoning,
             context=context,
@@ -687,7 +686,7 @@ class NucliaMemory:
             ident=entry_id,
             type=MessageType.UNSET,
             content=InputMessageContent(
-                text=annotation_content.model_dump_json(indent=2, exclude_none=True),
+                text=entry_content.model_dump_json(indent=2, exclude_none=True),
                 format=MessageFormat.JSON,
                 attachments=[],
                 attachments_fields=[],
@@ -731,7 +730,7 @@ class NucliaMemory:
         topic:
             Scope the retrieval to a single topic (ID or slug).
         user_id:
-            An identifier for the user asking the question. Used to personalize retrieval results by including that user's annotations and facts.
+            An identifier for the user asking the question. Used to personalize retrieval results by including that user's entries and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
         """
@@ -756,7 +755,7 @@ class NucliaMemory:
         find_response: KnowledgeboxFindResults = ndb.ndb.find(
             kbid=ndb.kbid, content=find_request
         )
-        return _parse_retrieve_result(find_response)
+        return _parse_recall_result(find_response)
 
     # ── ask ───────────────────────────────────────────────────────────────
 
@@ -783,7 +782,7 @@ class NucliaMemory:
         topic:
             Scope the answer to a single topic (ID or slug).
         user_id:
-            An identifier for the user asking the question. Used for personalization of the answer by including that user's annotations and facts as context.
+            An identifier for the user asking the question. Used for personalization of the answer by including that user's entries and facts as context.
         context:
             Optional list of past messages to include as additional context for the recall. Messages should be ordered from oldest to most recent.
         """
@@ -830,7 +829,7 @@ class NucliaMemory:
                     logger.warning(f"Unknown AskRequest field: {key}")
 
         ask_response: SyncAskResponse = ndb.ndb.ask(kbid=kbid, content=ask_request)
-        return _parse_recall_result(ask_response)
+        return _parse_ask_result(ask_response)
 
     # ── entries ─────────────────────────────────────────────────────────
 
@@ -910,14 +909,14 @@ class NucliaMemory:
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
-        """Get all global annotations created by a user (not tied to any specific topic).
+        """Get all global entries created by a user (not tied to any specific topic).
 
         Parameters
         ----------
         user_id:
-            An identifier for the user whose global annotations to retrieve.
+            An identifier for the user whose global entries to retrieve.
         recent_first:
-            Whether to return the annotations ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
+            Whether to return the entries ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ...
 
@@ -1070,7 +1069,7 @@ class NucliaMemory:
             pass
         else:
             for fact in self.facts(topic=topic, user_id=user_id):
-                if fact.content.related_annotation_ids == [entry_id]:
+                if fact.content.related_entry_ids == [entry_id]:
                     try:
                         _delete_conversation_message(
                             ndb=ndb,
@@ -1190,19 +1189,19 @@ def _build_field_filter_expression(
 ) -> filters.FieldFilterExpression:
     """
     Build a filter expression to scope recall or retrieve to a specific topic and include user entries and facts while
-    excluding other users' annotations and facts.
+    excluding other users' entries and facts.
 
     Parameters
     ----------
     topic:
         topic ID or slug to scope the retrieval to.
     user_id:
-        An identifier for the user whose annotations and facts to include in the retrieval results.
+        An identifier for the user whose entries and facts to include in the retrieval results.
     """
     ruuid, rslug = _uuid_or_slug(topic)
 
     # First off, make sure any retrieval is scoped to the specified topic
-    # Include the global annotations resource if the flag is set, to allow retrieval of global facts.
+    # Include the global entries resource if the flag is set, to allow retrieval of global facts.
     resource_filter: filters.FieldFilterExpression = filters.Or(
         operands=[
             filters.Resource(id=ruuid, slug=rslug),
@@ -1214,7 +1213,7 @@ def _build_field_filter_expression(
 
     fields_filter_ops: list[filters.FieldFilterExpression] = []
     if include_content:
-        # Any other resource field that is not memory annotations or facts
+        # Any other resource field that is not memory entries or facts
         fields_filter_ops.append(
             filters.And(
                 operands=[
@@ -1294,39 +1293,7 @@ def _slugify(text: str) -> str:
     return slug or "untitled"
 
 
-def _infer_title(
-    *,
-    slug: str | None = None,
-    text: str | None = None,
-    path: str | None = None,
-    url: str | None = None,
-) -> str:
-    if slug:
-        return slug.replace("-", " ").title()
-    elif text:
-        # Use first non-empty line, truncated at a word boundary
-        first_line = next(
-            (line.strip() for line in text.splitlines() if line.strip()), ""
-        )
-        truncated = first_line[:50]
-        # Avoid cutting mid-word
-        if len(first_line) > 50 and " " in truncated:
-            truncated = truncated.rsplit(" ", 1)[0]
-        return truncated.title() or "Untitled Topic"
-    elif path:
-        filename = path.split("/")[-1]
-        return filename.replace("-", " ").replace("_", " ").title()
-    elif url:
-        parsed = urlparse(url)
-        # Use last non-empty path segment, strip query/fragment
-        segments = [s for s in parsed.path.split("/") if s]
-        name = segments[-1] if segments else parsed.netloc
-        return name.replace("-", " ").replace("_", " ").title() or "Untitled Topic"
-    else:
-        return "Untitled Topic"
-
-
-def _parse_recall_result(
+def _parse_ask_result(
     ask_response: SyncAskResponse,
 ) -> RecallResult:
     """Parse an LLM footnotes answer into clean text and citations mapping."""
@@ -1353,7 +1320,7 @@ def _parse_recall_result(
     return RecallResult(answer=answer_text, citations=citations)
 
 
-def _parse_retrieve_result(
+def _parse_recall_result(
     find_response: KnowledgeboxFindResults,
 ) -> list[RelevantContextBlock]:
     relevant_paragraphs = {
@@ -1624,7 +1591,7 @@ def _ensure_global_entries_resource(ndb: NucliaDBClient, user_id: str) -> str:
     if not ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
         ndb.ndb.create_resource(
             kbid=ndb.kbid,
-            content={"title": f"Memory global annotations - {user_id}", "slug": slug},
+            content={"title": f"Memory global entries - {user_id}", "slug": slug},
         )
     return slug
 

@@ -1,8 +1,7 @@
 from unittest.mock import MagicMock
 
 from nuclia.sdk.memory import (
-    _infer_title,
-    _parse_recall_result,
+    _parse_ask_result,
     _slugify,
 )
 
@@ -42,48 +41,10 @@ class Test_slugify:
         assert _slugify("my-slug") == "my-slug"
 
 
-# ─── _infer_title ─────────────────────────────────────────────────────────────
+# ─── _parse_ask_result ─────────────────────────────────────────────────────
 
 
-class TestInferTitle:
-    def test_from_slug(self):
-        assert _infer_title(slug="vacation-policy") == "Vacation Policy"
-
-    def test_from_text_short(self):
-        assert _infer_title(text="Hello world") == "Hello World"
-
-    def test_from_text_long_truncated(self):
-        long_text = "a" * 100
-        result = _infer_title(text=long_text)
-        # Should only use first 50 chars
-        assert len(result) <= 50
-
-    def test_from_path(self):
-        assert _infer_title(path="/home/user/documents/report.pdf") == "Report.Pdf"
-
-    def test_from_url(self):
-        assert _infer_title(url="https://example.com/my-document") == "My Document"
-
-    def test_no_arguments(self):
-        assert _infer_title() == "Untitled Topic"
-
-    def test_priority_slug_over_text(self):
-        result = _infer_title(slug="my-slug", text="some text")
-        assert result == "My Slug"
-
-    def test_priority_text_over_path(self):
-        result = _infer_title(text="some text", path="/file.txt")
-        assert result == "Some Text"
-
-    def test_priority_path_over_url(self):
-        result = _infer_title(path="/file.txt", url="https://example.com/doc")
-        assert result == "File.Txt"
-
-
-# ─── _parse_recall_result ─────────────────────────────────────────────────────
-
-
-class TestParseRecallAnswer:
+class TestParseAskAnswer:
     def _make_ask_response(self, answer: str, paragraphs=None, footnote_map=None):
         """Helper to build a mock SyncAskResponse."""
         response = MagicMock()
@@ -104,7 +65,7 @@ class TestParseRecallAnswer:
 
     def test_no_citations(self):
         response = self._make_ask_response("Just a plain answer with no citations.")
-        answer, citations = _parse_recall_result(response)
+        answer, citations = _parse_ask_result(response)
         assert answer == "Just a plain answer with no citations."
         assert citations == {}
 
@@ -119,7 +80,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-123": para},
             footnote_map={"block-AA": "chunk-123"},
         )
-        answer, citations = _parse_recall_result(response)
+        answer, citations = _parse_ask_result(response)
         assert answer == "The policy allows 10 days [1]."
         assert "1" in citations
         assert citations["1"].chunk_id == "chunk-123"
@@ -139,7 +100,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-1": para1, "chunk-2": para2},
             footnote_map={"block-AA": "chunk-1", "block-BB": "chunk-2"},
         )
-        answer, citations = _parse_recall_result(response)
+        answer, citations = _parse_ask_result(response)
         assert answer == "Answer text [1] and more [2]."
         assert len(citations) == 2
         assert citations["1"].chunk_id == "chunk-1"
@@ -155,7 +116,7 @@ class TestParseRecallAnswer:
             paragraphs={},
             footnote_map={"block-MISSING": "nonexistent-chunk"},
         )
-        answer, citations = _parse_recall_result(response)
+        answer, citations = _parse_ask_result(response)
         assert answer == "Answer [1]."
         assert citations == {}
 
@@ -167,7 +128,7 @@ class TestParseRecallAnswer:
             paragraphs={},
             footnote_map={},
         )
-        answer, citations = _parse_recall_result(response)
+        answer, citations = _parse_ask_result(response)
         assert answer == "Answer [1]."
         assert citations == {}
 
@@ -181,7 +142,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-1": para},
             footnote_map={"block-AA": "chunk-1"},
         )
-        answer, citations = _parse_recall_result(response)
+        answer, citations = _parse_ask_result(response)
         # rsplit with maxsplit=1 should keep only the last \n\n as the split point
         assert answer == "Line one.\n\nLine two.\n\nLine three."
         assert "1" in citations
@@ -202,7 +163,7 @@ class TestParseRecallAnswer:
             paragraphs={"chunk-vacation": para},
             footnote_map={"block-AA": "chunk-vacation"},
         )
-        answer, citations = _parse_recall_result(response)
+        answer, citations = _parse_ask_result(response)
         assert "15 consecutive vacation days" in answer
         assert "\n\n[1]:" not in answer
         assert (
