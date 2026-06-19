@@ -4,8 +4,8 @@ import time
 import pytest
 
 from nuclia.sdk.memory import (
-    AnnotationAlreadyExistsError,
-    AnnotationContextMessage,
+    EntryAlreadyExistsError,
+    EntryContextMessage,
     NucliaMemory,
     TopicAlreadyExistsError,
     TopicNotFoundError,
@@ -18,7 +18,7 @@ def test_basic(testing_config):
     def _delete_topics(slugs):
         for slug in slugs:
             try:
-                memory.forget(topic=slug, confirm=True)
+                memory.delete_topic(topic=slug, confirm=True)
             except TopicNotFoundError:
                 pass
 
@@ -26,18 +26,20 @@ def test_basic(testing_config):
     _delete_topics(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
 
     # Test creating topic with a text content
-    memory.store(
-        "Our vacation policy allows employees to take 20 days of paid leave per year."
-        "Employees can also carry over up to 5 unused days to the next year."
-        "To request vacation, employees must submit a request form at least 2 weeks in advance."
-        "In case of emergencies, employees can request last-minute leave, which will be evaluated on a case by case basis.",
+    memory.create_topic(
+        texts={
+            "text": "Our vacation policy allows employees to take 20 days of paid leave per year."
+            "Employees can also carry over up to 5 unused days to the next year."
+            "To request vacation, employees must submit a request form at least 2 weeks in advance."
+            "In case of emergencies, employees can request last-minute leave, which will be evaluated on a case by case basis."
+        },
         slug="vacation-policy",
         title="Company Vacation Policy",
         summary="Company's vacation policy including leave days, carry over, and request process.",
     )
 
     # Test getting the created topic
-    topic = memory.get(topic="vacation-policy")
+    topic = memory.get_topic(topic="vacation-policy")
     assert topic.slug == "vacation-policy"
     assert topic.title == "Company Vacation Policy"
     assert (
@@ -46,7 +48,7 @@ def test_basic(testing_config):
     )
 
     # Test listing topics after creation
-    topic_page = memory.list(query="Company Vacation Policy", size=1)
+    topic_page = memory.list_topics(query="Company Vacation Policy", size=1)
     assert len(topic_page.items) == 1
     assert topic_page.items[0].slug == "vacation-policy"
     assert topic_page.items[0].title == "Company Vacation Policy"
@@ -57,16 +59,16 @@ def test_basic(testing_config):
 
     # Try creating a topic with the same slug, should raise error
     with pytest.raises(TopicAlreadyExistsError):
-        memory.store(
-            "Duplicate topic content",
+        memory.create_topic(
+            texts={"text": "Duplicate topic content"},
             slug="vacation-policy",
             title="Duplicate Vacation Policy",
             summary="This should not be created.",
         )
 
     # Test creating a topic with a link content
-    memory.store(
-        "https://www.example.com/vacation-policy",
+    memory.create_topic(
+        urls={"link": "https://www.example.com/vacation-policy"},
         slug="vacation-policy-link",
         title="Vacation Policy Link",
         summary="Link to the company's vacation policy page.",
@@ -76,34 +78,34 @@ def test_basic(testing_config):
     with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
         tmp_file.write(b"File content")
         tmp_file.seek(0)
-        memory.store(
-            path=tmp_file.name,
+        memory.create_topic(
+            file_paths={"file": tmp_file.name},
             slug="vacation-policy-file",
             title="Vacation Policy File",
             summary="File containing the company's vacation policy.",
         )
 
     # Test adding another content to an existing topic
-    memory.store(
-        text="Additional information about the vacation policy.",
+    memory.update_topic(
+        texts={"text2": "Additional information about the vacation policy."},
         topic="vacation-policy",
     )
-    memory.store(
-        url="https://www.example.com/vacation-policy-faq",
+    memory.update_topic(
+        urls={"link2": "https://www.example.com/vacation-policy-faq"},
         topic="vacation-policy",
     )
     with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
         tmp_file.write(b"Additional file content")
         tmp_file.seek(0)
-        memory.store(
-            path=tmp_file.name,
+        memory.update_topic(
+            file_paths={"file2": tmp_file.name},
             topic="vacation-policy",
         )
 
     # Wait until the topic status is processed before the recall tests
     processed = False
     for _ in range(60):
-        topic = memory.get(topic="vacation-policy")
+        topic = memory.get_topic(topic="vacation-policy")
         if topic.status == "processed":
             processed = True
             break
@@ -113,7 +115,7 @@ def test_basic(testing_config):
 
     assert processed, "Topic was not processed within the expected time."
 
-    result = memory.recall(
+    result = memory.ask(
         query="Can employees carry over unused vacation days?",
         topic="vacation-policy",
     )
@@ -125,7 +127,7 @@ def test_basic(testing_config):
     # Pagination tests
     page = 0
     while True:
-        topic_page = memory.list(size=1, page=page)
+        topic_page = memory.list_topics(size=1, page=page)
         if len(topic_page.items) == 0 or topic_page.has_more is False:
             break
         page += 1
@@ -135,7 +137,7 @@ def test_basic(testing_config):
     # Test delete topics
     with pytest.raises(ValueError):
         # Deleting without confirm should raise error
-        memory.forget(topic="vacation-policy")
+        memory.delete_topic(topic="vacation-policy")
 
     _delete_topics(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
 
@@ -143,73 +145,73 @@ def test_basic(testing_config):
 def test_basic_nontopic(testing_config):
     """Test the memory API without attaching any content to a topic.
 
-    Covers global annotations: annotating, listing, deduplication, and deletion.
+    Covers global entries: remember, listing, deduplication, and deletion.
     """
     memory = NucliaMemory()
     USER_A = "user-a"
     USER_B = "user-b"
 
     def _cleanup():
-        # Remove all global annotations for both test users
+        # Remove all global entries for both test users
         for uid in (USER_A, USER_B):
-            memory.forget(user_id=uid)
+            memory.forget_entries(user_id=uid)
 
     _cleanup()
 
-    # ── annotate globally ───────────────────────────────────────────────────
+    # ── remember globally ───────────────────────────────────────────────────
 
-    annotation_id_1 = memory.annotate(
+    entry_id_1 = memory.remember(
         "I prefer concise bullet-point summaries.",
         user_id=USER_A,
     )
-    assert annotation_id_1, "annotate() should return a non-empty annotation ID."
+    assert entry_id_1, "remember() should return a non-empty annotation ID."
 
-    annotation_id_2 = memory.annotate(
+    entry_id_2 = memory.remember(
         "Always respond in Spanish.",
         user_id=USER_A,
         reasoning="User's preferred language is Spanish.",
         context=[
-            AnnotationContextMessage(author=USER_A, text="Hola, ¿cómo estás?"),
+            EntryContextMessage(author=USER_A, text="Hola, ¿cómo estás?"),
         ],
     )
 
     # A different user can annotate independently
-    annotation_id_3 = memory.annotate(
+    entry_id_3 = memory.remember(
         "Prefers detailed explanations.",
         user_id=USER_B,
     )
 
     # ── duplicate annotation ID is rejected ────────────────────────────────
 
-    with pytest.raises(AnnotationAlreadyExistsError):
-        memory.annotate(
+    with pytest.raises(EntryAlreadyExistsError):
+        memory.remember(
             "Duplicate.",
             user_id=USER_A,
-            annotation_id=annotation_id_1,
+            entry_id=entry_id_1,
         )
 
     # ── list global annotations ─────────────────────────────────────────────
 
-    user_a_annotations = list(memory.annotations(user_id=USER_A))
+    user_a_annotations = list(memory.entries(user_id=USER_A))
     assert len(user_a_annotations) == 2, (
         f"Expected 2 global annotations for {USER_A}, got {len(user_a_annotations)}."
     )
-    # Most-recent-first: annotation_id_2 should come before annotation_id_1
-    assert user_a_annotations[0].id == annotation_id_2
-    assert user_a_annotations[1].id == annotation_id_1
+    # Most-recent-first: entry_id_2 should come before entry_id_1
+    assert user_a_annotations[0].id == entry_id_2
+    assert user_a_annotations[1].id == entry_id_1
 
-    user_b_annotations = list(memory.annotations(user_id=USER_B))
+    user_b_annotations = list(memory.entries(user_id=USER_B))
     assert len(user_b_annotations) == 1
-    assert user_b_annotations[0].id == annotation_id_3
+    assert user_b_annotations[0].id == entry_id_3
 
     # oldest-first ordering
-    user_a_oldest_first = list(memory.annotations(user_id=USER_A, recent_first=False))
-    assert user_a_oldest_first[0].id == annotation_id_1
-    assert user_a_oldest_first[1].id == annotation_id_2
+    user_a_oldest_first = list(memory.entries(user_id=USER_A, recent_first=False))
+    assert user_a_oldest_first[0].id == entry_id_1
+    assert user_a_oldest_first[1].id == entry_id_2
 
     # ── annotation content is preserved ────────────────────────────────────
 
-    annotation = user_a_annotations[0]  # annotation_id_2
+    annotation = user_a_annotations[0]  # entry_id_2
     assert annotation.content.text == "Always respond in Spanish."
     assert annotation.content.reasoning == "User's preferred language is Spanish."
     assert annotation.content.context is not None
@@ -217,24 +219,24 @@ def test_basic_nontopic(testing_config):
 
     # ── delete a single global annotation ──────────────────────────────────
 
-    memory.forget(user_id=USER_A, annotation_id=annotation_id_1)
-    user_a_annotations = list(memory.annotations(user_id=USER_A))
+    memory.forget(user_id=USER_A, entry_id=entry_id_1)
+    user_a_annotations = list(memory.entries(user_id=USER_A))
     assert len(user_a_annotations) == 1
-    assert user_a_annotations[0].id == annotation_id_2
+    assert user_a_annotations[0].id == entry_id_2
 
     # Forgetting a non-existent annotation should be a no-op
-    memory.forget(user_id=USER_A, annotation_id="nonexistent-id")
+    memory.forget(user_id=USER_A, entry_id="nonexistent-id")
 
     # ── delete all global annotations for a user ────────────────────────────
 
     memory.forget(user_id=USER_A)
-    user_a_annotations = list(memory.annotations(user_id=USER_A))
+    user_a_annotations = list(memory.entries(user_id=USER_A))
     assert len(user_a_annotations) == 0, (
         "All global annotations for user A should have been deleted."
     )
 
     # User B's annotations are unaffected
-    user_b_annotations = list(memory.annotations(user_id=USER_B))
+    user_b_annotations = list(memory.entries(user_id=USER_B))
     assert len(user_b_annotations) == 1
 
     _cleanup()
