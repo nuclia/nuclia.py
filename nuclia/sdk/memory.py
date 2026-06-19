@@ -393,6 +393,7 @@ class NucliaMemory:
         texts: dict[str, str] | None = None,
         urls: dict[str, str] | None = None,
         file_paths: dict[str, str] | None = None,
+        **kwargs,
     ) -> str:
         """
         Create a new topic.
@@ -474,6 +475,7 @@ class NucliaMemory:
         self,
         topic: str,
         confirm: bool = False,
+        **kwargs,
     ) -> None:
         """
         Delete an existing topic.
