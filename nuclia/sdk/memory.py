@@ -194,34 +194,6 @@ class Fact(BaseModel):
         )
 
 
-class GraphNode(BaseModel):
-    """A single node in the graph."""
-
-    # type: str
-    value: str
-    group: str | None = None
-
-
-class GraphRelation(BaseModel):
-    """A single relation in the graph."""
-
-    label: str
-    # type: str
-
-
-class GraphEdgeMetadata(BaseModel):
-    context_block_id: str | None = None
-
-
-class GraphEdge(BaseModel):
-    """A single edge in the graph."""
-
-    source: GraphNode
-    relation: GraphRelation
-    destination: GraphNode
-    metadata: GraphEdgeMetadata | None = None
-
-
 # ─── Sync Memory ─────────────────────────────────────────────────────────────
 
 
@@ -851,7 +823,7 @@ class NucliaMemory:
         topic: str,
         user_id: str,
         **kwargs,
-    ) -> list[GraphEdge]:
+    ) -> list[graph.responses.GraphPath]:
         """Get the topic graph including all extracted entities and relations from the topic content and the annotations of the specified user.
 
         Parameters
@@ -896,7 +868,7 @@ class NucliaMemory:
             kbid=ndb.kbid,
             content=graph_request,
         )
-        return _parse_graph_result(graph_response)
+        return graph_response.paths
 
     # ── forget ──────────────────────────────────────────────────────────────
 
@@ -1295,36 +1267,6 @@ def _parse_retrieve_result(
         for pid in find_response.best_matches
         if (par := relevant_paragraphs.get(pid)) is not None
     ]
-
-
-def _parse_graph_result(
-    graph_response: graph.responses.GraphSearchResponse,
-) -> list[GraphEdge]:
-    edges = []
-    for path in graph_response.paths:
-        context_block_id = (
-            path.metadata.paragraph_id if path.metadata is not None else None
-        )
-        edges.append(
-            GraphEdge(
-                source=GraphNode(
-                    # type=path.source.type.value,
-                    value=path.source.value,
-                    group=path.source.group,
-                ),
-                relation=GraphRelation(
-                    # type=path.relation.type.value,
-                    label=path.relation.label
-                ),
-                destination=GraphNode(
-                    # type=path.destination.type.value,
-                    value=path.destination.value,
-                    group=path.destination.group,
-                ),
-                metadata=GraphEdgeMetadata(context_block_id=context_block_id),
-            )
-        )
-    return edges
 
 
 def _get_topic_status(resource: Resource) -> str:
