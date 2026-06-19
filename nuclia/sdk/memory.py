@@ -215,7 +215,7 @@ class NucliaMemory:
         graph_extraction: bool = True,
         entity_defs: list[EntityDefinition] | None = None,
         examples: list[GraphExtractionExample] | None = None,
-        force: bool = False,
+        update_existing: bool = False,  # TODO: Better naming
         **kwargs,
     ) -> None:
         """Ensure the memory task is configured for this knowledge box.
@@ -225,6 +225,7 @@ class NucliaMemory:
         """
         kb_tasks = self.tasks.list()
         # TODO: What happens if we want to initialize a new memory task with a different config from an existing one?
+        # If update_existing false and one already exists with differing config, raise an error. If update_existing true, update the existing task with the new config.
         if not any(task.task.name == TaskName.MEMORY for task in kb_tasks.configs):
             self.tasks.start(
                 task_name=TaskName.MEMORY,
@@ -309,6 +310,9 @@ class NucliaMemory:
         """
         ...
 
+    # TODO: Change to create_topic(content: optional) -> Error if exists
+    # - delete_topic() -> Error if doesn't exist
+    # - update_topic(content) -> Error if doesn't exist
     @kb
     def store(
         self,
@@ -430,7 +434,8 @@ class NucliaMemory:
             )
 
     # ── annotate ─────────────────────────────────────────────────────────────
-
+    # TODO: Change annotate concept to "entry"
+    # TODO: Change annotate action to "remember"
     @overload
     def annotate(
         self,
@@ -551,7 +556,7 @@ class NucliaMemory:
         return annotation_id
 
     # ── retrieve ─────────────────────────────────────────────────────────────
-
+    # TODO: rename to recall
     @kb
     def retrieve(
         self,
@@ -600,7 +605,7 @@ class NucliaMemory:
         return _parse_retrieve_result(find_response)
 
     # ── recall ───────────────────────────────────────────────────────────────
-
+    # TODO: Rename to `ask` (treat as a kb.ask helper), allow overriding all AskRequest parameters
     @kb
     def recall(
         self,
@@ -714,6 +719,7 @@ class NucliaMemory:
             global_facts.append(fact.text)
         return resource_id, global_facts
 
+    # TODO: Rename to "entries"
     @overload
     def annotations(
         self,
@@ -932,6 +938,8 @@ class NucliaMemory:
         """
         ...
 
+    # TODO: Do not modify topics in forget, only entries (and facts by extension, this is not yet done)
+    # TODO: Add option to delete entry but not fact
     @kb
     def forget(
         self,
@@ -989,7 +997,7 @@ class NucliaMemory:
                 raise TopicNotFoundError(f"topic '{topic}' not found.")
 
     # ── get ─────────────────────────────────────────────────────────────────
-
+    # TODO: Change to get_topic()
     @kb
     def get(
         self,
@@ -1016,7 +1024,7 @@ class NucliaMemory:
         )
 
     # ── list ─────────────────────────────────────────────────────────────────
-
+    # TODO: Change to list_topics()
     @kb
     def list(
         self,
