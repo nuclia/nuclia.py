@@ -1592,22 +1592,6 @@ def _ensure_global_entries_resource(ndb: NucliaDBClient, user_id: str) -> str:
     return slug
 
 
-def _get_global_entries_resource_id(ndb: NucliaDBClient, user_id: str) -> str | None:
-    """
-    Get the resource ID of the per-user global-entries resource, creating the resource if it doesn't exist.
-    """
-    slug = _ensure_global_entries_resource(ndb, user_id)
-    try:
-        resource = ndb.ndb.get_resource_by_slug(
-            kbid=ndb.kbid,
-            slug=slug,
-            query_params={"show": [ResourceProperties.BASIC.value]},
-        )
-        return resource.id
-    except NotFoundError:
-        return None
-
-
 def validate_user_id(user_id: str) -> None:
     field_id_pattern = r"^[a-zA-Z0-9:_-]+$"
     if not re.match(field_id_pattern, user_id):
