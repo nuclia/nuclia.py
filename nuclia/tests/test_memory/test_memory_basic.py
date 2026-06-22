@@ -14,6 +14,15 @@ from nuclia.sdk.memory import (
 
 def test_basic(testing_config) -> None:
     memory = NucliaMemory()
+    memory.initialize(
+        rules=[
+            "Extract HR relevant information from the text like vacation policy, sick leave, and benefits.",
+        ],
+        graph_extraction=True,
+    )
+    # Make sure re-initializing with different rules raises an error
+    with pytest.raises(ValueError):
+        memory.initialize(rules=["foobar"], graph_extraction=False, overwrite=False)
 
     def _delete_topics(slugs):
         for slug in slugs:
@@ -102,6 +111,25 @@ def test_basic(testing_config) -> None:
             topic="vacation-policy",
         )
 
+    # Remember an entry globally (not attached to any topic)
+    memory.remember(
+        "Employees should submit vacation requests at least 2 weeks in advance.",
+        user_id="user-a",
+    )
+    # Remember an entry attached to the topic
+    memory.remember(
+        "Employees can carry over up to 5 unused vacation days to the next year.",
+        user_id="user-a",
+        topic="vacation-policy",
+    )
+
+    # Make sure entries are retrievable
+    global_entries = list(memory.entries(user_id="user-a"))
+    assert len(global_entries) >= 1, "Expected at least one global entry."
+
+    topic_entries = list(memory.entries(user_id="user-a", topic="vacation-policy"))
+    assert len(topic_entries) >= 1, "Expected at least one topic entry."
+
     # Wait until the topic status is processed before the recall tests
     processed = False
     for _ in range(60):
@@ -124,6 +152,18 @@ def test_basic(testing_config) -> None:
     )
     assert len(result.citations) >= 1, "Recall did not return any citations."
 
+    # Facts tests
+    facts = list(memory.facts(topic="vacation-policy", user_id="user-a"))
+    assert len(facts) >= 1, "Expected at least one fact for the topic."
+    oldest_first = list(
+        memory.facts(topic="vacation-policy", user_id="user-a", recent_first=False)
+    )
+    assert oldest_first[0].id == facts[-1].id
+    assert oldest_first[1].id == facts[0].id
+
+    global_facts = list(memory.facts(user_id="user-a"))
+    assert len(global_facts) >= 1, "Expected at least one global fact."
+
     # Pagination tests
     page = 0
     while True:
@@ -133,6 +173,22 @@ def test_basic(testing_config) -> None:
         page += 1
 
     assert page >= 2
+
+    # Graph tests
+    graph = memory.graph(topic="vacation-policy", user_id="user-a")
+    assert len(graph) >= 1, "Graph should contain at least one path."
+
+    # Test forgetting facts and entries
+    memory.forget_fact(user_id="user-a", fact_id=global_facts[0].id)
+    memory.forget_fact(user_id="user-a", topic="vacation-policy", fact_id=facts[1].id)
+    memory.forget_facts(user_id="user-a", topic="vacation-policy")
+    memory.forget_facts(user_id="user-a")
+    memory.forget_entry(user_id="user-a", entry_id=global_entries[0].id)
+    memory.forget_entries(
+        user_id="user-a", topic="vacation-policy", entry_id=topic_entries[0].id
+    )
+    memory.forget_entries(user_id="user-a", topic="vacation-policy")
+    memory.forget_entries(user_id="user-a")
 
     # Test delete topics
     with pytest.raises(ValueError):

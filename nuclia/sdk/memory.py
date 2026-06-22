@@ -121,7 +121,7 @@ class RelevantContextBlock(ContextBlock):
     score: float
 
 
-class RecallResult(BaseModel):
+class AskResult(BaseModel):
     """Result of a generative `recall()` call."""
 
     answer: str
@@ -774,7 +774,7 @@ class NucliaMemory:
         custom_prompt: CustomPrompt | None = None,
         ask_request_overrides: dict[str, Any] | None = None,
         **kwargs,
-    ) -> RecallResult:
+    ) -> AskResult:
         """Ask a question and get a generative answer grounded in stored topics.
 
         Parameters
@@ -1072,17 +1072,9 @@ class NucliaMemory:
         else:
             for fact in self.facts(topic=topic, user_id=user_id):
                 if fact.content.related_entry_ids == [entry_id]:
-                    try:
-                        _delete_conversation_message(
-                            ndb=ndb,
-                            kbid=ndb.kbid,
-                            rid=ruuid,
-                            slug=rslug,
-                            field_id=_facts_field_id(user_id, self.task_ident),
-                            message_id=fact.id,
-                        )
-                    except NotFoundError:
-                        pass
+                    self.forget_fact(
+                        user_id=user_id, fact_id=fact.id, topic=topic, **kwargs
+                    )
 
     @kb
     def forget_entries(
@@ -1112,6 +1104,8 @@ class NucliaMemory:
             )
         except NotFoundError:
             pass
+        else:
+            self.forget_facts(user_id=user_id, topic=topic, **kwargs)
 
     @kb
     def forget_fact(
@@ -1297,7 +1291,7 @@ def _slugify(text: str) -> str:
 
 def _parse_ask_result(
     ask_response: SyncAskResponse,
-) -> RecallResult:
+) -> AskResult:
     """Parse an LLM footnotes answer into clean text and citations mapping."""
     parts = ask_response.answer.rsplit("\n\n", 1)
     answer_text = parts[0]
@@ -1319,7 +1313,7 @@ def _parse_ask_result(
                     text=retrieved_paragraphs[chunk_id].text,
                     score=retrieved_paragraphs[chunk_id].score,
                 )
-    return RecallResult(answer=answer_text, citations=citations)
+    return AskResult(answer=answer_text, citations=citations)
 
 
 def _parse_recall_result(

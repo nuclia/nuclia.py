@@ -40,6 +40,7 @@ import json
 import textwrap
 from collections import Counter
 from pathlib import Path
+from typing import cast
 
 from nuclia.sdk.memory import (
     EntryAlreadyExistsError,
@@ -321,6 +322,7 @@ def evaluate_qa(memory: NucliaMemory, sample: dict, topic: str, user_id: str) ->
         if not is_adversarial:
             # naive substring match; upgrade to LLM-as-judge for
             # proper LoCoMo-style evaluation (GPT-4 scorer used in the paper).
+            expected = cast(str, expected)
             hit = expected.lower() in answer.lower()
             print(f"       Match: {'✓' if hit else '✗'}\n")
             correct += hit

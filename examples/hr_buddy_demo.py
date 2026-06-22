@@ -7,7 +7,7 @@ Demonstrates NucliaMemory in an HR assistant use case:
 2. Two HR operators (Alice and Bob) each handle 4 employee requests,
    annotating their decisions with context and reasoning.
 3. Recall is called for each operator to show that answers are personalised
-   (i.e. each operator's annotations influence the generated answer).
+   (i.e. each operator's entrys influence the generated answer).
 
 Run:
     python examples/hr_buddy_demo.py
@@ -20,8 +20,8 @@ import textwrap
 from nucliadb_models.search import CustomPrompt
 
 from nuclia.sdk.memory import (
-    AnnotationAlreadyExistsError,
-    AnnotationContextMessage,
+    EntryAlreadyExistsError,
+    EntryContextMessage,
     NucliaMemory,
     TopicAlreadyExistsError,
 )
@@ -41,27 +41,27 @@ def subsection(title: str) -> None:
     print(f"\n  ▸ {title}")
 
 
-def annotate(
+def remember(
     memory: NucliaMemory,
     *,
-    annotation_id: str,
+    entry_id: str,
     text: str,
     topic: str,
     user_id: str,
     **kwargs,
 ) -> None:
-    """Annotate a topic and immediately extract a condensed fact from that annotation."""
+    """Annotate a topic and immediately extract a condensed fact from that entry."""
     try:
-        memory.annotate(
+        memory.remember(
             text=text,
             topic=topic,
             user_id=user_id,
-            annotation_id=annotation_id,
+            entry_id=entry_id,
             **kwargs,
         )
-    except AnnotationAlreadyExistsError:
+    except EntryAlreadyExistsError:
         print(
-            f"\n    ! Annotation with ID '{annotation_id}' already exists. Skipping annotation and fact extraction."
+            f"\n    ! Entry with ID '{entry_id}' already exists. Skipping entry and fact extraction."
         )
 
 
@@ -111,11 +111,11 @@ def _hr_custom_prompt(user_id: str) -> CustomPrompt:
 def _hr_system_prompt(user_name: str) -> str:
     return (
         f"You are a personalised HR assistant helping {user_name} recall their own past decisions and actions. "
-        f"IMPORTANT: All annotations, notes, and decisions in the retrieved context were made BY {user_name}, "
+        f"IMPORTANT: All entrys, notes, and decisions in the retrieved context were made BY {user_name}, "
         f"even if {user_name}'s name is not explicitly mentioned in the text. "
-        "Treat every annotation as a first-person record of this operator's own actions. "
+        "Treat every entry as a first-person record of this operator's own actions. "
         "Answer strictly based on the provided context. "
-        "Describe decisions accurately and include the reasoning recorded in the annotations. "
+        "Describe decisions accurately and include the reasoning recorded in the entrys. "
         "If no relevant decision is found in the context, say so clearly — do not invent or generalise from policy text alone. "
         f"Write in the second person on behalf of {user_name} (e.g. 'You approved...', 'You denied...', 'You recorded...')."
     )
@@ -124,8 +124,8 @@ def _hr_system_prompt(user_name: str) -> str:
 def _hr_user_prompt(user_name: str) -> str:
     return (
         f"The following context contains HR policy excerpts and decisions made by {user_name}. "
-        f"All annotations in this context are {user_name}'s own records, written from their perspective, "
-        "even if their name does not appear in the annotation text.\n\n"
+        f"All entrys in this context are {user_name}'s own records, written from their perspective, "
+        "even if their name does not appear in the entry text.\n\n"
         "{context}\n\n"
         f"Based only on the above, answer this question on behalf of {user_name}: {{question}}"
     )
@@ -134,7 +134,7 @@ def _hr_user_prompt(user_name: str) -> str:
 def _hr_rephrase_prompt(user_name: str) -> str:
     return f"""\
 You are rephrasing a question asked by an HR operator named "{user_name}" for document retrieval purposes.
-Rewrite the question so it explicitly reflects that we are looking for information relevant to "{user_name}"'s past decisions, annotations, and context.
+Rewrite the question so it explicitly reflects that we are looking for information relevant to "{user_name}"'s past decisions, entrys, and context.
 Keep the rephrased question concise and in the same language as the original.
 
 QUESTION: {{question}}
@@ -143,7 +143,7 @@ Please return ONLY the rephrased question without any explanation. Examples of g
 - Original: "Have I ever approved a carry-over exception?"
   Rephrased: "Carry-over exceptions approved by {user_name}"
 - Original: "What remote work decisions have been made?"
-  Rephrased: "Remote work decisions and annotations recorded by {user_name}"
+  Rephrased: "Remote work decisions and entrys recorded by {user_name}"
 """
 
 
@@ -210,8 +210,8 @@ def upload_policies(memory: NucliaMemory) -> None:
     section("STEP 1 — Uploading HR Policies")
     for slug, policy in POLICIES.items():
         try:
-            memory.store(
-                text=policy["text"],
+            memory.create_topic(
+                texts={"text": policy["text"]},
                 slug=slug,
                 title=policy["title"],
                 summary=policy["summary"],
@@ -221,10 +221,10 @@ def upload_policies(memory: NucliaMemory) -> None:
             print(f"  ~ Already exists: '{policy['title']}' (slug={slug})")
 
 
-# ─── 2. HR Operator Annotations ──────────────────────────────────────────────
+# ─── 2. HR Operator Entrys ──────────────────────────────────────────────
 
 # Each operator is assigned 2 employee requests.
-# Their annotations include their decision, reasoning, and context.
+# Their entrys include their decision, reasoning, and context.
 
 ALICE_ID = "alice-hr"
 BOB_ID = "bob-hr"
@@ -240,9 +240,9 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 1 — Vacation carry-over exception
     subsection("Request 1: Maria asks for a carry-over exception (8 days)")
-    annotate(
+    remember(
         memory,
-        annotation_id="alice-annotation-001",
+        entry_id="alice-entry-001",
         text="Approved carry-over exception for Maria (employee ID: EMP-1042). "
         "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
         "Exception approved for the full 8 days as a one-time allowance.",
@@ -251,11 +251,11 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         reasoning="The product launch was a company-wide priority that required Maria's presence. "
         "Denying the exception would penalise her for meeting business needs.",
         context=[
-            AnnotationContextMessage(
+            EntryContextMessage(
                 author="Maria (employee)",
                 text="I had 8 vacation days remaining but couldn't take them because of the Q4 launch. Can I carry them over?",
             ),
-            AnnotationContextMessage(
+            EntryContextMessage(
                 author="Maria's manager",
                 text="Confirmed — Maria's presence was essential during the entire Q4 period.",
             ),
@@ -270,13 +270,13 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
             "supporting_evidence": ["manager_confirmation", "business_critical_event"],
         },
     )
-    print("    ✓ Annotation recorded.")
+    print("    ✓ Entry recorded.")
 
     # Request 2 — Performance review appeal
     subsection("Request 2: David appeals his performance rating of 2")
-    annotate(
+    remember(
         memory,
-        annotation_id="alice-annotation-004",
+        entry_id="alice-entry-004",
         text="Appeal accepted for David (EMP-4455). Rating revised from 2 to 3 after reviewing additional "
         "project contributions that were not reflected in the original evaluation.",
         topic="performance-review-policy",
@@ -284,11 +284,11 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
         reasoning="David provided evidence of three successful deliverables completed in the review period "
         "that his manager had overlooked. Evidence reviewed and found credible.",
         context=[
-            AnnotationContextMessage(
+            EntryContextMessage(
                 author="David (employee)",
                 text="I believe my rating of 2 is unfair. I delivered three major projects on time this period.",
             ),
-            AnnotationContextMessage(
+            EntryContextMessage(
                 author="David's skip-level manager",
                 text="I can confirm David's contributions to the platform migration were significant.",
             ),
@@ -304,7 +304,7 @@ def alice_handles_requests(memory: NucliaMemory) -> None:
             "supporting_evidence": ["skip_level_confirmation", "project_deliverables"],
         },
     )
-    print("    ✓ Annotation recorded.")
+    print("    ✓ Entry recorded.")
 
 
 def bob_handles_requests(memory: NucliaMemory) -> None:
@@ -312,9 +312,9 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
 
     # Request 1 — Vacation carry-over exception (different stance)
     subsection("Request 1: Leo asks for a carry-over exception (6 days)")
-    annotate(
+    remember(
         memory,
-        annotation_id="bob-annotation-001",
+        entry_id="bob-entry-001",
         text="Denied carry-over exception for Leo (EMP-5512). "
         "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
         "The 6 days will be forfeited per standard policy.",
@@ -323,7 +323,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
         "personal planning choices. Policy should be applied as written.",
         context=[
-            AnnotationContextMessage(
+            EntryContextMessage(
                 author="Leo (employee)",
                 text="I forgot to use 6 vacation days. Can I carry them over to next year?",
             ),
@@ -338,13 +338,13 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
             "supporting_evidence": [],
         },
     )
-    print("    ✓ Annotation recorded.")
+    print("    ✓ Entry recorded.")
 
     # Request 2 — PIP challenge
     subsection("Request 2: Rachel disputes being placed on a PIP")
-    annotate(
+    remember(
         memory,
-        annotation_id="bob-annotation-004",
+        entry_id="bob-entry-004",
         text="PIP upheld for Rachel (EMP-8899). "
         "Rating of 1 was confirmed after reviewing her manager's documentation. "
         "Rachel has been provided with the formal PIP plan and 90-day improvement timeline.",
@@ -353,11 +353,11 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
         reasoning="Manager provided detailed evidence of missed deadlines and quality issues "
         "over the review period. No procedural errors found in the evaluation process.",
         context=[
-            AnnotationContextMessage(
+            EntryContextMessage(
                 author="Rachel (employee)",
                 text="I don't think it's fair that I'm on a PIP. My workload was unreasonable.",
             ),
-            AnnotationContextMessage(
+            EntryContextMessage(
                 author="Rachel's manager",
                 text="Rachel missed 7 out of 10 delivery milestones. Workload was comparable to peers.",
             ),
@@ -375,7 +375,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
             "supporting_evidence": ["manager_documentation", "peer_comparison"],
         },
     )
-    print("    ✓ Annotation recorded.")
+    print("    ✓ Entry recorded.")
 
 
 # ─── 2.5. Inspect Extracted Facts ────────────────────────────────────────────
@@ -384,7 +384,7 @@ def bob_handles_requests(memory: NucliaMemory) -> None:
 def show_extracted_facts(memory: NucliaMemory) -> None:
     section("STEP 2.5 — Extracted Facts (data-augmentation task)")
 
-    print("\n  Each annotation was immediately distilled into a concise fact.\n")
+    print("\n  Each entry was immediately distilled into a concise fact.\n")
 
     for user_id, label in [(ALICE_ID, "Alice"), (BOB_ID, "Bob")]:
         print(f"\n  ── {label}'s facts ──")
@@ -471,7 +471,7 @@ def demonstrate_graph_personalisation(memory: NucliaMemory) -> None:
 
     print(
         "\n  The entity graph is queried for each policy topic, once scoped to Alice\n"
-        "  and once to Bob. Each operator's annotations contribute different entities\n"
+        "  and once to Bob. Each operator's entrys contribute different entities\n"
         "  and relations, making the graph a personalised view of the policy space.\n"
     )
 
