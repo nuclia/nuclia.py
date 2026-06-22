@@ -170,7 +170,18 @@ class NuaClient:
             if response.headers.get("transfer-encoding") == "chunked":
                 for json_body in response.iter_lines():
                     try:
-                        yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                        chunk = GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                        if chunk.chunk.type == "meta":
+                            chunk.chunk.learning_id = response.headers.get(
+                                "nuclia-learning-id", chunk.chunk.learning_id
+                            )
+                            chunk.chunk.model_name = response.headers.get(
+                                "nuclia-learning-model", chunk.chunk.model_name
+                            )
+                            chunk.chunk.trace_id = response.headers.get(
+                                "nuclia-learning-trace-id", chunk.chunk.trace_id
+                            )
+                        yield chunk
                     except ValidationError as e:
                         raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
 
@@ -587,7 +598,18 @@ class AsyncNuaClient:
             if response.headers.get("transfer-encoding") == "chunked":
                 async for json_body in response.aiter_lines():
                     try:
-                        yield GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                        chunk = GenerativeChunk.model_validate_json(json_body)  # type: ignore
+                        if chunk.chunk.type == "meta":
+                            chunk.chunk.learning_id = response.headers.get(
+                                "nuclia-learning-id", chunk.chunk.learning_id
+                            )
+                            chunk.chunk.model_name = response.headers.get(
+                                "nuclia-learning-model", chunk.chunk.model_name
+                            )
+                            chunk.chunk.trace_id = response.headers.get(
+                                "nuclia-learning-trace-id", chunk.chunk.trace_id
+                            )
+                        yield chunk
                     except ValidationError as e:
                         raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
 
