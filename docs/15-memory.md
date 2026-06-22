@@ -9,12 +9,6 @@
 
 All examples assume you have [authenticated](02-auth.md) and set a [default Knowledge Box](03-kb.md).
 
-## Installation
-
-```sh
-pip install nuclia
-```
-
 ## Core Concepts
 
 | Concept | Description |
