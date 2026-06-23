@@ -15,7 +15,7 @@ All examples assume you have [authenticated](02-auth.md) and set a [default Know
 |---------|-------------|
 | **Topic** | A named memory domain stored as a KB resource. It can contain reference documents (policy text, guidelines, etc.) and collects the entries of all users. |
 | **Entry** | A timestamped text entry belonging to a topic. It records any content to be remembered. For example, decisions, observations, or conversation transcripts. It may also contain optional `reasoning`, `context` messages, and structured `metadata`. |
-| **Fact** | A short, distilled statement automatically extracted from an entry by the memory data-augmentation task. Facts act as a compressed, searchable index of entries. |
+| **Fact** | A short, distilled statement automatically extracted from an entry by the Memory data augmentation task. Facts act as a compressed, searchable index of entries. |
 | **Graph** | An entity–relation graph extracted from both the topic's reference content and a user's entries, giving a personalised knowledge graph view. |
 | **Global entry** | An entry not tied to any specific topic. Stored under a per-user resource. Useful for cross-topic or agent-level memory. |
 
