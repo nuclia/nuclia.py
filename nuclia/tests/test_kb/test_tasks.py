@@ -44,6 +44,7 @@ def test_worker_manager_tasks(testing_config):
 
     output = nkb.task.update(
         task_id=task_id,
+        task_name=TaskName.LABELER,
         parameters=DataAugmentation(
             name="test",
             on=ApplyTo.TEXT_BLOCK,
