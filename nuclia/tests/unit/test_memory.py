@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from nuclia.sdk.memory import (
+from nuclia.sdk.memory.utils import (
     _parse_ask_result,
     _slugify,
 )
