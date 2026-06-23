@@ -63,13 +63,13 @@ class TestParseAskAnswer:
 
         return response
 
-    def test_no_citations(self):
+    def test_no_citations(self) -> None:
         response = self._make_ask_response("Just a plain answer with no citations.")
-        answer, citations = _parse_ask_result(response)
-        assert answer == "Just a plain answer with no citations."
-        assert citations == {}
+        result = _parse_ask_result(response)
+        assert result.answer == "Just a plain answer with no citations."
+        assert result.citations == {}
 
-    def test_single_citation(self):
+    def test_single_citation(self) -> None:
         raw = "The policy allows 10 days [1].\n\n[1]: block-AA"
         para = MagicMock()
         para.id = "chunk-123"
@@ -80,13 +80,13 @@ class TestParseAskAnswer:
             paragraphs={"chunk-123": para},
             footnote_map={"block-AA": "chunk-123"},
         )
-        answer, citations = _parse_ask_result(response)
-        assert answer == "The policy allows 10 days [1]."
-        assert "1" in citations
-        assert citations["1"].chunk_id == "chunk-123"
-        assert citations["1"].text == "A maximum of 10 consecutive days."
+        result = _parse_ask_result(response)
+        assert result.answer == "The policy allows 10 days [1]."
+        assert "1" in result.citations
+        assert result.citations["1"].id == "chunk-123"
+        assert result.citations["1"].text == "A maximum of 10 consecutive days."
 
-    def test_multiple_citations(self):
+    def test_multiple_citations(self) -> None:
         raw = "Answer text [1] and more [2].\n\n[1]: block-AA\n[2]: block-BB"
         para1 = MagicMock()
         para1.id = "chunk-1"
@@ -100,15 +100,15 @@ class TestParseAskAnswer:
             paragraphs={"chunk-1": para1, "chunk-2": para2},
             footnote_map={"block-AA": "chunk-1", "block-BB": "chunk-2"},
         )
-        answer, citations = _parse_ask_result(response)
-        assert answer == "Answer text [1] and more [2]."
-        assert len(citations) == 2
-        assert citations["1"].chunk_id == "chunk-1"
-        assert citations["1"].text == "First paragraph"
-        assert citations["2"].chunk_id == "chunk-2"
-        assert citations["2"].text == "Second paragraph"
+        result = _parse_ask_result(response)
+        assert result.answer == "Answer text [1] and more [2]."
+        assert len(result.citations) == 2
+        assert result.citations["1"].id == "chunk-1"
+        assert result.citations["1"].text == "First paragraph"
+        assert result.citations["2"].id == "chunk-2"
+        assert result.citations["2"].text == "Second paragraph"
 
-    def test_citation_with_missing_chunk(self):
+    def test_citation_with_missing_chunk(self) -> None:
         """Citation references a block that doesn't map to a retrieved paragraph."""
         raw = "Answer [1].\n\n[1]: block-MISSING"
         response = self._make_ask_response(
@@ -116,11 +116,11 @@ class TestParseAskAnswer:
             paragraphs={},
             footnote_map={"block-MISSING": "nonexistent-chunk"},
         )
-        answer, citations = _parse_ask_result(response)
-        assert answer == "Answer [1]."
-        assert citations == {}
+        result = _parse_ask_result(response)
+        assert result.answer == "Answer [1]."
+        assert result.citations == {}
 
-    def test_citation_block_not_in_footnote_map(self):
+    def test_citation_block_not_in_footnote_map(self) -> None:
         """Citation block ID not found in citation_footnote_to_context."""
         raw = "Answer [1].\n\n[1]: block-UNKNOWN"
         response = self._make_ask_response(
@@ -128,11 +128,11 @@ class TestParseAskAnswer:
             paragraphs={},
             footnote_map={},
         )
-        answer, citations = _parse_ask_result(response)
-        assert answer == "Answer [1]."
-        assert citations == {}
+        result = _parse_ask_result(response)
+        assert result.answer == "Answer [1]."
+        assert result.citations == {}
 
-    def test_multiline_answer(self):
+    def test_multiline_answer(self) -> None:
         raw = "Line one.\n\nLine two.\n\nLine three.\n\n[1]: block-AA"
         para = MagicMock()
         para.id = "chunk-1"
@@ -142,12 +142,12 @@ class TestParseAskAnswer:
             paragraphs={"chunk-1": para},
             footnote_map={"block-AA": "chunk-1"},
         )
-        answer, citations = _parse_ask_result(response)
+        result = _parse_ask_result(response)
         # rsplit with maxsplit=1 should keep only the last \n\n as the split point
-        assert answer == "Line one.\n\nLine two.\n\nLine three."
-        assert "1" in citations
+        assert result.answer == "Line one.\n\nLine two.\n\nLine three."
+        assert "1" in result.citations
 
-    def test_real_world_example(self):
+    def test_real_world_example(self) -> None:
         raw = (
             "An employee cannot take 15 consecutive vacation days without director "
             "approval, as the policy allows a maximum of 10 consecutive days without "
@@ -163,10 +163,10 @@ class TestParseAskAnswer:
             paragraphs={"chunk-vacation": para},
             footnote_map={"block-AA": "chunk-vacation"},
         )
-        answer, citations = _parse_ask_result(response)
-        assert "15 consecutive vacation days" in answer
-        assert "\n\n[1]:" not in answer
+        result = _parse_ask_result(response)
+        assert "15 consecutive vacation days" in result.answer
+        assert "\n\n[1]:" not in result.answer
         assert (
-            citations["1"].text
+            result.citations["1"].text
             == "A maximum of 10 consecutive days can be taken without director approval."
         )

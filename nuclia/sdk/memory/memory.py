@@ -329,6 +329,7 @@ class NucliaMemory:
                 texts=texts,
                 urls=urls,
                 file_paths=file_paths,
+                **kwargs,
             )
         except ConflictError:
             raise TopicAlreadyExistsError(f"topic with slug '{slug}' already exists.")
@@ -343,6 +344,7 @@ class NucliaMemory:
         texts: dict[str, str] | None = None,
         urls: dict[str, str] | None = None,
         file_paths: dict[str, str] | None = None,
+        **kwargs,
     ) -> None:
         """
         Update an existing topic.
@@ -372,6 +374,7 @@ class NucliaMemory:
                 texts=texts,
                 urls=urls,
                 file_paths=file_paths,
+                **kwargs,
             )
         except NotFoundError:
             raise TopicNotFoundError(f"topic '{topic}' not found.")
@@ -411,6 +414,7 @@ class NucliaMemory:
         texts: dict[str, str] | None = None,
         urls: dict[str, str] | None = None,
         file_paths: dict[str, str] | None = None,
+        **kwargs,
     ) -> None:
         base_args: dict[str, Any] = {}
         ruuid, rslug = _uuid_or_slug(topic)
@@ -461,6 +465,7 @@ class NucliaMemory:
         texts: dict[str, str] | None = None,
         urls: dict[str, str] | None = None,
         file_paths: dict[str, str] | None = None,
+        **kwargs,
     ) -> str:
         if slug is None:
             slug = _slugify(title)
@@ -507,7 +512,7 @@ class NucliaMemory:
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
-        entry_id: str = ...,
+        entry_id: str = uuid.uuid4().hex,
         **kwargs,
     ) -> str:
         """Add a memory entry to a specific topic.
@@ -540,7 +545,7 @@ class NucliaMemory:
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
-        entry_id: str = ...,
+        entry_id: str = uuid.uuid4().hex,
         **kwargs,
     ) -> str:
         """Add a global memory entry (not tied to any specific topic).
