@@ -651,102 +651,105 @@ Expected output (paraphrased):
 
 ---
 
-## Complete Example: Agent Memory
+## Complete Example: Conversational Memory
 
-`NucliaMemory` can give a conversational agent persistent, per-user long-term memory. Each turn is stored as an entry, and `ask()` is used with the conversation history to answer questions that require knowledge from past sessions.
+`NucliaMemory` maps naturally onto multi-session conversations: a **topic** represents an ongoing conversation thread, and each **entry** holds one full session as formatted turns. The background data-augmentation task extracts facts from every entry, so `ask()` can answer questions that reach back across many sessions.
 
 ```python
-import uuid
 from nuclia.sdk.memory import EntryAlreadyExistsError, NucliaMemory, TopicAlreadyExistsError
+
+USER_ID = "user-42"
 
 memory = NucliaMemory()
 memory.initialize()
 
-AGENT_TOPIC = "agent-user-profile"
-USER_ID = "user-42"
+
+def format_session(n: int, date: str, turns: list[dict]) -> str:
+    """Format a session into a timestamped header followed by speaker turns."""
+    header = f"[Session {n} — {date}]"
+    body = "\n".join(f"{t['speaker']}: {t['text']}" for t in turns)
+    return f"{header}\n\n{body}"
+
 
 # ── Create the topic once ─────────────────────────────────────────────────────
 
 try:
     memory.create_topic(
-        slug=AGENT_TOPIC,
-        title="Agent — User Profile & Preferences",
-        summary="Long-term memory for the personal assistant agent.",
+        slug="caroline-melanie",
+        title="Caroline & Melanie",
     )
 except TopicAlreadyExistsError:
     pass
 
 
-def agent_remember(text: str, metadata: dict | None = None) -> None:
-    """Persist an observation made during a conversation turn."""
+def remember_session(n: int, date: str, turns: list[dict]) -> None:
+    """Persist one session as a single memory entry."""
     try:
         memory.remember(
-            text=text,
-            topic=AGENT_TOPIC,
+            text=format_session(n, date, turns),
+            topic="caroline-melanie",
             user_id=USER_ID,
-            entry_id=uuid.uuid4().hex,
-            metadata=metadata,
+            entry_id=f"caroline-melanie-s{n}",
+            metadata={"session": n, "date": date},
         )
     except EntryAlreadyExistsError:
         pass
 
 
-def agent_ask(query: str, history: list | None = None) -> str:
-    """Answer a question using the agent's long-term memory."""
-    result = memory.ask(
-        query=query,
-        topic=AGENT_TOPIC,
-        user_id=USER_ID,
-        context=history or [],
-        include_global_facts=True,
-    )
-    return result.answer
+# ── Ingest sessions ───────────────────────────────────────────────────────────
 
+remember_session(1, "8 May 2023", [
+    {"speaker": "Caroline", "text": "Hey Mel! I went to an LGBTQ support group yesterday — it was so powerful."},
+    {"speaker": "Melanie",  "text": "Wow, that's cool! Did you hear any inspiring stories?"},
+    {"speaker": "Caroline", "text": "The transgender stories were so inspiring. The group has made me feel accepted and given me courage to embrace myself."},
+    {"speaker": "Melanie",  "text": "You've got guts. What now?"},
+    {"speaker": "Caroline", "text": "Going to continue my education and explore career options. I'm keen on counseling or mental health — I'd love to support people facing similar challenges."},
+    {"speaker": "Melanie",  "text": "You'd be a great counselor! By the way, here's a lake sunrise I painted last year."},
+    {"speaker": "Caroline", "text": "The colors blend so nicely. Painting looks like a wonderful outlet for expressing yourself."},
+    {"speaker": "Melanie",  "text": "It really is. I'm off to go swimming with the kids. Talk soon!"},
+])
 
-# ── Session 1: The user shares preferences ───────────────────────────────────
+remember_session(2, "25 May 2023", [
+    {"speaker": "Melanie",  "text": "Hey Caroline! I ran a charity race for mental health last Saturday — it was really rewarding."},
+    {"speaker": "Caroline", "text": "That's amazing, Mel. So proud of you for taking part!"},
+    {"speaker": "Melanie",  "text": "I'm carving out me-time each day — running, reading, playing violin. My kids are excited about summer; we're thinking about camping next month."},
+    {"speaker": "Caroline", "text": "I've been researching adoption agencies. It's been a dream of mine to give a loving home to kids who need it."},
+    {"speaker": "Melanie",  "text": "Wow, Caroline! Your future family is going to be so lucky to have you."},
+    {"speaker": "Caroline", "text": "I chose an agency that helps LGBTQ+ families. Their inclusivity spoke to me. It'll be tough as a single parent, but I'm ready for the challenge."},
+])
 
-agent_remember(
-    "User prefers Python over JavaScript and is currently learning Rust.",
-    metadata={"category": "tech-preference"},
-)
-agent_remember(
-    "User works as a backend engineer at a mid-size fintech company.",
-    metadata={"category": "professional-context"},
-)
-agent_remember(
-    "User asked for help setting up a PostgreSQL connection pool with asyncpg.",
-    metadata={"category": "past-task", "language": "python"},
-)
+remember_session(3, "9 June 2023", [
+    {"speaker": "Caroline", "text": "I gave a talk at a school last week about my transgender journey. It was incredible to see the students' reactions."},
+    {"speaker": "Melanie",  "text": "I'm so proud of you! You've come such a long way. Keep inspiring people!"},
+    {"speaker": "Caroline", "text": "Thanks! My friends and mentors have been my rocks. I've known this group for four years, since I moved from Sweden."},
+    {"speaker": "Melanie",  "text": "That support system sounds wonderful. What motivates you most?"},
+    {"speaker": "Caroline", "text": "Definitely the people around me. I'm still single, but this community gives me everything I need to keep going."},
+])
 
-# ── Session 2: The user comes back days later ─────────────────────────────────
+# ── Ask questions that span sessions ──────────────────────────────────────────
 
-answer = agent_ask("What was I working on last time we spoke?")
-print(answer)
-# → "You were setting up a PostgreSQL connection pool using asyncpg in Python."
-
-answer = agent_ask("Recommend a Rust learning resource suited to my background.")
-print(answer)
-# → "Given your Python and backend experience, 'The Rust Programming Language' book
-#    (aka 'The Book') is highly recommended as a first resource."
-```
-
-### Combining global and topic-scoped memory
-
-For agents that work across multiple domains you can use **global entries** (no `topic`) alongside topic-scoped ones and set `include_global_facts=True` when calling `ask()`:
-
-```python
-# Store a cross-topic preference as a global entry
-memory.remember(
-    text="User always wants code examples formatted with type hints.",
-    user_id=USER_ID,
-    # no `topic` → stored in the user's global entries resource
-)
-
-# ask() pulls in both the topic facts and the global facts
 result = memory.ask(
-    query="Show me how to open a file in Python.",
-    topic="python-snippets",
+    query="What career path has Caroline been considering?",
+    topic="caroline-melanie",
     user_id=USER_ID,
-    include_global_facts=True,  # injects global facts as extra context
 )
+print(result.answer)
+# → "Caroline has consistently leaned toward counseling or mental health work,
+#    particularly to support people facing challenges similar to her own transgender journey."
+
+result = memory.ask(
+    query="When did Melanie run a charity race, and what was it for?",
+    topic="caroline-melanie",
+    user_id=USER_ID,
+)
+print(result.answer)
+# → "Melanie ran a charity race for mental health on the Saturday before 25 May 2023."
+
+result = memory.ask(
+    query="Where did Caroline move from before settling in her current city?",
+    topic="caroline-melanie",
+    user_id=USER_ID,
+)
+print(result.answer)
+# → "Caroline moved from Sweden four years before the June 2023 conversation."
 ```
