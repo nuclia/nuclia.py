@@ -54,6 +54,7 @@ memory.initialize(
         "Do not include personal opinions — only verifiable actions and decisions.",
     ],
     graph_extraction=True,
+    llm_config=LLMConfig(generative_model="claude-4-6-sonnet")
     overwrite=False,
 )
 ```
