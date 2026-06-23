@@ -227,6 +227,37 @@ class AsyncNucliaTask:
         return PublicTaskSet.model_validate(response.json())
 
     @kb
+    async def update(
+        self,
+        *args,
+        task_id: str,
+        task_name: Union[TaskName, str],
+        parameters: Union[PARAMETERS_TYPING, dict],
+        **kwargs,
+    ) -> None:
+        """
+        Update task
+
+        :param task_id: ID of the task to update
+        :param task_name: TaskName enum
+        :param parameters: Specific parameters depending on the task choosen
+        """
+        if isinstance(task_name, str):
+            task_name = TaskName(task_name.lower())
+        task_name = cast(TaskName, task_name)
+        if isinstance(parameters, dict):
+            parameters_model = TASKS[task_name].validation
+            if parameters_model is None:
+                raise InvalidPayload(f"Invalid parameters for task {task_name.value}")
+            parameters = parameters_model.model_validate(parameters)
+
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        await ndb.update_task(
+            task_id=task_id,
+            parameters=parameters,
+        )
+
+    @kb
     async def restart(self, *args, task_id: str, **kwargs) -> TaskResponse:
         """
         Restart task

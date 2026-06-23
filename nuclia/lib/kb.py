@@ -930,6 +930,21 @@ class AsyncNucliaDBClient(BaseNucliaDBClient):
         await handle_http_async_errors(response)
         return response
 
+    async def update_task(
+        self, task_id: str, parameters: PARAMETERS_TYPING
+    ) -> httpx.Response:
+        if self.writer_session is None:
+            raise Exception("KB not configured")
+
+        response: httpx.Response = await self.writer_session.patch(
+            f"{self.url}{UPDATE_TASK.format(task_id=task_id)}",
+            json={
+                "parameters": parameters.model_dump(mode="json", exclude_unset=True)  # type: ignore
+            },
+        )
+        await handle_http_async_errors(response)
+        return response
+
     async def list_extract_strategies(self) -> httpx.Response:
         if self.reader_session is None:
             raise Exception("KB not configured")

@@ -1,25 +1,39 @@
 from __future__ import annotations
 
 import inspect
+import logging
 import re
 import string
 import unicodedata
 import uuid
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Awaitable, Iterator, Union, cast, overload
 
 from nucliadb_models import (
     CreateResourcePayload,
     filters,
+    graph,
 )
 from nucliadb_models.common import FieldTypeName
 from nucliadb_models.conversation import (
     Conversation,
     InputMessage,
+    InputMessageContent,
     Message,
+    MessageFormat,
+    MessageType,
 )
 from nucliadb_models.resource import Resource, ResourceField
 from nucliadb_models.search import (
+    AskRequest,
+    CatalogResponse,
+    ChatContextMessage,
+    CitationsType,
+    CustomPrompt,
+    FindOptions,
+    FindRequest,
     KnowledgeboxFindResults,
+    PredictReranker,
     ResourceProperties,
     SyncAskResponse,
 )
@@ -28,12 +42,18 @@ from nucliadb_sdk.v2.exceptions import NotFoundError
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.memory.models import (
     AskResult,
+    EntryContent,
     RelevantContextBlock,
+    Topic,
+    TopicPage,
 )
+
+logger = logging.getLogger(__name__)
 
 MEMORY_FIELD_PREFIX = "__memory__"
 FACTS_FIELD_PREFIX = "da-facts-"
 GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX = "memory-global-entries"
+GRAPH_EXTRACTION_TEMPLATE = "memory-graph-{task_ident}"
 
 
 def _build_field_filter_expression(
@@ -715,6 +735,16 @@ def _global_entries_slug(user_id: str) -> str:
     return f"{GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX}-{user_id}"
 
 
+def _resolve_topic_location(
+    topic: str | None,
+    user_id: str,
+) -> tuple[str | None, str | None]:
+    """Return (ruuid, rslug) scoped to topic, or the global entries resource slug when topic is None."""
+    if topic is not None:
+        return _uuid_or_slug(topic)
+    return None, _global_entries_slug(user_id)
+
+
 @overload
 def _ensure_global_entries_resource(ndb: NucliaDBClient, user_id: str) -> str: ...
 
@@ -792,3 +822,145 @@ def validate_entry_id(entry_id: str) -> None:
         raise ValueError(
             f"Invalid entry ID '{entry_id}'. Entry IDs can only contain letters, numbers, underscores, colons, and hyphens."
         )
+
+
+# ─── Pure request / response builders ────────────────────────────────────────
+
+
+def _build_entry_message(entry_id: str, entry_content: EntryContent) -> InputMessage:
+    """Build the InputMessage that wraps a memory entry for storage in a conversation field."""
+    return InputMessage(
+        timestamp=datetime.now(tz=timezone.utc),
+        ident=entry_id,
+        type=MessageType.UNSET,
+        content=InputMessageContent(
+            text=entry_content.model_dump_json(indent=2, exclude_none=True),
+            format=MessageFormat.JSON,
+            attachments=[],
+            attachments_fields=[],
+        ),
+    )
+
+
+def _build_recall_find_request(
+    task_ident: str,
+    question: str,
+    topic: str,
+    user_id: str,
+    top_k: int,
+) -> FindRequest:
+    """Build the FindRequest used by recall."""
+    return FindRequest(
+        query=question,
+        features=[FindOptions.SEMANTIC, FindOptions.KEYWORD],
+        filter_expression=filters.FilterExpression(
+            field=_build_field_filter_expression(
+                task_ident, topic=topic, user_id=user_id
+            )
+        ),
+        top_k=top_k,
+        rephrase=True,
+        reranker=PredictReranker(window=min(top_k * 5, 200)),
+    )
+
+
+def _build_ask_request(
+    task_ident: str,
+    query: str,
+    topic: str,
+    user_id: str | None,
+    include_global_facts: bool,
+    global_facts_rid: str | None,
+    extra_context: list[str] | None,
+    global_facts: list[str],
+    topic_facts: list[str],
+    context: list[ChatContextMessage] | None,
+    custom_prompt: CustomPrompt | None,
+    ask_request_overrides: dict[str, Any] | None,
+) -> AskRequest:
+    """Build and return the AskRequest, applying any caller-supplied field overrides."""
+    top_k = 5
+    ask_request = AskRequest(
+        query=query,
+        top_k=top_k,
+        citations=CitationsType.LLM_FOOTNOTES,
+        rephrase=False,
+        reranker=PredictReranker(window=min(top_k * 5, 200)),
+        prompt=custom_prompt,
+        filter_expression=filters.FilterExpression(
+            field=_build_field_filter_expression(
+                task_ident,
+                topic=topic,
+                user_id=user_id,
+                include_global_facts=include_global_facts,
+                user_global_facts_resource_id=global_facts_rid,
+            )
+        ),
+        chat_history=context,
+        extra_context=(extra_context or []) + global_facts + topic_facts,
+    )
+    if ask_request_overrides:
+        for key, value in ask_request_overrides.items():
+            if hasattr(ask_request, key):
+                setattr(ask_request, key, value)
+            else:
+                logger.warning(f"Unknown AskRequest field: {key}")
+    return ask_request
+
+
+def _build_graph_search_request(
+    task_ident: str,
+    topic: str,
+    user_id: str,
+) -> graph.requests.GraphSearchRequest:
+    """Build the GraphSearchRequest used by graph(), scoped to entity-to-entity paths."""
+    return graph.requests.GraphSearchRequest(
+        top_k=500,
+        filter_expression=graph.requests.GraphFilterExpression(
+            field=_build_field_filter_expression(
+                task_ident,
+                topic=topic,
+                user_id=user_id,
+                include_global_facts=False,
+            )
+        ),
+        # Ignore all paths that start or end at the resource: we are interested in entity to entity paths.
+        query=graph.requests.And(
+            operands=[
+                graph.requests.AnyNode(
+                    type=graph.requests.RelationNodeType.ENTITY,
+                ),
+                graph.requests.Not(
+                    operand=graph.requests.AnyNode(
+                        type=graph.requests.RelationNodeType.RESOURCE,
+                    )
+                ),
+                graph.requests.Generated(
+                    by=graph.requests.Generator.DATA_AUGMENTATION,
+                    da_task=GRAPH_EXTRACTION_TEMPLATE.format(task_ident=task_ident),
+                ),
+            ],
+        ),
+    )
+
+
+def _parse_catalog_response_to_topic_page(
+    catalog_response: CatalogResponse,
+) -> TopicPage:
+    """Convert a raw catalog API response into a TopicPage model."""
+    return TopicPage(
+        items=[
+            Topic(
+                id=resource.id,
+                slug=resource.slug or "",
+                title=resource.title or "",
+                summary=resource.summary,
+                status=_get_topic_status(resource),
+            )
+            for resource in catalog_response.resources.values()
+        ],
+        total=catalog_response.fulltext.total if catalog_response.fulltext else 0,
+        has_more=catalog_response.fulltext.next_page
+        if catalog_response.fulltext
+        else False,
+    )
