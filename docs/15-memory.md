@@ -36,7 +36,7 @@ memory.initialize()
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `rules` | `list[str] \| None` | `None` | Custom rules for the fact-extraction task (e.g. formatting constraints, entity requirements). |
+| `rules` | `list[str] \| None` | `None` | Custom rules for the fact-extraction task (e.g. formatting constraints, additional context, restrictions). |
 | `graph_extraction` | `bool \| None` | `True` | Whether to extract a knowledge graph from entries. |
 | `entity_defs` | `list[EntityDefinition] \| None` | `None` | Custom entity type definitions for the graph extractor. |
 | `examples` | `list[GraphExtractionExample] \| None` | `None` | Few-shot examples to guide graph extraction. |
