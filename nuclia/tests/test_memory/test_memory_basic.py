@@ -246,7 +246,7 @@ def test_basic_nontopic(testing_config) -> None:
             entry_id=entry_id_1,
         )
 
-    # ── list global entrys ─────────────────────────────────────────────
+    # ── list global entries ─────────────────────────────────────────────
 
     user_a_entrys = list(memory.entries(user_id=USER_A))
     assert len(user_a_entrys) == 2, (
