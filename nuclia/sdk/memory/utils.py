@@ -8,6 +8,7 @@ import uuid
 from typing import Any, AsyncGenerator, Awaitable, Iterator, Union, cast, overload
 
 from nucliadb_models import (
+    CreateResourcePayload,
     filters,
 )
 from nucliadb_models.common import FieldTypeName
@@ -741,7 +742,9 @@ def _ensure_global_entries_resource_sync(ndb: NucliaDBClient, user_id: str) -> s
     if not ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
         ndb.ndb.create_resource(
             kbid=ndb.kbid,
-            content={"title": f"Memory global entries - {user_id}", "slug": slug},
+            content=CreateResourcePayload(
+                title=f"Memory global entries - {user_id}", slug=slug
+            ),
         )
     return slug
 
@@ -753,7 +756,9 @@ async def _ensure_global_entries_resource_async(
     if not await ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
         await ndb.ndb.create_resource(
             kbid=ndb.kbid,
-            content={"title": f"Memory global entries - {user_id}", "slug": slug},
+            content=CreateResourcePayload(
+                title=f"Memory global entries - {user_id}", slug=slug
+            ),
         )
     return slug
 

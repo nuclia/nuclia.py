@@ -115,6 +115,7 @@ def test_basic(testing_config) -> None:
     memory.remember(
         "Employees should submit vacation requests at least 2 weeks in advance.",
         user_id="user-a",
+        entry_id="foobar",
     )
     # Remember an entry attached to the topic
     memory.remember(
