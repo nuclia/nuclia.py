@@ -16,23 +16,29 @@ def test_basic(testing_config) -> None:
     memory = NucliaMemory()
     memory.initialize(
         rules=[
-            "Extract HR relevant information from the text like vacation policy, sick leave, and benefits.",
+            "Facts are to be indexed into an HR pipeline, they must be informative, objective, verifiable statements that can be used to inform future decisions.",
+            "If an employee ID is provided, it must appear in all the facts related to that employee, to ensure they can be linked together in the HR system.",
         ],
         graph_extraction=True,
+        overwrite=True,
     )
     # Make sure re-initializing with different rules raises an error
     with pytest.raises(ValueError):
         memory.initialize(rules=["foobar"], graph_extraction=False, overwrite=False)
 
-    def _delete_topics(slugs):
+    def _cleanup(slugs):
         for slug in slugs:
             try:
                 memory.delete_topic(topic=slug, confirm=True)
             except TopicNotFoundError:
                 pass
+            memory.forget_entries(user_id="user-a", topic=slug)
+            memory.forget_facts(user_id="user-a", topic=slug)
+        memory.forget_entries(user_id="user-a")
+        memory.forget_facts(user_id="user-a")
 
     # Make sure topic doesn't exist at test start
-    _delete_topics(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
+    _cleanup(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
 
     # Test creating topic with a text content
     memory.create_topic(
@@ -113,15 +119,63 @@ def test_basic(testing_config) -> None:
 
     # Remember an entry globally (not attached to any topic)
     memory.remember(
-        "Employees should submit vacation requests at least 2 weeks in advance.",
+        "Charles can always request vacation days. He is entitled to 20 days of paid leave per year.",
         user_id="user-a",
         entry_id="foobar",
     )
+
     # Remember an entry attached to the topic
     memory.remember(
-        "Employees can carry over up to 5 unused vacation days to the next year.",
+        "Approved carry-over exception for Maria (employee ID: EMP-1042). "
+        "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
+        "Exception approved for the full 8 days as a one-time allowance.",
         user_id="user-a",
         topic="vacation-policy",
+        reasoning="The product launch was a company-wide priority that required Maria's presence. "
+        "Denying the exception would penalise her for meeting business needs.",
+        context=[
+            EntryContextMessage(
+                author="Maria (employee)",
+                text="I had 8 vacation days remaining but couldn't take them because of the Q4 launch. Can I carry them over?",
+            ),
+            EntryContextMessage(
+                author="Maria's manager",
+                text="Confirmed — Maria's presence was essential during the entire Q4 period.",
+            ),
+        ],
+        metadata={
+            "employee_id": "EMP-1042",
+            "employee_name": "Maria Santos",
+            "department": "Engineering",
+            "decision": "approved",
+            "days_requested": 8,
+            "exception_type": "carry-over",
+            "supporting_evidence": ["manager_confirmation", "business_critical_event"],
+        },
+    )
+    memory.remember(
+        "Denied carry-over exception for Leo (EMP-5512). "
+        "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
+        "The 6 days will be forfeited per standard policy.",
+        topic="vacation-policy",
+        user_id="user-a",
+        reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
+        "personal planning choices. Policy should be applied as written.",
+        context=[
+            EntryContextMessage(
+                author="Leo (employee)",
+                text="I forgot to use 6 vacation days. Can I carry them over to next year?",
+            ),
+        ],
+        metadata={
+            "employee_id": "EMP-5512",
+            "employee_name": "Leo Fernandez",
+            "department": "Sales",
+            "decision": "denied",
+            "days_requested": 6,
+            "exception_type": "carry-over",
+            "supporting_evidence": [],
+        },
     )
 
     # Make sure entries are retrievable
@@ -136,6 +190,13 @@ def test_basic(testing_config) -> None:
     for _ in range(60):
         topic = memory.get_topic(topic="vacation-policy")
         if topic.status == "processed":
+            has_facts = (
+                len(list(memory.facts(topic="vacation-policy", user_id="user-a"))) >= 2
+            )
+            if not has_facts:
+                print("Topic is processed but facts are not yet available, waiting...")
+                time.sleep(1)
+                continue
             processed = True
             break
         else:
@@ -155,12 +216,12 @@ def test_basic(testing_config) -> None:
 
     # Facts tests
     facts = list(memory.facts(topic="vacation-policy", user_id="user-a"))
-    assert len(facts) >= 1, "Expected at least one fact for the topic."
+    assert len(facts) >= 2, "Expected at least two fact for the topic."
     oldest_first = list(
         memory.facts(topic="vacation-policy", user_id="user-a", recent_first=False)
     )
     assert oldest_first[0].id == facts[-1].id
-    assert oldest_first[1].id == facts[0].id
+    assert oldest_first[-1].id == facts[0].id
 
     global_facts = list(memory.facts(user_id="user-a"))
     assert len(global_facts) >= 1, "Expected at least one global fact."
@@ -196,7 +257,7 @@ def test_basic(testing_config) -> None:
         # Deleting without confirm should raise error
         memory.delete_topic(topic="vacation-policy")
 
-    _delete_topics(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
+    _cleanup(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
 
 
 def test_basic_nontopic(testing_config) -> None:
@@ -249,17 +310,17 @@ def test_basic_nontopic(testing_config) -> None:
 
     # ── list global entries ─────────────────────────────────────────────
 
-    user_a_entrys = list(memory.entries(user_id=USER_A))
-    assert len(user_a_entrys) == 2, (
-        f"Expected 2 global entrys for {USER_A}, got {len(user_a_entrys)}."
+    user_a_entries = list(memory.entries(user_id=USER_A))
+    assert len(user_a_entries) == 2, (
+        f"Expected 2 global entries for {USER_A}, got {len(user_a_entries)}."
     )
     # Most-recent-first: entry_id_2 should come before entry_id_1
-    assert user_a_entrys[0].id == entry_id_2
-    assert user_a_entrys[1].id == entry_id_1
+    assert user_a_entries[0].id == entry_id_2
+    assert user_a_entries[1].id == entry_id_1
 
-    user_b_entrys = list(memory.entries(user_id=USER_B))
-    assert len(user_b_entrys) == 1
-    assert user_b_entrys[0].id == entry_id_3
+    user_b_entries = list(memory.entries(user_id=USER_B))
+    assert len(user_b_entries) == 1
+    assert user_b_entries[0].id == entry_id_3
 
     # oldest-first ordering
     user_a_oldest_first = list(memory.entries(user_id=USER_A, recent_first=False))
@@ -268,32 +329,31 @@ def test_basic_nontopic(testing_config) -> None:
 
     # ── entry content is preserved ────────────────────────────────────
 
-    entry = user_a_entrys[0]  # entry_id_2
+    entry = user_a_entries[0]  # entry_id_2
     assert entry.content.text == "Always respond in Spanish."
     assert entry.content.reasoning == "User's preferred language is Spanish."
     assert entry.content.context is not None
     assert entry.content.context[0].author == USER_A
 
     # ── delete a single global entry ──────────────────────────────────
-
     memory.forget_entry(user_id=USER_A, entry_id=entry_id_1)
-    user_a_entrys = list(memory.entries(user_id=USER_A))
-    assert len(user_a_entrys) == 1
-    assert user_a_entrys[0].id == entry_id_2
+    user_a_entries = list(memory.entries(user_id=USER_A))
+    assert len(user_a_entries) == 1
+    assert user_a_entries[0].id == entry_id_2
 
     # Forgetting a non-existent entry should be a no-op
     memory.forget_entry(user_id=USER_A, entry_id="nonexistent-id")
 
-    # ── delete all global entrys for a user ────────────────────────────
+    # ── delete all global entries for a user ────────────────────────────
 
     memory.forget_entries(user_id=USER_A)
-    user_a_entrys = list(memory.entries(user_id=USER_A))
-    assert len(user_a_entrys) == 0, (
-        "All global entrys for user A should have been deleted."
+    user_a_entries = list(memory.entries(user_id=USER_A))
+    assert len(user_a_entries) == 0, (
+        "All global entries for user A should have been deleted."
     )
 
-    # User B's entrys are unaffected
-    user_b_entrys = list(memory.entries(user_id=USER_B))
-    assert len(user_b_entrys) == 1
+    # User B's entries are unaffected
+    user_b_entries = list(memory.entries(user_id=USER_B))
+    assert len(user_b_entries) == 1
 
     _cleanup()

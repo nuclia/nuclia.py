@@ -512,7 +512,7 @@ class NucliaMemory:
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
-        entry_id: str = uuid.uuid4().hex,
+        entry_id: str | None = None,
         **kwargs,
     ) -> str:
         """Add a memory entry to a specific topic.
@@ -545,7 +545,7 @@ class NucliaMemory:
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
-        entry_id: str = uuid.uuid4().hex,
+        entry_id: str | None = None,
         **kwargs,
     ) -> str:
         """Add a global memory entry (not tied to any specific topic).
@@ -577,9 +577,10 @@ class NucliaMemory:
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
-        entry_id: str = uuid.uuid4().hex,
+        entry_id: str | None = None,
         **kwargs,
     ) -> str:
+        entry_id = entry_id or str(uuid.uuid4())
         validate_entry_id(entry_id)
         validate_user_id(user_id)
         ndb: NucliaDBClient = kwargs["ndb"]
@@ -860,12 +861,53 @@ class NucliaMemory:
 
     # ── facts ───────────────────────────────────────────────────────────────
 
+    @overload
+    def facts(
+        self,
+        *,
+        user_id: str,
+        topic: str,
+        recent_first: bool = True,
+        **kwargs,
+    ) -> Iterator[Fact]:
+        """Get all extracted facts from entries of a user for a specific topic (from most recent to oldest).
+
+        Parameters
+        ----------
+        topic:
+            topic ID or slug to retrieve entries for.
+        user_id:
+            An identifier for the user whose entries to retrieve.
+        recent_first:
+            Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
+        """
+        ...
+
+    @overload
+    def facts(
+        self,
+        *,
+        user_id: str,
+        recent_first: bool = True,
+        **kwargs,
+    ) -> Iterator[Fact]:
+        """Get all extracted facts from global entries of a user (not tied to any specific topic).
+
+        Parameters
+        ----------
+        user_id:
+            An identifier for the user whose global entries to retrieve.
+        recent_first:
+            Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
+        """
+        ...
+
     @kb
     def facts(
         self,
         *,
-        topic: str,
         user_id: str,
+        topic: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
@@ -881,7 +923,11 @@ class NucliaMemory:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _uuid_or_slug(topic)
+        if topic is not None:
+            ruuid, rslug = _uuid_or_slug(topic)
+        else:
+            ruuid = None
+            rslug = _global_entries_slug(user_id)
         for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,

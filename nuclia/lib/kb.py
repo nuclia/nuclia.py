@@ -473,7 +473,7 @@ class NucliaDBClient(BaseNucliaDBClient):
         response: httpx.Response = self.writer_session.patch(
             f"{self.url}{UPDATE_TASK.format(task_id=task_id)}",
             json={
-                "parameters": parameters,
+                "parameters": parameters.model_dump(mode="json", exclude_unset=True)  # type: ignore
             },
         )
         handle_http_sync_errors(response)
