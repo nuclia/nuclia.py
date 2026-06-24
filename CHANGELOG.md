@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.12.0 (2026-06-24)
+
+### New Features
+
+- Add memory behavior to Knowledge Boxes (#274)
+
 ## 4.11.5 (2026-06-22)
 
 ## 4.11.4 (2026-06-17)
