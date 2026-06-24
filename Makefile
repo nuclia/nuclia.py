@@ -19,4 +19,4 @@ test-cov:
 		--cov-report=xml \
 		--cov-append \
         -s -rfE -vv \
-		nuclia
+		nuclia/
