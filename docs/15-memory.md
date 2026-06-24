@@ -555,7 +555,7 @@ nuclia memory forget_facts --user_id=alice-hr --topic=vacation-policy
 
 ## Complete Example: Personalised HR Assistant
 
-The following example mirrors the [hr_buddy_demo.py](../examples/hr_buddy_demo.py) script. Two HR operators (Alice and Bob) handle different employee requests on the same policy topics, and `ask()` produces personalised answers for each of them.
+In the following example, two HR operators (Alice and Bob) handle different employee requests on the same policy topics, and `ask()` produces personalised answers for each of them.
 
 ```python
 from nuclia.sdk.memory import (
