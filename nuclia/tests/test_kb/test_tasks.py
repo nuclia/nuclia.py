@@ -1,3 +1,4 @@
+import httpx
 import pytest
 from nuclia_models.worker.proto import (
     ApplyTo,
@@ -41,6 +42,22 @@ def test_worker_manager_tasks(testing_config):
     )
     assert isinstance(output, TaskResponse)
     task_id = output.id
+
+    with pytest.raises(httpx.HTTPStatusError) as exc_info:
+        # Tasks that run on existing data cannot be updated.
+        nkb.task.update(
+            task_id=task_id,
+            task_name=TaskName.LABELER,
+            parameters=DataAugmentation(
+                name="test",
+                on=ApplyTo.TEXT_BLOCK,
+                filter=Filter(),
+                operations=[Operation()],
+                llm=LLMConfig(),
+            ),
+        )
+
+    assert exc_info.value.response.status_code == 404
 
     output = nkb.task.get(task_id=task_id)
     assert output.request.id == task_id
