@@ -1,6 +1,6 @@
 [project]
 name = "nuclia"
-version = "4.11.5"
+version = "4.12.3"
 license = "MIT"
 description = "Nuclia Python SDK"
 readme = "README.md"
@@ -24,8 +24,8 @@ dependencies = [
     "httpcore>=1.0.0",
     "prompt_toolkit",
     "nucliadb_sdk>=6.13.0,<7",
-    "nucliadb_models>=6.9.0,<7",
     "nuclia-models>=0.59.0",
+    "nucliadb_models>=6.13.0,<7",
     "tqdm",
     "aiofiles",
     "backoff",
