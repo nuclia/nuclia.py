@@ -12,12 +12,12 @@ if BASE_DOMAIN == "stashify.cloud":
     TESTING_ACCOUNT_SLUG = "eric-cicd"
     TESTING_ACCOUNT_ID = "c99ca274-e776-49b8-9c03-e6e917f5e636"
     TESTING_KBID = "3fc11430-e1d5-45c7-86de-86d8efdd2cac"
-    TESTING_KB = "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_KBID
+    TESTING_KB = "https://europe-1.dp.stashify.cloud/api/v1/kb/" + TESTING_KBID
     TESTING_AGENT_ID = "3d9ab1b7-da33-4709-bc95-03d30c989f56"
-    TESTING_AGENT = "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_AGENT_ID
+    TESTING_AGENT = "https://europe-1.dp.stashify.cloud/api/v1/kb/" + TESTING_AGENT_ID
     TESTING_AGENT_NO_MEM_ID = "ad429881-1428-4313-83cc-88f8bc901073"
     TESTING_AGENT_NO_MEM = (
-        "https://europe-1.stashify.cloud/api/v1/kb/" + TESTING_AGENT_NO_MEM_ID
+        "https://europe-1.dp.stashify.cloud/api/v1/kb/" + TESTING_AGENT_NO_MEM_ID
     )
     TESTING_AGENT_REGION = "europe-1"
 else:
@@ -25,12 +25,12 @@ else:
     TESTING_ACCOUNT_SLUG = "nuclia"
     TESTING_ACCOUNT_ID = "4f9285c7-7151-4431-94e6-3f1fb0d66aca"
     TESTING_KBID = "18ab102c-a7db-4a35-b894-c20422b3b9f0"
-    TESTING_KB = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_KBID
+    TESTING_KB = "https://europe-1.dp.progress.cloud/api/v1/kb/" + TESTING_KBID
     TESTING_AGENT_ID = "6ce34422-ee0d-4077-9bc5-3845fe4d34f4"
-    TESTING_AGENT = "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_AGENT_ID
+    TESTING_AGENT = "https://europe-1.dp.progress.cloud/api/v1/kb/" + TESTING_AGENT_ID
     TESTING_AGENT_NO_MEM_ID = "adb21b52-b2cd-48bb-be3d-2f53d0017c62"
     TESTING_AGENT_NO_MEM = (
-        "https://europe-1.rag.progress.cloud/api/v1/kb/" + TESTING_AGENT_NO_MEM_ID
+        "https://europe-1.dp.progress.cloud/api/v1/kb/" + TESTING_AGENT_NO_MEM_ID
     )
     TESTING_AGENT_REGION = "europe-1"
 
