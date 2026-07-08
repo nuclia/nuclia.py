@@ -498,7 +498,7 @@ class NucliaAuth(BaseNucliaAuth):
     def get_user(self) -> User:
         resp = self._request("GET", get_global_url(MEMBER))
         assert resp
-        return User.model_validate_json(resp.json)
+        return User.model_validate(resp)
 
     def _show_user(self):
         resp = None
