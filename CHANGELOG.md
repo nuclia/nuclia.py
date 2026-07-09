@@ -1,5 +1,7 @@
 # Changelog
 
+## 4.13.1 (2026-07-09)
+
 ## 4.13.0 (2026-07-06)
 
 ### New Features
@@ -29,7 +31,7 @@
 ### Bug Fixes
 
 - use json= instead of data=/content= for httpx request body serialization
-- 
+
 ## 4.11.3 (2026-06-16)
 
 ### Bug Fixes

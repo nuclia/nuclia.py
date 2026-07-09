@@ -1,47 +1,61 @@
 # Query & download activity logs
 
-Activity originating at Nucliadb (like searches or questions) is stored on the activity log so you can query it. Depending on the data and format that you want to retrieve you can either query and get instant results or ask for a download to be prepared for you.
+Activity originating at Nucliadb (like searches or questions) is stored on the activity log. You can either query it for instant paginated results, or request an asynchronous download of the full result set.
 
-How the query is performed is exactly the same, the only difference is on the pagination, that for downloads you'll get the full results of the query.
+Downloads are asynchronous: you request a query, a file is prepared, and you either wait, poll for status, or get notified via email when it's ready.
 
-Downloads are asyncronous, so by using the download feature, you request a query to be done, and a file will be prepared to download, You can choose either to be notified via email when the download is ready, or poll for the download status.
+## Query Parameters
 
-See the examples for more information
+| Parameter | Description |
+|-----------|-------------|
+| `year_month` | Year and month of logs to retrieve (e.g., `2024-02`) |
+| `show` | Fields to display in the output (`id` is always included) |
+| `filters` | Filter criteria (see operators below) |
+| `pagination` | Control result size and cursor position |
 
+### Filter Operators
 
-### Query Parameters
+| Operator | Description |
+|----------|-------------|
+| `eq` | Equal to |
+| `gt` / `ge` | Greater than / Greater than or equal to |
+| `lt` / `le` | Less than / Less than or equal to |
+| `ne` | Not equal to |
+| `isnull` | Check for null (`True`/`False`) |
+| `like` | SQL-like pattern (string fields only) |
+| `ilike` | Case-insensitive SQL-like pattern (string fields only) |
+| `isin` | Value is in a given list |
+| `isnotin` | Value is not in a given list |
 
-1. `year_month`: Specify the year and month of logs to retrieve (e.g., `2024-02`).
-2. `show`: List fields to display in the output (Note: `id` is always displayed).
-3. `filters`: Apply filters using these operators:
-   - `eq`: Equal to (`=`)
-   - `gt`: Greater than (`>`)
-   - `ge`: Greater than or equal to (`>=`)
-   - `lt`: Less than (`<`)
-   - `le`: Less than or equal to (`<=`)
-   - `ne`: Not equal to (`!=`)
-   - `isnull`: Check for null (`True`/`False`)
-   - `like`: SQL-like operator (string fields only)
-   - `ilike`: Case-insensitive SQL-like operator (string fields only)
-4. `pagination`: Control the number of logs retrieved:
-   - `limit`: Number of items to fetch
-   - `starting_after`: Fetch logs after a specific ID (ascending order)
-   - `ending_before`: Fetch logs before a specific ID (descending order)
+### Pagination
 
-### Available Fields
+| Parameter | Description |
+|-----------|-------------|
+| `limit` | Number of items to fetch |
+| `starting_after` | Fetch logs after a specific ID (ascending) |
+| `ending_before` | Fetch logs before a specific ID (descending) |
 
-#### Common Fields (All Event Types)
-- `id`, `date`, `user_id`, `user_type`, `client_type`, `total_duration`, `audit_metadata`, `resource_id`, `nuclia_tokens`, `token_details`
+## Available Fields
 
-#### Event-Specific Fields
-- `CHAT` events: Common fields + `question`, `answer`, `rephrased_question`, `learning_id`, `retrieved_context`, `chat_history`, `feedback_good`, `feedback_comment`, `feedback_good_all`, `feedback_good_any`, `feedback`, `model`, `rag_strategies_names`, `rag_strategies`, `status`, `generative_answer_first_chunk_time`, `generative_reasoning_first_chunk_time`, `generative_answer_time`, `remi_scores`, `user_request`, `reasoning`
-- `SEARCH` events: Common fields + `question`, `resources_count`, `filter`, `retrieval_rephrased_question`, `vectorset`, `security`, `min_score_bm25`, `min_score_semantic`, `result_per_page`, `retrieval_time`
-- `ASK` events: Search fields + Chat fields
+### Common Fields (All Event Types)
 
+`id`, `date`, `user_id`, `user_type`, `client_type`, `total_duration`, `audit_metadata`, `resource_id`, `nuclia_tokens`, `token_details`
 
-### Query Examples
+### SEARCH Events
 
-#### CLI Example
+Common fields + `question`, `resources_count`, `filter`, `retrieval_rephrased_question`, `vectorset`, `security`, `min_score_bm25`, `min_score_semantic`, `result_per_page`, `retrieval_time`
+
+### CHAT Events
+
+Common fields + `question`, `answer`, `rephrased_question`, `learning_id`, `retrieved_context`, `chat_history`, `feedback_good`, `feedback_comment`, `feedback_good_all`, `feedback_good_any`, `feedback`, `model`, `rag_strategies_names`, `rag_strategies`, `status`, `generative_answer_first_chunk_time`, `generative_reasoning_first_chunk_time`, `generative_answer_time`, `remi_scores`, `user_request`, `reasoning`
+
+### ASK Events
+
+All SEARCH fields + all CHAT fields.
+
+## Query Examples
+
+### CLI
 
 ```bash
 nuclia kb logs query --type=ASK --query='{
@@ -55,7 +69,7 @@ nuclia kb logs query --type=ASK --query='{
 }'
 ```
 
-#### SDK Example
+### SDK
 
 ```python
 from nuclia import sdk
@@ -73,93 +87,61 @@ query = ActivityLogsAskQuery(
 )
 kb.logs.query(type=EventType.ASK, query=query)
 ```
-### Special Field: `audit_metadata`
-The `audit_metadata` field is a customizable dictionary. Use the `key` operator to target specific keys within the dictionary.
 
-#### Example to filter by `audit_metadata`:
+### Filtering by list values
 
-```json
-{
-  "year_month": "2024-10",
-  "show": ["audit_metadata.environment"],
-  "filters": {
-    "audit_metadata": [
-      {
-        "key": "environment",
-        "eq": "prod"
-      }
-    ]
-  },
-  "pagination": {
-    "limit": 10
-  }
-}
+Use `isin` or `isnotin`:
+
+```python
+filters={"answer": {"isin": ["alpha", "gamma"]}}
 ```
 
-### Download Examples
+### Filtering by `audit_metadata`
 
-#### CLI Examples
+`audit_metadata` is a customizable dictionary. Use the `key` operator to target specific keys:
 
-Request download and wait until the download url is generated
+```python
+query = ActivityLogsAskQuery(
+    year_month="2024-10",
+    show=["audit_metadata.environment"],
+    filters={
+        "audit_metadata": [{"key": "environment", "eq": "prod"}]
+    },
+    pagination=Pagination(limit=10)
+)
+```
+
+## Download
+
+### CLI
 
 ```bash
->>> nuclia kb logs download --wait --type=ASK --format=NDJSON --query='{
+# Wait for the download URL to be generated (blocking)
+nuclia kb logs download --wait --type=ASK --format=NDJSON --query='{
   "year_month": "2024-10",
   "show": ["id", "date", "question", "answer", "feedback_good"],
-  "filters": {
-    "question": {"ilike": "user question"},
-    "feedback_good": {"eq": true}
-  },
+  "filters": {"question": {"ilike": "user question"}}
 }'
 
-(...)
-request_id='dcbb6da6-92c0-11ef-8450-36cf85ca1604'
-download_url=https://your-download-url
-```
-
-Request download and ask to be notified
-```bash
->>> nuclia kb logs download --type=ASK --format=NDJSON --query='{
+# Request download and get notified via email
+nuclia kb logs download --type=ASK --format=NDJSON --query='{
   "year_month": "2024-10",
-  "show": ["id", "date", "question", "answer", "feedback_good"],
-  "filters": {
-    "question": {"ilike": "user question"},
-    "feedback_good": {"eq": true}
-  },
+  "show": ["id", "date", "question", "answer"],
   "notify_via_email": true,
   "email_address": "address@foo.com"
 }'
 
-(...)
-request_id='dcbb6da6-92c0-11ef-8450-36cf85ca1604'
-download_url=null
-```
-Request download and poll for the status
-```bash
->>> nuclia kb logs download --type=ASK --format=NDJSON --query='{
-  "year_month": "2024-10",
-  "show": ["id", "date", "question", "answer", "feedback_good"],
-  "filters": {
-    "question": {"ilike": "user question"},
-    "feedback_good": {"eq": true}
-  },
-}'
-
-(...)
-request_id='dcbb6da6-92c0-11ef-8450-36cf85ca1604'
-download_url=null
-
->>> nuclia kb logs download_status dcbb6da6-92c0-11ef-8450-36cf85ca1604
-(...)
-request_id='dcbb6da6-92c0-11ef-8450-36cf85ca1604'
-download_url=https://your-download-url
+# Poll for status manually
+nuclia kb logs download_status <request_id>
 ```
 
-#### SDK Example
+### SDK
 
 ```python
 from nuclia import sdk
-from nuclia_models.events.activity_logs import DownloadActivityLogsAskQuery, EventType
+from nuclia_models.events.activity_logs import (
+    DownloadActivityLogsAskQuery, DownloadFormat, EventType,
+)
 
 kb = sdk.NucliaKB()
 query = DownloadActivityLogsAskQuery(
@@ -170,24 +152,24 @@ query = DownloadActivityLogsAskQuery(
         "feedback_good": {"eq": True}
     },
 )
-request = kb.logs.download(type=EventType.ASK, query=query, wait=True)
-return request.download_url
+request = kb.logs.download(
+    type=EventType.ASK, query=query, download_format=DownloadFormat.NDJSON, wait=True
+)
+print(request.download_url)
 ```
 
+---
 
 ## REMi
 
-The REMi module provides tools to monitor the quality of your RAG pipeline to get the best answers. Use these commands to query logs with REMi data and monitor score evolution over time.
+The REMi module monitors the quality of your RAG pipeline. Use it to query logs by REMi scores and track score evolution over time.
 
-## REMi Query
+### Query
 
-Use `remi query` to retrieve a list of ask activity logs that match specified criteria for REMi scores.
+Retrieve ask activity logs matching REMi score criteria.
 
-### Basic Query
+#### CLI
 
-Retrieve logs for a specific month and apply context relevance filters.
-
-#### CLI Example
 ```bash
 nuclia kb remi query --query='{
     "month": "2024-11",
@@ -199,7 +181,8 @@ nuclia kb remi query --query='{
 }'
 ```
 
-#### SDK Example
+#### SDK
+
 ```python
 from nuclia import sdk
 from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery
@@ -215,108 +198,46 @@ kb.remi.query(
 )
 ```
 
----
+Optional filters: `feedback_good` (bool) and `status` (`NO_CONTEXT`, `ERROR`, `SUCCESS`):
 
-### Filtering by Feedback
-
-Further refine the query to include only logs with positive (or negative) feedback.
-
-#### CLI Example
-```bash
-nuclia kb remi query --query='{
-    "month": "2024-11",
-    "context_relevance": {
-        "value": 0,
-        "operation": "gt",
-        "aggregation": "average"
-    },
-    "feedback_good": true
-}'
-```
-
-#### SDK Example
 ```python
-from nuclia import sdk
-from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery
+from nuclia_models.events.remi import RemiQuery, ContextRelevanceQuery, Status
 
-kb = sdk.NucliaKB()
 kb.remi.query(
     query=RemiQuery(
         month="2024-11",
-        context_relevance=ContextRelevanceQuery(
-            value=0, operation="gt", aggregation="average"
-        ),
-        feedback_good=True
+        context_relevance=ContextRelevanceQuery(value=0, operation="gt", aggregation="average"),
+        feedback_good=True,
+        status=Status.SUCCESS,
     )
 )
 ```
 
----
+### Get Event
 
-### Filtering by Model Status
+Fetch full context and score details for a specific event (from a previous query result):
 
-Filter logs by REMi model status. Available status options are `NO_CONTEXT`, `ERROR`, and `SUCCESS`.
-
-#### CLI Example
-```bash
-nuclia kb remi query --query='{
-    "month": "2024-11",
-    "status": "NO_CONTEXT"
-}'
-```
-
-#### SDK Example
-```python
-from nuclia import sdk
-from nuclia_models.events.remi import RemiQuery, Status
-
-kb = sdk.NucliaKB()
-kb.remi.query(
-    query=RemiQuery(
-        month="2024-11",
-        status=Status.NO_CONTEXT
-    )
-)
-```
-
----
-
-### REMi Get
-
-Use `remi get_event` to fetch detailed information for a specific ask activity log. This command is useful for retrieving full context and score details of an entry obtained from a previous REMi query.
-
-#### CLI Example
 ```bash
 nuclia kb remi get_event --event_id=16987522
 ```
 
-#### SDK Example
 ```python
-from nuclia import sdk
-
-kb = sdk.NucliaKB()
 kb.remi.get_event(event_id=16987522)
 ```
 
----
+### Get Scores
 
-### REMi Scores
+Retrieve REMi score progression over time, aggregated by `day`, `week`, or `month`:
 
-Use `remi get_scores` to retrieve the progression of REMi scores over a specified time period, with options to aggregate scores by day, month, or other intervals.
-
-#### CLI Example
 ```bash
 nuclia kb remi get_scores --starting_at=2024-05-01 --to=None --aggregation=day
 ```
 
-#### SDK Example
 ```python
-from nuclia import sdk
 from nuclia_models.common.utils import Aggregation
 from datetime import datetime
 
-kb = sdk.NucliaKB()
-output2 = kb.remi.get_scores(
+output = kb.remi.get_scores(
     starting_at=datetime(year=2024, month=5, day=1),
     to=None,
     aggregation=Aggregation.DAY,
