@@ -15,7 +15,7 @@ class _FakeConfig:
 
     def get_nua(self, _nua_id):
         class _NuaObj:
-            region = "https://europe-1.rag.progress.cloud"
+            region = "https://europe-1.dp.progress.cloud"
 
         return _NuaObj()
 

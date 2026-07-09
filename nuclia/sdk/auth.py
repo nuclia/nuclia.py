@@ -498,7 +498,7 @@ class NucliaAuth(BaseNucliaAuth):
     def get_user(self) -> User:
         resp = self._request("GET", get_global_url(MEMBER))
         assert resp
-        return User.model_validate_json(resp.json)
+        return User.model_validate(resp)
 
     def _show_user(self):
         resp = None
@@ -696,7 +696,7 @@ class NucliaAuth(BaseNucliaAuth):
         if data is not None:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
-            kwargs["content"] = json.dumps(data)
+            kwargs["json"] = data
 
         resp = self.client.request(
             method,
@@ -733,7 +733,7 @@ class NucliaAuth(BaseNucliaAuth):
         if data is not None:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
-            kwargs["content"] = json.dumps(data)
+            kwargs["json"] = data
 
         resp = self.client.request(
             method,
@@ -1290,7 +1290,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         if data is not None:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
-            kwargs["data"] = json.dumps(data)
+            kwargs["json"] = data
         resp = await self.client.request(
             method,
             path,
@@ -1327,7 +1327,7 @@ class AsyncNucliaAuth(BaseNucliaAuth):
         if data is not None:
             if remove_null:
                 data = {k: v for k, v in data.items() if v is not None}
-            kwargs["data"] = json.dumps(data)
+            kwargs["json"] = data
         resp = await self.client.request(
             method,
             path,
