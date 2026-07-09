@@ -1,6 +1,6 @@
 # Release process
 
-Releases are fully driven by pull requests. Adding the `release` label to a PR is the
+Releases are fully driven by pull requests. Adding the `bump` label to a PR is the
 single gesture that initiates a release: the bot prepares the version bump and changelog
 automatically, and merging the PR publishes the package to PyPI via Trusted Publishing.
 
@@ -11,12 +11,13 @@ automatically, and merging the PR publishes the package to PyPI via Trusted Publ
 ### Normal feature/fix PR that should also release
 
 1. Open your PR as usual and get it reviewed.
-2. Add the `release` label.
+2. Add the `bump` label.
    - The bot commits a version bump and updated `CHANGELOG.md` to your branch.
    - The bot posts a comment confirming the new version and inviting you to edit the changelog if needed.
+   - The bot adds the label `release` to the PR
 3. Merge the PR. PyPI publishing starts automatically after the merge.
 
-> PRs merged **without** the `release` label are never bumped or published. Their commits
+> PRs merged **without** the `bump` label are never bumped or published. Their commits
 > accumulate and will be included in the next release's changelog whenever that is triggered.
 
 ### Release unreleased changes without new code
@@ -62,7 +63,7 @@ point for all CI and release activity. Here is what happens at each stage:
    These jobs are also skipped when the PR comes from the `release/auto` branch (the
    release preparation commit has no code changes worth retesting).
 
-### When the `release` label is added to a PR (`labeled`)
+### When the `bump` label is added to a PR (`labeled`)
 
 4. **`prepare-release-commit`** — runs immediately:
    - Generates a short-lived token via the Nuclia Service Bot GitHub App.
