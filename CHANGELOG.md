@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.13.1 (2026-07-09)
+
+- Use moved ChatModel classes from nuclia-models
+
 ## 4.13.0 (2026-07-06)
 
 ### New Features

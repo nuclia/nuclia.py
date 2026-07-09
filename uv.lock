@@ -1522,7 +1522,7 @@ wheels = [
 
 [[package]]
 name = "nuclia"
-version = "4.12.3"
+version = "4.13.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -1580,7 +1580,7 @@ requires-dist = [
     { name = "httpcore", specifier = ">=1.0.0" },
     { name = "httpx" },
     { name = "litellm", marker = "extra == 'litellm'" },
-    { name = "nuclia-models", specifier = ">=0.59.0" },
+    { name = "nuclia-models", specifier = ">=0.62.0" },
     { name = "nucliadb-models", specifier = ">=6.15.0,<7" },
     { name = "nucliadb-protos", marker = "extra == 'protos'", specifier = ">=6.4,<7" },
     { name = "nucliadb-sdk", specifier = ">=6.15.0,<7" },
@@ -1616,14 +1616,14 @@ dev = [
 
 [[package]]
 name = "nuclia-models"
-version = "0.59.0"
+version = "0.62.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", extra = ["email"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/02/8b59bd33b568e8931d7b033ea4186b22a4e03a2a032bbb02179514ceb38c/nuclia_models-0.59.0.tar.gz", hash = "sha256:378f10172ba75319b98839c4a96f8e1590a2f8278196e620ad03badc6fe9dc77", size = 25374, upload-time = "2026-06-21T21:19:44.586Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/91/7ede9ea267a15941dbd038d94517c0cbdf4b4f65bc5c52a6ae7c960cf182/nuclia_models-0.62.0.tar.gz", hash = "sha256:664ab2ba3850532a5ff61dc30584fbd7c3f4b30420a070bce225756ba684b88a", size = 28437, upload-time = "2026-07-09T08:37:31.83Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/9b/497803b29faa5b1e90950a245dd316100c00e67ad3136090b8448a27f39e/nuclia_models-0.59.0-py3-none-any.whl", hash = "sha256:b64de9f07c072a6677982b1a938177f7b5d1c6b0f1f686a36dd6e3310af797dc", size = 29890, upload-time = "2026-06-21T21:19:43.41Z" },
+    { url = "https://files.pythonhosted.org/packages/30/d5/cb77ac6a9ece79591981ec4dfa4e8449343ab151f3ef372b5fe8df5adfd7/nuclia_models-0.62.0-py3-none-any.whl", hash = "sha256:776a8e12b90bc82a23114c715363764845c890f12953fe395a2f78e472e74ba8", size = 33703, upload-time = "2026-07-09T08:37:30.878Z" },
 ]
 
 [[package]]

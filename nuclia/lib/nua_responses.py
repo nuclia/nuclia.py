@@ -1,11 +1,27 @@
 from datetime import datetime
 from enum import Enum, IntEnum
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
-from pydantic import BaseModel, Field, RootModel, field_serializer, model_validator
-from typing_extensions import Annotated, Self
+
+# Backward compatibility re-exports for models moved to chat.py
+from nuclia_models.predict.chat import (
+    Author,  # noqa: F401
+    ChatModel,  # noqa: F401
+    CitationsType,  # noqa: F401
+    Image,  # noqa: F401
+    Message,  # noqa: F401
+    Reasoning,  # noqa: F401
+    Tool,  # noqa: F401
+    ToolChoiceAuto,  # noqa: F401
+    ToolChoiceForced,  # noqa: F401
+    ToolChoiceNone,  # noqa: F401
+    ToolChoiceRequired,  # noqa: F401
+    UserPrompt,  # noqa: F401
+)
+from pydantic import BaseModel, Field, RootModel
+from typing_extensions import Annotated
 
 
 class GenerativeOption(BaseModel):
@@ -53,166 +69,6 @@ class Sentence(BaseModel):
     data: List[float]
     time: float
     consumption: Optional[Consumption] = None
-
-
-class Author(str, Enum):
-    NUCLIA = "NUCLIA"
-    USER = "USER"
-
-
-class Message(BaseModel):
-    author: Author
-    text: str
-
-
-class UserPrompt(BaseModel):
-    prompt: str
-
-
-class Image(BaseModel):
-    content_type: str
-    b64encoded: str
-
-
-class Tool(BaseModel):
-    name: str
-    description: str
-    parameters: Dict[str, Any] = Field(
-        default_factory=dict, description="Schema of the tool"
-    )
-
-
-class Reasoning(BaseModel):
-    display: bool = Field(
-        default=True,
-        description="Whether to display the reasoning steps in the response.",
-    )
-    effort: Literal["none", "minimal", "low", "medium", "high", "xhigh"] = Field(
-        default="medium",
-        description=(
-            "Level of reasoning effort. Used by OpenAI models to control the depth of reasoning. "
-            "If the chosen model only supports budget_tokens, the server normalizes this value "
-            "to an appropriate token budget automatically."
-        ),
-    )
-    budget_tokens: int = Field(
-        default=15_000,
-        description=(
-            "Token budget for reasoning. Used by Anthropic or Google models to limit the number of "
-            "tokens used for reasoning. If the chosen model only supports effort, the server "
-            "normalizes this value to an appropriate effort level automatically."
-        ),
-    )
-
-
-class CitationsType(str, Enum):
-    NONE = "none"
-    DEFAULT = "default"
-    LLM_FOOTNOTES = "llm_footnotes"
-
-
-class ToolChoiceAuto(BaseModel):
-    type: Literal["auto"] = "auto"
-
-
-class ToolChoiceNone(BaseModel):
-    type: Literal["none"] = "none"
-
-
-class ToolChoiceRequired(BaseModel):
-    type: Literal["required"] = "required"
-
-
-class ToolChoiceForced(BaseModel):
-    type: Literal["forced"] = "forced"
-    name: str
-
-
-class ChatModel(BaseModel):
-    question: str
-    retrieval: bool = True
-    user_id: str
-    system: Optional[str] = None
-    chat_history: List[Message] = []
-    context: List[Message] = []
-    query_context: Union[List[str], Dict[str, str]] = {}
-    query_context_order: Dict[str, int] = {}
-    truncate: Optional[bool] = True
-    user_prompt: Optional[UserPrompt] = None
-    citations: Union[bool, None, CitationsType] = Field(
-        default=None,
-        description="Whether to include citations in the response. "
-        "If set to None or False, no citations will be computed. "
-        "If set to True or 'default', citations will be computed after answer generation and send as a separate `CitationsGenerativeResponse` chunk"
-        "If set to 'llm_footnotes', citations will be included in the LLM's response as markdown-styled footnotes. A `FootnoteCitationsGenerativeResponse` chunk will also be sent to map footnote ids to context keys in the `query_context`.",
-    )
-    citation_threshold: Optional[float] = Field(
-        default=None,
-        description="If citations is set to True, this will be the similarity threshold. Value between 0 and 1, lower values will produce more citations. If not set, it will be set to the optimized threshold found by Nuclia.",
-        ge=0.0,
-        le=1.0,
-    )
-    generative_model: Optional[str] = None
-    max_tokens: Optional[int] = None
-    query_context_images: Union[
-        List[Image], Dict[str, Image]
-    ] = {}  # base64.b64encode(image_file.read()).decode('utf-8')
-    prefer_markdown: Optional[bool] = None
-    json_schema: Optional[Dict[str, Any]] = None
-    format_prompt: bool = True
-    rerank_context: bool = Field(
-        default=False,
-        description="Whether to reorder the query context based on a reranker. This option will also make it so the first response will contain the scores given for each context piece.",
-    )
-    tools: List[Tool] = Field(
-        default_factory=list, description="List of tools to choose"
-    )
-    tool_choice: Union[
-        ToolChoiceAuto, ToolChoiceNone, ToolChoiceRequired, ToolChoiceForced
-    ] = Field(
-        default=ToolChoiceRequired(),
-        discriminator="type",
-        description=(
-            "Tool choice strategy. "
-            "`auto`: The model decides whether to use a tool or not based on the prompt and available tools. "
-            "`required` (default): A tool must be used."
-            "`none`: Disables tool usage even if tools are provided."
-            "`forced`: Forces the use of a specific tool provided in `name`."
-            "Important: Not all model providers support all tool choice strategies, its a best effort feature."
-        ),
-    )
-    reasoning: Union[Reasoning, bool] = Field(
-        default=False,
-        description=(
-            "Reasoning options for the generative model. "
-            "Set to True to enable default reasoning, False to disable, or provide a Reasoning object for custom options."
-        ),
-    )
-
-    seed: Optional[int] = Field(
-        default=None,
-        description="Seed use for the generative model for a deterministic output.",
-    )
-
-    @model_validator(mode="after")
-    def validate_model(self) -> Self:
-        if self.prefer_markdown is True and self.json_schema is not None:
-            raise ValueError("Can not setup markdown and JSON Schema at the same time")
-        if self.citations is True and self.json_schema is not None:
-            raise ValueError("Can not setup citations and JSON Schema at the same time")
-        if self.citations is True and len(self.tools) > 0:
-            raise ValueError("Can not setup citations and Tools at the same time")
-        if len(self.tools) > 0 and self.json_schema is not None:
-            raise ValueError("Can not setup Tools and JSON Schema at the same time")
-        return self
-
-    @field_serializer("reasoning")
-    def serialize_reasoning(
-        self, v: Union["Reasoning", bool]
-    ) -> Union[Dict[str, Any], bool]:
-        if isinstance(v, Reasoning):
-            return v.model_dump(exclude_unset=True)
-        return v
 
 
 class Token(BaseModel):
