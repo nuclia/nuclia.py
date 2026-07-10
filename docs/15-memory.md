@@ -193,6 +193,61 @@ nuclia memory delete_topic vacation-policy --confirm=true
 
 ---
 
+### List users per topic
+
+Returns the list of user IDs that have at least one entry in a given topic. This is useful for serverless or stateless workloads where you don't keep a local registry of which users exist.
+
+```python
+users = memory.list_users(topic="vacation-policy")
+print(users)
+# ["alice-hr", "bob-hr"]
+```
+
+#### List all users with global entries
+
+Omit `topic` to get every user that has created at least one global (cross-topic) entry:
+
+```python
+users = memory.list_users()
+print(users)
+# ["agent-session-abc123", "agent-session-xyz789", ...]
+```
+
+This call paginates through the KB catalog automatically, so it works correctly even when there are a large number of users.
+
+> **Note:** A user ID will only appear in the result if the corresponding field or resource still exists. Users whose entries were fully deleted via `forget_entries()` will not be listed.
+
+#### Error handling
+
+`TopicNotFoundError` is raised if the given topic does not exist:
+
+```python
+from nuclia.sdk.memory import NucliaMemory, TopicNotFoundError
+
+memory = NucliaMemory()
+
+try:
+    users = memory.list_users(topic="non-existent-topic")
+except TopicNotFoundError:
+    print("Topic does not exist.")
+```
+
+#### Async
+
+```python
+users = await memory.list_users(topic="vacation-policy")
+users = await memory.list_users()  # global entries
+```
+
+#### CLI
+
+```bash
+nuclia memory list_users --topic=vacation-policy
+nuclia memory list_users
+```
+
+---
+
 ## Writing Entries
 
 `remember()` writes a timestamped entry for a user on a topic. The background task automatically distils a fact and updates the knowledge graph.
