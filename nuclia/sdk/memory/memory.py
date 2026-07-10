@@ -22,8 +22,11 @@ from nucliadb_models import (
 )
 from nucliadb_models.common import FieldTypeName
 from nucliadb_models.link import LinkField
-from nucliadb_models.resource import Resource
+from nucliadb_models.resource import ConversationFieldData, Resource
 from nucliadb_models.search import (
+    CatalogQuery,
+    CatalogQueryField,
+    CatalogQueryMatch,
     CatalogRequest,
     ChatContextMessage,
     CustomPrompt,
@@ -52,6 +55,8 @@ from nuclia.sdk.memory.models import (
     TopicPage,
 )
 from nuclia.sdk.memory.utils import (
+    GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX,
+    MEMORY_FIELD_PREFIX,
     _add_conversation_message,
     _build_ask_request,
     _build_entry_message,
@@ -231,7 +236,7 @@ class NucliaMemory:
     def list_topics(
         self,
         *,
-        query: str = "",
+        query: str | CatalogQuery = "",
         page: int = 0,
         size: int = 20,
         **kwargs,
@@ -581,6 +586,87 @@ class NucliaMemory:
                     f"Entry with ID '{entry_id}' already exists."
                 )
         return entry_id
+
+    # ── list users ──────────────────────────────────────────────────────────
+
+    @overload
+    def list_users(
+        self,
+        *,
+        topic: str,
+        **kwargs,
+    ) -> list[str]:
+        """Return the list of user IDs that have entries in the given topic.
+
+        Parameters
+        ----------
+        topic:
+            The ID or slug of the topic to inspect.
+        """
+        ...
+
+    @overload
+    def list_users(
+        self,
+        **kwargs,
+    ) -> list[str]:
+        """Return the list of all user IDs that have global entries (not tied to any specific topic).
+
+        Global entries live in per-user resources whose slugs begin with
+        ``memory-global-entries-``. This overload lists all users that have
+        created at least one global entry.
+        """
+        ...
+
+    @kb
+    def list_users(
+        self,
+        *,
+        topic: str | None = None,
+        **kwargs,
+    ) -> list[str]:
+        """Return the list of user IDs that have entries in the given topic, or all users with global entries when no topic is given.
+
+        Parameters
+        ----------
+        topic:
+            The ID or slug of the topic to inspect. When omitted, returns all
+            users with global (topic-less) entries.
+        """
+        if topic is not None:
+            ruuid, rslug = _uuid_or_slug(topic)
+            try:
+                resource: Resource = self.kb.resource.get(
+                    rid=ruuid,
+                    slug=rslug,
+                    show=[ResourceProperties.VALUES.value],
+                )
+            except NotFoundError:
+                raise TopicNotFoundError(f"topic '{topic}' not found.")
+            conversations: dict[str, ConversationFieldData] = (
+                (resource.data.conversations or {}) if resource.data else {}
+            )
+            return [
+                field_id[len(MEMORY_FIELD_PREFIX) :]
+                for field_id in conversations
+                if field_id.startswith(MEMORY_FIELD_PREFIX)
+            ]
+        else:
+            page, user_ids = 0, []
+            prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
+            query = CatalogQuery(
+                field=CatalogQueryField.Title,
+                match=CatalogQueryMatch.StartsWith,
+                query=prefix,
+            )
+            while True:
+                page_result = self.list_topics(query=query, page=page, size=50)
+                for topic_item in page_result.items:
+                    user_ids.append(topic_item.slug[len(prefix) :])
+                if not page_result.has_more:
+                    break
+                page += 1
+            return user_ids
 
     # ── recall ─────────────────────────────────────────────────────────────
 
@@ -1430,6 +1516,87 @@ class AsyncNucliaMemory:
                     f"Entry with ID '{entry_id}' already exists."
                 )
         return entry_id
+
+    # ── list users ──────────────────────────────────────────────────────────
+
+    @overload
+    async def list_users(
+        self,
+        *,
+        topic: str,
+        **kwargs,
+    ) -> list[str]:
+        """Return the list of user IDs that have entries in the given topic.
+
+        Parameters
+        ----------
+        topic:
+            The ID or slug of the topic to inspect.
+        """
+        ...
+
+    @overload
+    async def list_users(
+        self,
+        **kwargs,
+    ) -> list[str]:
+        """Return the list of all user IDs that have global entries (not tied to any specific topic).
+
+        Global entries live in per-user resources whose slugs begin with
+        ``memory-global-entries-``. This overload lists all users that have
+        created at least one global entry.
+        """
+        ...
+
+    @kb
+    async def list_users(
+        self,
+        *,
+        topic: str | None = None,
+        **kwargs,
+    ) -> list[str]:
+        """Return the list of user IDs that have entries in the given topic, or all users with global entries when no topic is given.
+
+        Parameters
+        ----------
+        topic:
+            The ID or slug of the topic to inspect. When omitted, returns all
+            users with global (topic-less) entries.
+        """
+        if topic is not None:
+            ruuid, rslug = _uuid_or_slug(topic)
+            try:
+                resource: Resource = await self.kb.resource.get(
+                    rid=ruuid,
+                    slug=rslug,
+                    show=[ResourceProperties.VALUES.value],
+                )
+            except NotFoundError:
+                raise TopicNotFoundError(f"topic '{topic}' not found.")
+            conversations: dict[str, ConversationFieldData] = (
+                (resource.data.conversations or {}) if resource.data else {}
+            )
+            return [
+                field_id[len(MEMORY_FIELD_PREFIX) :]
+                for field_id in conversations
+                if field_id.startswith(MEMORY_FIELD_PREFIX)
+            ]
+        else:
+            prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
+            query = CatalogQuery(
+                field=CatalogQueryField.Title,
+                match=CatalogQueryMatch.StartsWith,
+                query=prefix,
+            )
+            page, user_ids = 0, []
+            while True:
+                page_result = await self.list_topics(query=query, page=page, size=50)
+                for topic_item in page_result.items:
+                    user_ids.append(topic_item.slug[len(prefix) :])
+                if not page_result.has_more:
+                    break
+                page += 1
+            return user_ids
 
     # ── recall ─────────────────────────────────────────────────────────────
 

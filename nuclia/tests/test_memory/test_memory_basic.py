@@ -292,6 +292,16 @@ async def test_basic(
     ]
     assert len(global_facts) >= 1, "Expected at least one global fact."
 
+    # List users tests
+    users_in_topic = await maybe_await(memory.list_users(topic="vacation-policy"))
+    assert "user-a" in users_in_topic, (
+        "user-a should be listed as a user in 'vacation-policy' topic."
+    )
+
+    # Listing users for a non-existent topic should raise TopicNotFoundError
+    with pytest.raises(TopicNotFoundError):
+        await maybe_await(memory.list_users(topic="non-existent-topic"))
+
     # Pagination tests
     page = 0
     while True:
@@ -462,4 +472,55 @@ async def test_basic_nontopic(
     ]
     assert len(user_b_entries) == 1
 
+    # ── list users (global, no topic) ──────────────────────────────────
+
+    all_users = await maybe_await(memory.list_users())
+    assert USER_B in all_users, (
+        f"{USER_B} should appear in global user list (still has an entry)."
+    )
+    # USER_A's global entries were all deleted, so they should not appear
+    assert USER_A not in all_users, (
+        f"{USER_A} should not appear in global user list after all entries were deleted."
+    )
+
     await _cleanup()
+
+
+@pytest.mark.parametrize(
+    "memory_klass",
+    [NucliaMemory, AsyncNucliaMemory],
+)
+async def test_list_users_pagination(
+    testing_config,
+    memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
+) -> None:
+    """Test that list_users() correctly paginates when there are more than 50 users."""
+    memory = memory_klass()
+    NUM_USERS = 55  # exceeds the internal page size of 50
+    user_ids = [f"pagination-test-user-{i:03d}" for i in range(NUM_USERS)]
+
+    async def _cleanup():
+        for uid in user_ids:
+            await maybe_await(memory.forget_entries(user_id=uid))
+
+    await _cleanup()
+
+    # Create a global entry for each user
+    for uid in user_ids:
+        await maybe_await(
+            memory.remember(
+                f"Global entry for {uid}.",
+                user_id=uid,
+            )
+        )
+
+    try:
+        all_users = await maybe_await(memory.list_users())
+
+        found = [uid for uid in user_ids if uid in all_users]
+        assert len(found) == NUM_USERS, (
+            f"Expected all {NUM_USERS} users to be returned by list_users(), "
+            f"but only found {len(found)}."
+        )
+    finally:
+        await _cleanup()
