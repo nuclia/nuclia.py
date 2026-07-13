@@ -22,11 +22,9 @@ from nucliadb_models import (
 )
 from nucliadb_models.common import FieldTypeName
 from nucliadb_models.link import LinkField
-from nucliadb_models.resource import ConversationFieldData, Resource
+from nucliadb_models.resource import Resource
 from nucliadb_models.search import (
     CatalogQuery,
-    CatalogQueryField,
-    CatalogQueryMatch,
     CatalogRequest,
     ChatContextMessage,
     CustomPrompt,
@@ -55,8 +53,6 @@ from nuclia.sdk.memory.models import (
     TopicPage,
 )
 from nuclia.sdk.memory.utils import (
-    GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX,
-    MEMORY_FIELD_PREFIX,
     _add_conversation_message,
     _build_ask_request,
     _build_entry_message,
@@ -67,8 +63,10 @@ from nuclia.sdk.memory.utils import (
     _ensure_global_entries_resource,
     _entries_field_id,
     _facts_field_id,
+    _get_global_users,
     _get_resource_basic,
     _get_topic_status,
+    _get_topic_users,
     _global_entries_slug,
     _iter_conversation_messages,
     _parse_ask_result,
@@ -633,40 +631,15 @@ class NucliaMemory:
             The ID or slug of the topic to inspect. When omitted, returns all
             users with global (topic-less) entries.
         """
+        ndb: NucliaDBClient = kwargs["ndb"]
         if topic is not None:
             ruuid, rslug = _uuid_or_slug(topic)
             try:
-                resource: Resource = self.kb.resource.get(
-                    rid=ruuid,
-                    slug=rslug,
-                    show=[ResourceProperties.VALUES.value],
-                )
+                return _get_topic_users(ndb, ndb.kbid, ruuid, rslug)
             except NotFoundError:
                 raise TopicNotFoundError(f"topic '{topic}' not found.")
-            conversations: dict[str, ConversationFieldData] = (
-                (resource.data.conversations or {}) if resource.data else {}
-            )
-            return [
-                field_id[len(MEMORY_FIELD_PREFIX) :]
-                for field_id in conversations
-                if field_id.startswith(MEMORY_FIELD_PREFIX)
-            ]
         else:
-            page, user_ids = 0, []
-            prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
-            query = CatalogQuery(
-                field=CatalogQueryField.Title,
-                match=CatalogQueryMatch.StartsWith,
-                query=prefix,
-            )
-            while True:
-                page_result = self.list_topics(query=query, page=page, size=50)
-                for topic_item in page_result.items:
-                    user_ids.append(topic_item.slug[len(prefix) :])
-                if not page_result.has_more:
-                    break
-                page += 1
-            return user_ids
+            return _get_global_users(ndb)
 
     # ── recall ─────────────────────────────────────────────────────────────
 
@@ -1563,40 +1536,15 @@ class AsyncNucliaMemory:
             The ID or slug of the topic to inspect. When omitted, returns all
             users with global (topic-less) entries.
         """
+        ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if topic is not None:
             ruuid, rslug = _uuid_or_slug(topic)
             try:
-                resource: Resource = await self.kb.resource.get(
-                    rid=ruuid,
-                    slug=rslug,
-                    show=[ResourceProperties.VALUES.value],
-                )
+                return await _get_topic_users(ndb, ndb.kbid, ruuid, rslug)
             except NotFoundError:
                 raise TopicNotFoundError(f"topic '{topic}' not found.")
-            conversations: dict[str, ConversationFieldData] = (
-                (resource.data.conversations or {}) if resource.data else {}
-            )
-            return [
-                field_id[len(MEMORY_FIELD_PREFIX) :]
-                for field_id in conversations
-                if field_id.startswith(MEMORY_FIELD_PREFIX)
-            ]
         else:
-            prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
-            query = CatalogQuery(
-                field=CatalogQueryField.Title,
-                match=CatalogQueryMatch.StartsWith,
-                query=prefix,
-            )
-            page, user_ids = 0, []
-            while True:
-                page_result = await self.list_topics(query=query, page=page, size=50)
-                for topic_item in page_result.items:
-                    user_ids.append(topic_item.slug[len(prefix) :])
-                if not page_result.has_more:
-                    break
-                page += 1
-            return user_ids
+            return await _get_global_users(ndb)
 
     # ── recall ─────────────────────────────────────────────────────────────
 
