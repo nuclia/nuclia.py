@@ -993,6 +993,14 @@ class NucliaMemory:
         """
         Delete all entries from a topic for the specified user or from the global entries topic created by the user.
         """
+        if topic is None:
+            # Delete all entries and facts for that user
+            try:
+                self.kb.resource.delete(slug=_global_entries_slug(user_id))
+            except NotFoundError:
+                pass
+            return
+
         ndb: NucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _resolve_topic_location(topic, user_id)
         try:
@@ -1047,6 +1055,21 @@ class NucliaMemory:
         Delete all facts from a topic for the specified user entries on a topic or from the global entries topic created by the user.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
+        if topic is None:
+            # Delete all global facts for that user
+            try:
+                _delete_resource_field(
+                    ndb=ndb,
+                    kbid=ndb.kbid,
+                    rid=None,
+                    slug=_global_entries_slug(user_id),
+                    field_type=FieldTypeName.CONVERSATION,
+                    field_id=_facts_field_id(user_id, self.task_ident),
+                )
+            except NotFoundError:
+                pass
+            return
+
         ruuid, rslug = _resolve_topic_location(topic, user_id)
         try:
             _delete_resource_field(
@@ -1819,6 +1842,14 @@ class AsyncNucliaMemory:
         """
         Delete all entries from a topic for the specified user or from the global entries topic created by the user.
         """
+        if topic is None:
+            # Delete all global entries and facts for that user
+            try:
+                await self.kb.resource.delete(slug=_global_entries_slug(user_id))
+            except NotFoundError:
+                pass
+            return
+
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _resolve_topic_location(topic, user_id)
         try:
@@ -1873,6 +1904,21 @@ class AsyncNucliaMemory:
         Delete all facts from a topic for the specified user entries on a topic or from the global entries topic created by the user.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
+        if topic is None:
+            # Delete all global facts for that user
+            try:
+                await _delete_resource_field(
+                    ndb=ndb,
+                    kbid=ndb.kbid,
+                    rid=None,
+                    slug=_global_entries_slug(user_id),
+                    field_type=FieldTypeName.CONVERSATION,
+                    field_id=_facts_field_id(user_id, self.task_ident),
+                )
+            except NotFoundError:
+                pass
+            return
+
         ruuid, rslug = _resolve_topic_location(topic, user_id)
         try:
             await _delete_resource_field(
