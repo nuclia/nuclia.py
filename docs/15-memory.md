@@ -558,6 +558,8 @@ nuclia memory forget_entry --user_id=alice-hr --entry_id=alice-entry-001 --topic
 
 ### Delete all entries for a user on a topic
 
+Deletes all entries in scope and also deletes the corresponding facts for that same scope.
+
 ```python
 memory.forget_entries(user_id="alice-hr", topic="vacation-policy")
 ```

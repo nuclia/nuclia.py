@@ -318,25 +318,52 @@ async def test_basic(
     )
     assert len(graph_result) >= 1, "Graph should contain at least one path."
 
-    # Test forgetting facts and entries
-    await maybe_await(memory.forget_fact(user_id="user-a", fact_id=global_facts[0].id))
+    # Test forgetting entries cascades to corresponding facts
     await maybe_await(
-        memory.forget_fact(
-            user_id="user-a", topic="vacation-policy", fact_id=facts[1].id
-        )
-    )
-    await maybe_await(memory.forget_facts(user_id="user-a", topic="vacation-policy"))
-    await maybe_await(memory.forget_facts(user_id="user-a"))
-    await maybe_await(
-        memory.forget_entry(user_id="user-a", entry_id=global_entries[0].id)
-    )
-    await maybe_await(
-        memory.forget_entries(
+        memory.forget_entry(
             user_id="user-a", topic="vacation-policy", entry_id=topic_entries[0].id
         )
     )
+
     await maybe_await(memory.forget_entries(user_id="user-a", topic="vacation-policy"))
+
+    topic_entries_after_forget = [
+        e
+        async for e in maybe_async_iterate(
+            memory.entries(user_id="user-a", topic="vacation-policy")
+        )
+    ]
+    topic_facts_after_forget = [
+        f
+        async for f in maybe_async_iterate(
+            memory.facts(topic="vacation-policy", user_id="user-a")
+        )
+    ]
+    assert len(topic_entries_after_forget) == 0, (
+        "All topic entries for user-a should have been deleted."
+    )
+    assert len(topic_facts_after_forget) == 0, (
+        "Forgetting topic entries should also delete corresponding topic facts."
+    )
+
     await maybe_await(memory.forget_entries(user_id="user-a"))
+
+    global_entries_after_forget = [
+        e async for e in maybe_async_iterate(memory.entries(user_id="user-a"))
+    ]
+    global_facts_after_forget = [
+        f async for f in maybe_async_iterate(memory.facts(user_id="user-a"))
+    ]
+    assert len(global_entries_after_forget) == 0, (
+        "All global entries for user-a should have been deleted."
+    )
+    assert len(global_facts_after_forget) == 0, (
+        "Forgetting global entries should also delete corresponding global facts."
+    )
+
+    # No-op cleanup calls should still be safe
+    await maybe_await(memory.forget_facts(user_id="user-a", topic="vacation-policy"))
+    await maybe_await(memory.forget_facts(user_id="user-a"))
 
     # Test delete topics
     with pytest.raises(ValueError):

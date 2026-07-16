@@ -960,6 +960,8 @@ class NucliaMemory:
     ) -> None:
         """
         Delete a specific entry from a topic or from the global entries topic created by the user.
+
+        Any fact derived solely from this entry is also deleted.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _resolve_topic_location(topic, user_id)
@@ -992,6 +994,8 @@ class NucliaMemory:
     ) -> None:
         """
         Delete all entries from a topic for the specified user or from the global entries topic created by the user.
+
+        This operation also deletes the corresponding facts for that user and scope.
         """
         if topic is None:
             # Delete all entries and facts for that user
@@ -1809,6 +1813,8 @@ class AsyncNucliaMemory:
     ) -> None:
         """
         Delete a specific entry from a topic or from the global entries topic created by the user.
+
+        Any fact derived solely from this entry is also deleted.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         ruuid, rslug = _resolve_topic_location(topic, user_id)
@@ -1841,6 +1847,8 @@ class AsyncNucliaMemory:
     ) -> None:
         """
         Delete all entries from a topic for the specified user or from the global entries topic created by the user.
+
+        This operation also deletes the corresponding facts for that user and scope.
         """
         if topic is None:
             # Delete all global entries and facts for that user
