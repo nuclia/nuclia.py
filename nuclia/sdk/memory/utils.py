@@ -1142,6 +1142,10 @@ def _parse_catalog_response_to_topic_page(
                 status=_get_topic_status(resource),
             )
             for resource in catalog_response.resources.values()
+            # Do not include global entry resources in the topic listing.
+            if not (resource.slug or "").startswith(
+                GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
+            )
         ],
         total=catalog_response.fulltext.total if catalog_response.fulltext else 0,
         has_more=catalog_response.fulltext.next_page
