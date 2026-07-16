@@ -14,6 +14,50 @@ from nuclia.sdk.memory import (
 )
 from nuclia.tests.utils import maybe_async_iterate, maybe_await
 
+USER_A = "user-a"
+USER_B = "user-b"
+
+
+async def _wait_until_topic_ready_for_search(
+    memory: Union[NucliaMemory, AsyncNucliaMemory],
+    *,
+    topic: str,
+    user_id: str,
+    max_seconds: int = 120,
+    check_global_facts: bool = False,
+) -> bool:
+    """Wait until a topic is processed and has stable extracted facts."""
+    successful_rounds = 0
+    for _ in range(max_seconds):
+        topic_data = await maybe_await(memory.get_topic(topic=topic))
+        if topic_data.status == "processed":
+            facts = [
+                f
+                async for f in maybe_async_iterate(
+                    memory.facts(topic=topic, user_id=user_id)
+                )
+            ]
+            has_topic_facts = len(facts) >= 1
+            has_global_facts = True
+            if check_global_facts:
+                global_facts = [
+                    f async for f in maybe_async_iterate(memory.facts(user_id=user_id))
+                ]
+                has_global_facts = len(global_facts) >= 1
+
+            if has_topic_facts and has_global_facts:
+                successful_rounds += 1
+                if successful_rounds >= 3:
+                    return True
+            else:
+                successful_rounds = 0
+                print("Topic is processed but facts are not yet available, waiting...")
+        else:
+            successful_rounds = 0
+            print(f"Topic status: {topic_data.status}, waiting for 'processed'...")
+        await asyncio.sleep(1)
+    return False
+
 
 @pytest.mark.parametrize(
     "memory_klass",
@@ -46,10 +90,10 @@ async def test_basic(
                 await maybe_await(memory.delete_topic(topic=slug, confirm=True))
             except TopicNotFoundError:
                 pass
-            await maybe_await(memory.forget_entries(user_id="user-a", topic=slug))
-            await maybe_await(memory.forget_facts(user_id="user-a", topic=slug))
-        await maybe_await(memory.forget_entries(user_id="user-a"))
-        await maybe_await(memory.forget_facts(user_id="user-a"))
+            await maybe_await(memory.forget_entries(user_id=USER_A, topic=slug))
+            await maybe_await(memory.forget_facts(user_id=USER_A, topic=slug))
+        await maybe_await(memory.forget_entries(user_id=USER_A))
+        await maybe_await(memory.forget_facts(user_id=USER_A))
 
     # Make sure topic doesn't exist at test start
     await _cleanup(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
@@ -151,7 +195,7 @@ async def test_basic(
     await maybe_await(
         memory.remember(
             "Charles can always request vacation days. He is entitled to 20 days of paid leave per year.",
-            user_id="user-a",
+            user_id=USER_A,
             entry_id="foobar",
         )
     )
@@ -162,7 +206,7 @@ async def test_basic(
             "Approved carry-over exception for Maria (employee ID: EMP-1042). "
             "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
             "Exception approved for the full 8 days as a one-time allowance.",
-            user_id="user-a",
+            user_id=USER_A,
             topic="vacation-policy",
             reasoning="The product launch was a company-wide priority that required Maria's presence. "
             "Denying the exception would penalise her for meeting business needs.",
@@ -196,7 +240,7 @@ async def test_basic(
             "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
             "The 6 days will be forfeited per standard policy.",
             topic="vacation-policy",
-            user_id="user-a",
+            user_id=USER_A,
             reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
             "personal planning choices. Policy should be applied as written.",
             context=[
@@ -219,43 +263,25 @@ async def test_basic(
 
     # Make sure entries are retrievable
     global_entries = [
-        e async for e in maybe_async_iterate(memory.entries(user_id="user-a"))
+        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
     ]
     assert len(global_entries) >= 1, "Expected at least one global entry."
 
     topic_entries = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id="user-a", topic="vacation-policy")
+            memory.entries(user_id=USER_A, topic="vacation-policy")
         )
     ]
     assert len(topic_entries) >= 1, "Expected at least one topic entry."
 
-    # Wait until the topic status is processed before the recall tests
-    processed = False
-    for _ in range(60):
-        topic = await maybe_await(memory.get_topic(topic="vacation-policy"))
-        if topic.status == "processed":
-            has_facts = (
-                len(
-                    [
-                        f
-                        async for f in maybe_async_iterate(
-                            memory.facts(topic="vacation-policy", user_id="user-a")
-                        )
-                    ]
-                )
-                >= 2
-            )
-            if not has_facts:
-                print("Topic is processed but facts are not yet available, waiting...")
-                await asyncio.sleep(1)
-                continue
-            processed = True
-            break
-        else:
-            print(f"Topic status: {topic.status}, waiting for 'processed'...")
-            await asyncio.sleep(1)
+    # Wait until the topic is ready for search before recall tests
+    processed = await _wait_until_topic_ready_for_search(
+        memory,
+        topic="vacation-policy",
+        user_id=USER_A,
+        check_global_facts=True,
+    )
 
     assert processed, "Topic was not processed within the expected time."
 
@@ -274,28 +300,26 @@ async def test_basic(
     facts = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id="user-a")
+            memory.facts(topic="vacation-policy", user_id=USER_A)
         )
     ]
     assert len(facts) >= 2, "Expected at least two fact for the topic."
     oldest_first = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id="user-a", recent_first=False)
+            memory.facts(topic="vacation-policy", user_id=USER_A, recent_first=False)
         )
     ]
     assert oldest_first[0].id == facts[-1].id
     assert oldest_first[-1].id == facts[0].id
 
-    global_facts = [
-        f async for f in maybe_async_iterate(memory.facts(user_id="user-a"))
-    ]
+    global_facts = [f async for f in maybe_async_iterate(memory.facts(user_id=USER_A))]
     assert len(global_facts) >= 1, "Expected at least one global fact."
 
     # List users tests
     users_in_topic = await maybe_await(memory.list_users(topic="vacation-policy"))
-    assert "user-a" in users_in_topic, (
-        "user-a should be listed as a user in 'vacation-policy' topic."
+    assert USER_A in users_in_topic, (
+        f"{USER_A} should be listed as a user in 'vacation-policy' topic."
     )
 
     # Listing users for a non-existent topic should raise TopicNotFoundError
@@ -314,29 +338,29 @@ async def test_basic(
 
     # Graph tests
     graph_result = await maybe_await(
-        memory.graph(topic="vacation-policy", user_id="user-a")
+        memory.graph(topic="vacation-policy", user_id=USER_A)
     )
     assert len(graph_result) >= 1, "Graph should contain at least one path."
 
     # Test forgetting entries cascades to corresponding facts
     await maybe_await(
         memory.forget_entry(
-            user_id="user-a", topic="vacation-policy", entry_id=topic_entries[0].id
+            user_id=USER_A, topic="vacation-policy", entry_id=topic_entries[0].id
         )
     )
 
-    await maybe_await(memory.forget_entries(user_id="user-a", topic="vacation-policy"))
+    await maybe_await(memory.forget_entries(user_id=USER_A, topic="vacation-policy"))
 
     topic_entries_after_forget = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id="user-a", topic="vacation-policy")
+            memory.entries(user_id=USER_A, topic="vacation-policy")
         )
     ]
     topic_facts_after_forget = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id="user-a")
+            memory.facts(topic="vacation-policy", user_id=USER_A)
         )
     ]
     assert len(topic_entries_after_forget) == 0, (
@@ -346,13 +370,13 @@ async def test_basic(
         "Forgetting topic entries should also delete corresponding topic facts."
     )
 
-    await maybe_await(memory.forget_entries(user_id="user-a"))
+    await maybe_await(memory.forget_entries(user_id=USER_A))
 
     global_entries_after_forget = [
-        e async for e in maybe_async_iterate(memory.entries(user_id="user-a"))
+        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
     ]
     global_facts_after_forget = [
-        f async for f in maybe_async_iterate(memory.facts(user_id="user-a"))
+        f async for f in maybe_async_iterate(memory.facts(user_id=USER_A))
     ]
     assert len(global_entries_after_forget) == 0, (
         "All global entries for user-a should have been deleted."
@@ -362,8 +386,8 @@ async def test_basic(
     )
 
     # No-op cleanup calls should still be safe
-    await maybe_await(memory.forget_facts(user_id="user-a", topic="vacation-policy"))
-    await maybe_await(memory.forget_facts(user_id="user-a"))
+    await maybe_await(memory.forget_facts(user_id=USER_A, topic="vacation-policy"))
+    await maybe_await(memory.forget_facts(user_id=USER_A))
 
     # Test delete topics
     with pytest.raises(ValueError):
@@ -386,8 +410,6 @@ async def test_basic_nontopic(
     Covers global entries: remember, listing, deduplication, and deletion.
     """
     memory = memory_klass()
-    USER_A = "user-a"
-    USER_B = "user-b"
 
     async def _cleanup():
         # Remove all global entries for both test users
