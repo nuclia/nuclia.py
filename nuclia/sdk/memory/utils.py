@@ -962,7 +962,7 @@ def _get_global_users_sync(ndb: NucliaDBClient) -> list[str]:
                 ),
                 page_number=page,
                 page_size=200,
-                show=[ResourceProperties.ERRORS, ResourceProperties.BASIC],
+                show=[ResourceProperties.BASIC],
             ),
         )
         for resource in catalog_response.resources.values():
@@ -992,7 +992,7 @@ async def _get_global_users_async(ndb: AsyncNucliaDBClient) -> list[str]:
                 ),
                 page_number=page,
                 page_size=200,
-                show=[ResourceProperties.ERRORS, ResourceProperties.BASIC],
+                show=[ResourceProperties.BASIC],
             ),
         )
         for resource in catalog_response.resources.values():
