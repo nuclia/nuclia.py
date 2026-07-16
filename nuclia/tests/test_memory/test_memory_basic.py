@@ -358,7 +358,7 @@ async def test_basic(
     # Test forgetting entries cascades to corresponding facts
     await maybe_await(
         memory.forget_entry(
-            user_id="user-a", topic="vacation-policy", entry_id=topic_entries[0].id
+            user_id=USER_A, topic="vacation-policy", entry_id=topic_entries[0].id
         )
     ]
     topic_facts_after_forget = [
@@ -371,18 +371,18 @@ async def test_basic(
         "All topic entries for user-a should have been deleted."
     )
 
-    await maybe_await(memory.forget_entries(user_id="user-a", topic="vacation-policy"))
+    await maybe_await(memory.forget_entries(user_id=USER_A, topic="vacation-policy"))
 
     topic_entries_after_forget = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id="user-a", topic="vacation-policy")
+            memory.entries(user_id=USER_A, topic="vacation-policy")
         )
     ]
     topic_facts_after_forget = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id="user-a")
+            memory.facts(topic="vacation-policy", user_id=USER_A)
         )
     ]
     assert len(topic_entries_after_forget) == 0, (
@@ -412,10 +412,10 @@ async def test_basic(
     await maybe_await(memory.forget_facts(user_id=USER_A))
 
     global_entries_after_forget = [
-        e async for e in maybe_async_iterate(memory.entries(user_id="user-a"))
+        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
     ]
     global_facts_after_forget = [
-        f async for f in maybe_async_iterate(memory.facts(user_id="user-a"))
+        f async for f in maybe_async_iterate(memory.facts(user_id=USER_A))
     ]
     assert len(global_entries_after_forget) == 0, (
         "All global entries for user-a should have been deleted."
@@ -425,8 +425,8 @@ async def test_basic(
     )
 
     # No-op cleanup calls should still be safe
-    await maybe_await(memory.forget_facts(user_id="user-a", topic="vacation-policy"))
-    await maybe_await(memory.forget_facts(user_id="user-a"))
+    await maybe_await(memory.forget_facts(user_id=USER_A, topic="vacation-policy"))
+    await maybe_await(memory.forget_facts(user_id=USER_A))
 
     # Test delete topics
     with pytest.raises(ValueError):
