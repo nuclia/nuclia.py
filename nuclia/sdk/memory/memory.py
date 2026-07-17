@@ -25,7 +25,6 @@ from nucliadb_models.link import LinkField
 from nucliadb_models.resource import Resource
 from nucliadb_models.search import (
     CatalogQuery,
-    CatalogRequest,
     ChatContextMessage,
     CustomPrompt,
     ResourceProperties,
@@ -57,6 +56,7 @@ from nuclia.sdk.memory.utils import (
     _build_ask_request,
     _build_entry_message,
     _build_graph_search_request,
+    _build_list_topics_catalog_request,
     _build_recall_find_request,
     _delete_conversation_message,
     _delete_resource_field,
@@ -251,13 +251,9 @@ class NucliaMemory:
             Page size.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        catalog_request = CatalogRequest(
-            query=query,
-            page_number=page,
-            page_size=size,
-            show=[
-                ResourceProperties.BASIC,
-            ],
+        global_users = _get_global_users(ndb)
+        catalog_request = _build_list_topics_catalog_request(
+            query, page, size, global_users
         )
         catalog_response = ndb.ndb.catalog(kbid=ndb.kbid, content=catalog_request)
         return _parse_catalog_response_to_topic_page(catalog_response)
@@ -1249,13 +1245,9 @@ class AsyncNucliaMemory:
             Page size.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        catalog_request = CatalogRequest(
-            query=query,
-            page_number=page,
-            page_size=size,
-            show=[
-                ResourceProperties.BASIC,
-            ],
+        global_users = await _get_global_users(ndb)
+        catalog_request = _build_list_topics_catalog_request(
+            query, page, size, global_users
         )
         catalog_response = await ndb.ndb.catalog(kbid=ndb.kbid, content=catalog_request)
         return _parse_catalog_response_to_topic_page(catalog_response)

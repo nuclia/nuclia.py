@@ -1011,6 +1011,36 @@ async def _get_global_users_async(ndb: AsyncNucliaDBClient) -> list[str]:
 # ─── Pure request / response builders ────────────────────────────────────────
 
 
+def _build_list_topics_catalog_request(
+    query: str | CatalogQuery,
+    page: int,
+    size: int,
+    global_users: list[str],
+) -> CatalogRequest:
+    filter_expression = None
+    if len(global_users) > 0:
+        # Exclude resources that are for global entries
+        filter_expression = filters.CatalogFilterExpression(
+            resource=filters.Not(
+                operand=filters.Or(
+                    operands=[
+                        filters.Resource(slug=_global_entries_slug(user_id))
+                        for user_id in global_users
+                    ]
+                )
+            )
+        )
+    return CatalogRequest(
+        query=query,
+        page_number=page,
+        page_size=size,
+        show=[
+            ResourceProperties.BASIC,
+        ],
+        filter_expression=filter_expression,
+    )
+
+
 def _build_entry_message(entry_id: str, entry_content: EntryContent) -> InputMessage:
     """Build the InputMessage that wraps a memory entry for storage in a conversation field."""
     return InputMessage(

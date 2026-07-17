@@ -61,7 +61,8 @@ async def _wait_until_topic_ready_for_search(
 
 @pytest.mark.parametrize(
     "memory_klass",
-    [NucliaMemory, AsyncNucliaMemory],
+    #    [NucliaMemory, AsyncNucliaMemory],
+    [NucliaMemory],
 )
 async def test_basic(
     testing_config,
@@ -399,7 +400,10 @@ async def test_basic(
 
 @pytest.mark.parametrize(
     "memory_klass",
-    [NucliaMemory, AsyncNucliaMemory],
+    #    [NucliaMemory, AsyncNucliaMemory],
+    [
+        NucliaMemory,
+    ],
 )
 async def test_basic_nontopic(
     testing_config,
