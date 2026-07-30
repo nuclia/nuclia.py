@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum, IntEnum
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Annotated, Any, Dict, List, Literal, Optional, Self, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
@@ -8,8 +8,12 @@ from nucliadb_models.internal.predict import (
     RerankModel,  # noqa: F401
     RerankResponse,  # noqa: F401
 )
-from pydantic import BaseModel, Field, RootModel, field_serializer, model_validator
-from typing_extensions import Annotated, Self
+from pydantic import (
+    BaseModel,
+    Field,
+    RootModel,
+    field_serializer,
+)
 
 
 class GenerativeOption(BaseModel):
@@ -65,8 +69,42 @@ class Author(str, Enum):
 
 
 class Message(BaseModel):
+    type: Literal["message"] = "message"
     author: Author
     text: str
+
+
+class MessageToolFunction(BaseModel):
+    name: str
+    arguments: Any = None
+
+
+class MessageToolCall(BaseModel):
+    id: str
+    type: Literal["function"] = "function"
+    function: MessageToolFunction
+
+
+class AssistantMessage(BaseModel):
+    type: Literal["assistant"] = "assistant"
+    author: Author = Author.NUCLIA
+    text: str = ""
+    content: Any = None
+    tool_calls: List[MessageToolCall] = Field(default_factory=list)
+
+
+class ToolMessage(BaseModel):
+    type: Literal["tool"] = "tool"
+    author: Author = Author.USER
+    text: str = ""
+    tool_call_id: str
+    name: Optional[str] = None
+    content: Any = None
+
+
+RichMessage = Annotated[
+    Union[AssistantMessage, ToolMessage, Message], Field(discriminator="type")
+]
 
 
 class UserPrompt(BaseModel):
@@ -135,9 +173,9 @@ class ToolChoiceForced(BaseModel):
 class ChatModel(BaseModel):
     question: str
     retrieval: bool = True
-    user_id: str
+    user_id: str = "system"
     system: Optional[str] = None
-    chat_history: List[Message] = []
+    chat_history: List[RichMessage] = Field(default_factory=list)
     context: List[Message] = []
     query_context: Union[List[str], Dict[str, str]] = {}
     query_context_order: Dict[str, int] = {}
@@ -198,7 +236,12 @@ class ChatModel(BaseModel):
         description="Seed use for the generative model for a deterministic output.",
     )
 
-    @model_validator(mode="after")
+    image_generation: bool = Field(
+        default=False,
+        description="Whether to enable image generation in the response.",
+    )
+
+    @pydantic.model_validator(mode="after")
     def validate_model(self) -> Self:
         if self.prefer_markdown is True and self.json_schema is not None:
             raise ValueError("Can not setup markdown and JSON Schema at the same time")
