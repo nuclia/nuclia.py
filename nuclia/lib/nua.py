@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import os
+from dataclasses import dataclass
 from enum import Enum
 from time import sleep
 from typing import (
@@ -13,10 +14,12 @@ from typing import (
     TypeVar,
     Union,
 )
+from urllib.parse import urlencode
 
 import aiofiles
 import backoff
 from deprecated import deprecated
+from httpx import ConnectError, ConnectTimeout, Response, Timeout
 from nuclia_models.common.consumption import Consumption, ConsumptionGenerative
 from nuclia_models.predict.generative_responses import (
     CitationsGenerativeResponse,
@@ -31,11 +34,24 @@ from nuclia_models.predict.generative_responses import (
     ToolsGenerativeResponse,
 )
 from nuclia_models.predict.remi import RemiRequest, RemiResponse
-from pydantic import BaseModel, ValidationError
+from nucliadb_models.internal.predict import (
+    QueryInfo as PredictQueryInfo,
+)
+from nucliadb_models.internal.predict import (
+    RerankModel,
+    RerankResponse,
+)
+from nucliadb_models.search import Image as PredictImage
+from pydantic import BaseModel, Field, ValidationError
 from tqdm import tqdm
 
 from nuclia import REGIONAL
-from nuclia.exceptions import NuaAPIException
+from nuclia.exceptions import (
+    NuaAPIException,
+    PredictAPIException,
+    PredictLimitsExceededError,
+    RetriablePredictAPIException,
+)
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
@@ -50,8 +66,6 @@ from nuclia.lib.nua_responses import (
     PushResponseV2,
     QueryInfo,
     RephraseModel,
-    RerankModel,
-    RerankResponse,
     RestrictedIDString,
     Sentence,
     Source,
@@ -84,6 +98,12 @@ SCHEMA = "/api/v1/learning/configuration/schema"
 SCHEMA_KBID = "/api/v1/schema"
 CONFIG = "/api/v1/config"
 RERANK = "/api/v1/predict/rerank"
+INTERNAL_PREDICT = "/api/internal/predict"
+PUBLIC_PREDICT = "/api/v1/predict"
+LEARNING_ID_HEADER = "nuclia-learning-id"
+LEARNING_MODEL_HEADER = "nuclia-learning-model"
+LEARNING_TRACE_HEADER = "nuclia-learning-trace-id"
+LEARNING_CHAT_HISTORY_HEADER = "nuclia-learning-chat-history"
 
 ConvertType = TypeVar("ConvertType", bound=BaseModel)
 
@@ -96,6 +116,63 @@ class Author(str, Enum):
 class ContextItem(BaseModel):
     author: Author
     text: str
+
+
+class AsyncNuaEndpoint(str, Enum):
+    """Endpoint profile used by :class:`AsyncNuaClient`."""
+
+    PUBLIC = "public"
+    INTERNAL = "internal"
+    ONPREM = "onprem"
+
+
+@dataclass
+class PredictRephraseResponse:
+    """Result of a KB-aware Predict rephrase request."""
+
+    rephrased_query: str
+    use_chat_history: bool | None = None
+    learning_id: str | None = None
+    model: str | None = None
+
+
+class PredictQueryRequest(BaseModel):
+    """Request payload for the current KB-aware Predict query endpoint."""
+
+    text: str | None = None
+    query_image: PredictImage | None = None
+    rephrase: bool = False
+    rephrase_prompt: str | None = None
+    generative_model: str | None = None
+    semantic_models: list[str] | None = None
+    agentic_entities: bool = False
+    graph_nodes: list[str] | None = None
+    semantic_graph_node_models: list[str] | None = None
+    graph_edges: list[str] | None = None
+    semantic_graph_edge_models: list[str] | None = None
+
+
+class PredictRephraseRequest(BaseModel):
+    """Request payload for the KB-aware Predict rephrase endpoint."""
+
+    question: str
+    user_id: str
+    chat_history: list[ContextItem] = Field(default_factory=list)
+    user_context: list[str] = Field(default_factory=list)
+    generative_model: str | None = None
+    chat_history_relevance_threshold: float | None = None
+
+
+class PredictRephraseError(Exception):
+    """Predict could not rephrase the supplied query."""
+
+
+class PredictRephraseMissingContextError(PredictRephraseError):
+    """Predict could not rephrase because the supplied context was insufficient."""
+
+
+class NuaKeyMissingError(Exception):
+    """An on-prem Predict request requires a service account or local Predict."""
 
 
 class NuaClient:
@@ -511,16 +588,40 @@ class AsyncNuaClient:
         account: str,
         token: Optional[str] = None,
         headers: Optional[dict[str, str]] = None,
+        *,
+        endpoint: AsyncNuaEndpoint = AsyncNuaEndpoint.PUBLIC,
+        kbid: str | None = None,
+        service_account: str | None = None,
+        local_predict: bool = False,
+        local_predict_headers: dict[str, str] | None = None,
     ):
         self.region = region
         self.account = account
         self.token = token
+        self.endpoint = endpoint
+        self.kbid = kbid
+        self.local_predict = local_predict
         if "http" in region:
             self.url = region.strip("/")
         else:
             self.url = REGIONAL.format(region=region).strip("/")
-        if token is None and headers is not None:
-            self.headers = headers
+
+        if endpoint is AsyncNuaEndpoint.INTERNAL:
+            self.headers = {"X-STF-KBID": kbid} if kbid else {}
+            if account:
+                self.headers["X-STF-ACCOUNT"] = account
+            if headers:
+                self.headers.update(headers)
+        elif endpoint is AsyncNuaEndpoint.ONPREM:
+            self.headers = (
+                {"X-STF-NUAKEY": f"Bearer {service_account}"}
+                if service_account is not None
+                else {}
+            )
+            if local_predict_headers is not None:
+                self.headers.update(local_predict_headers)
+        elif token is None and headers is not None:
+            self.headers = headers.copy()
         else:
             self.headers = {"X-STF-NUAKEY": f"Bearer {token}"}
 
@@ -532,9 +633,104 @@ class AsyncNuaClient:
             headers=self.stream_headers, base_url=self.url
         )
 
+    @classmethod
+    def internal(
+        cls,
+        url: str,
+        kbid: str | None = None,
+        account: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> "AsyncNuaClient":
+        """Create a client for the hosted internal Predict API."""
+
+        client = cls(
+            region=url,
+            account=account or "",
+            headers=headers,
+            endpoint=AsyncNuaEndpoint.INTERNAL,
+            kbid=kbid,
+        )
+        return client
+
+    @classmethod
+    def onprem(
+        cls,
+        public_url: str,
+        service_account: str | None = None,
+        zone: str | None = None,
+        kbid: str | None = None,
+        local_predict: bool = False,
+        local_predict_headers: dict[str, str] | None = None,
+    ) -> "AsyncNuaClient":
+        """Create a client for the public, KB-scoped on-prem Predict API."""
+
+        url = public_url.format(zone=zone) if zone is not None else public_url
+        return cls(
+            region=url,
+            account="",
+            endpoint=AsyncNuaEndpoint.ONPREM,
+            kbid=kbid,
+            service_account=None if local_predict else service_account,
+            local_predict=local_predict,
+            local_predict_headers=local_predict_headers,
+        )
+
+    def _validate_predict_request(self, kbid: str | None = None) -> None:
+        if self.endpoint is not AsyncNuaEndpoint.ONPREM:
+            return
+        if not self.local_predict and "X-STF-NUAKEY" not in self.headers:
+            raise NuaKeyMissingError(
+                "An on-prem Predict request requires a Nuclia service account "
+                "unless local Predict is enabled."
+            )
+        if kbid or self.kbid:
+            return
+        raise ValueError("An on-prem Predict request requires a knowledge box ID.")
+
+    def _predict_endpoint(self, operation: str, kbid: str | None = None) -> str:
+        if self.endpoint is AsyncNuaEndpoint.INTERNAL:
+            path = f"{INTERNAL_PREDICT}/{operation}"
+        else:
+            path = f"{PUBLIC_PREDICT}/{operation}"
+
+        if self.endpoint is AsyncNuaEndpoint.ONPREM:
+            resolved_kbid = kbid or self.kbid
+            if resolved_kbid:
+                path = f"{path}/{resolved_kbid}"
+        return f"{self.url}{path}"
+
+    def _headers_for(
+        self,
+        kbid: str | None = None,
+        extra_headers: dict[str, str] | None = None,
+    ) -> dict[str, str] | None:
+        headers = self.headers.copy()
+        if self.endpoint is AsyncNuaEndpoint.INTERNAL and kbid is not None:
+            headers["X-STF-KBID"] = kbid
+        if extra_headers:
+            headers.update(extra_headers)
+        return headers or None
+
+    async def aclose(self) -> None:
+        """Close the underlying HTTP clients."""
+
+        await self.client.aclose()
+        await self.stream_client.aclose()
+
+    async def __aenter__(self) -> "AsyncNuaClient":
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        await self.aclose()
+
     @backoff.on_exception(
         backoff.expo,
-        (RetriableRequestException,),
+        (
+            ConnectError,
+            ConnectTimeout,
+            RetriableRequestException,
+            RetriablePredictAPIException,
+        ),
         max_time=60,
         jitter=backoff.full_jitter,
     )
@@ -546,16 +742,12 @@ class AsyncNuaClient:
         payload: Optional[dict[Any, Any]] = None,
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 60,
+        error_type: type[NuaAPIException] = NuaAPIException,
     ) -> ConvertType:
         resp = await self.client.request(
             method, url, json=payload, timeout=timeout, headers=extra_headers
         )
-        if resp.status_code in (429, 512):
-            raise RetriableRequestException(
-                code=resp.status_code, detail=resp.content.decode()
-            )
-        elif resp.status_code > 299:
-            raise NuaAPIException(code=resp.status_code, detail=resp.content.decode())
+        self._raise_for_response(resp, error_type)
         if output is None:
             return None  # type: ignore
         try:
@@ -566,7 +758,96 @@ class AsyncNuaClient:
 
     @backoff.on_exception(
         backoff.expo,
-        (RetriableRequestException,),
+        (
+            ConnectError,
+            ConnectTimeout,
+            RetriableRequestException,
+            RetriablePredictAPIException,
+        ),
+        max_time=60,
+        jitter=backoff.full_jitter,
+    )
+    async def _request_raw(
+        self,
+        method: str,
+        url: str,
+        payload: Optional[dict[Any, Any]] = None,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 60,
+        error_type: type[NuaAPIException] = NuaAPIException,
+    ) -> Response:
+        response = await self.client.request(
+            method,
+            url,
+            json=payload,
+            timeout=timeout,
+            headers=extra_headers,
+        )
+        self._raise_for_response(response, error_type)
+        return response
+
+    def _response_detail(self, response: Response) -> str:
+        try:
+            data = response.json()
+        except ValueError:
+            return response.text
+        if isinstance(data, dict) and "detail" in data:
+            return str(data["detail"])
+        return str(data)
+
+    def _raise_for_response(
+        self, response: Response, error_type: type[NuaAPIException]
+    ) -> None:
+        if response.status_code < 300:
+            return
+        detail = self._response_detail(response)
+        if response.status_code in (429, 512):
+            if error_type is PredictAPIException:
+                raise RetriablePredictAPIException(
+                    code=response.status_code, detail=detail
+                )
+            raise RetriableRequestException(code=response.status_code, detail=detail)
+        if error_type is PredictAPIException and response.status_code == 402:
+            raise PredictLimitsExceededError(code=response.status_code, detail=detail)
+        raise error_type(code=response.status_code, detail=detail)
+
+    async def _check_stream_response(
+        self,
+        response: Response,
+        error_type: type[NuaAPIException] = NuaAPIException,
+    ) -> None:
+        if response.status_code > 299:
+            await response.aread()
+        self._raise_for_response(response, error_type)
+
+    async def _parse_stream(self, response: Response) -> AsyncIterator[GenerativeChunk]:
+        async for json_body in response.aiter_lines():
+            if not json_body.strip():
+                continue
+            try:
+                chunk = GenerativeChunk.model_validate_json(json_body)
+                if chunk.chunk.type == "meta":
+                    chunk.chunk.learning_id = response.headers.get(
+                        LEARNING_ID_HEADER, chunk.chunk.learning_id
+                    )
+                    chunk.chunk.model_name = response.headers.get(
+                        LEARNING_MODEL_HEADER, chunk.chunk.model_name
+                    )
+                    chunk.chunk.trace_id = response.headers.get(
+                        LEARNING_TRACE_HEADER, chunk.chunk.trace_id
+                    )
+                yield chunk
+            except ValidationError as e:
+                raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
+
+    @backoff.on_exception(
+        backoff.expo,
+        (
+            ConnectError,
+            ConnectTimeout,
+            RetriableRequestException,
+            RetriablePredictAPIException,
+        ),
         max_time=60,
         jitter=backoff.full_jitter,
     )
@@ -585,40 +866,9 @@ class AsyncNuaClient:
             timeout=timeout,
             headers=extra_headers,
         ) as response:
-            if response.status_code in (429, 512):
-                raise RetriableRequestException(
-                    code=response.status_code,
-                    detail=(await response.aread()).decode(errors="ignore"),
-                )
-            elif response.status_code > 299:
-                raise NuaAPIException(
-                    code=response.status_code,
-                    detail=(await response.aread()).decode(errors="ignore"),
-                )
-            if response.headers.get("transfer-encoding") == "chunked":
-                async for json_body in response.aiter_lines():
-                    try:
-                        chunk = GenerativeChunk.model_validate_json(json_body)  # type: ignore
-                        if chunk.chunk.type == "meta":
-                            chunk.chunk.learning_id = response.headers.get(
-                                "nuclia-learning-id", chunk.chunk.learning_id
-                            )
-                            chunk.chunk.model_name = response.headers.get(
-                                "nuclia-learning-model", chunk.chunk.model_name
-                            )
-                            chunk.chunk.trace_id = response.headers.get(
-                                "nuclia-learning-trace-id", chunk.chunk.trace_id
-                            )
-                        yield chunk
-                    except ValidationError as e:
-                        raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
-
-            else:
-                # Read the full error body and raise an appropriate exception
-                error_content = await response.aread()
-                raise RuntimeError(
-                    f"Stream request failed with status {response.status_code}: {error_content.decode('utf-8')}"
-                )
+            await self._check_stream_response(response)
+            async for chunk in self._parse_stream(response):
+                yield chunk
 
     async def add_config_predict(
         self, kbid: str, config: LearningConfigurationCreation
@@ -660,7 +910,7 @@ class AsyncNuaClient:
         model: Optional[str] = None,
         extra_headers: Optional[dict[str, str]] = None,
     ) -> Sentence:
-        endpoint = f"{self.url}{SENTENCE_PREDICT}?text={text}"
+        endpoint = f"{self._predict_endpoint('sentence')}?text={text}"
         if model:
             endpoint += f"&model={model}"
         return await self._request(
@@ -673,7 +923,7 @@ class AsyncNuaClient:
         model: Optional[str] = None,
         extra_headers: Optional[dict[str, str]] = None,
     ) -> Tokens:
-        endpoint = f"{self.url}{TOKENS_PREDICT}?text={text}"
+        endpoint = f"{self._predict_endpoint('tokens')}?text={text}"
         if model:
             endpoint += f"&model={model}"
         return await self._request(
@@ -688,7 +938,7 @@ class AsyncNuaClient:
         generative_model: Optional[str] = None,
         extra_headers: Optional[dict[str, str]] = None,
     ) -> QueryInfo:
-        endpoint = f"{self.url}{QUERY_PREDICT}?text={text}"
+        endpoint = f"{self._predict_endpoint('query')}?text={text}"
         if semantic_model:
             endpoint += f"&semantic_model={semantic_model}"
         if token_model:
@@ -699,11 +949,55 @@ class AsyncNuaClient:
             "GET", endpoint, output=QueryInfo, extra_headers=extra_headers
         )
 
+    async def predict_query(
+        self,
+        request: PredictQueryRequest,
+        kbid: str | None = None,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 60,
+    ) -> PredictQueryInfo:
+        """Call the current KB-aware Predict query endpoint."""
+
+        self._validate_predict_request(kbid)
+        return await self._request(
+            "POST",
+            self._predict_endpoint("query", kbid),
+            payload=request.model_dump(mode="json", exclude_none=True),
+            output=PredictQueryInfo,
+            extra_headers=self._headers_for(kbid, extra_headers),
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+
+    async def predict_tokens(
+        self,
+        text: str,
+        kbid: str | None = None,
+        model: Optional[str] = None,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 60,
+    ) -> Tokens:
+        """Call Predict's token endpoint for a hosted or on-prem KB."""
+
+        self._validate_predict_request(kbid)
+        params = {"text": text}
+        if model is not None:
+            params["model"] = model
+        endpoint = f"{self._predict_endpoint('tokens', kbid)}?{urlencode(params)}"
+        return await self._request(
+            "GET",
+            endpoint,
+            output=Tokens,
+            extra_headers=self._headers_for(kbid, extra_headers),
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+
     @deprecated(version="2.1.0", reason="You should use generate function")
     async def generate_predict(
         self, body: ChatModel, model: Optional[str] = None, timeout: int = 300
     ) -> ChatResponse:
-        endpoint = f"{self.url}{CHAT_PREDICT}"
+        endpoint = self._predict_endpoint("chat")
         if model:
             endpoint += f"?model={model}"
 
@@ -722,7 +1016,7 @@ class AsyncNuaClient:
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> GenerativeFullResponse:
-        endpoint = f"{self.url}{CHAT_PREDICT}"
+        endpoint = self._predict_endpoint("chat")
         if model:
             endpoint += f"?model={model}"
         result = GenerativeFullResponse(answer="")
@@ -769,7 +1063,7 @@ class AsyncNuaClient:
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> AsyncIterator[GenerativeChunk]:
-        endpoint = f"{self.url}{CHAT_PREDICT}"
+        endpoint = self._predict_endpoint("chat")
         if model:
             endpoint += f"?model={model}"
 
@@ -782,6 +1076,43 @@ class AsyncNuaClient:
         ):
             yield gr
 
+    async def predict_chat_stream(
+        self,
+        body: ChatModel,
+        kbid: str | None = None,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: Timeout | float | None = Timeout(30.0, read=None),
+    ) -> tuple[str, str, AsyncIterator[GenerativeChunk]]:
+        """Open a KB-aware Predict chat stream."""
+
+        self._validate_predict_request(kbid)
+        headers = self._headers_for(kbid, extra_headers) or {}
+        headers.setdefault("Accept", "application/x-ndjson")
+        request = self.stream_client.build_request(
+            "POST",
+            self._predict_endpoint("chat", kbid),
+            json=body.model_dump(mode="json"),
+            headers=headers,
+            timeout=timeout,
+        )
+        response = await self.stream_client.send(request, stream=True)
+        try:
+            await self._check_stream_response(response, PredictAPIException)
+        except Exception:
+            await response.aclose()
+            raise
+        learning_id = response.headers.get(LEARNING_ID_HEADER, "unknown")
+        model = response.headers.get(LEARNING_MODEL_HEADER, "unknown")
+
+        async def stream() -> AsyncIterator[GenerativeChunk]:
+            try:
+                async for chunk in self._parse_stream(response):
+                    yield chunk
+            finally:
+                await response.aclose()
+
+        return learning_id, model, stream()
+
     async def summarize(
         self,
         documents: dict[str, str],
@@ -789,7 +1120,7 @@ class AsyncNuaClient:
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 300,
     ) -> SummarizedModel:
-        endpoint = f"{self.url}{SUMMARIZE_PREDICT}"
+        endpoint = self._predict_endpoint("summarize")
         if model:
             endpoint += f"?model={model}"
 
@@ -816,7 +1147,7 @@ class AsyncNuaClient:
         model: Optional[str] = None,
         prompt: Optional[str] = None,
     ) -> RephraseModel:
-        endpoint = f"{self.url}{REPHRASE_PREDICT}"
+        endpoint = self._predict_endpoint("rephrase")
         if model:
             endpoint += f"?model={model}"
 
@@ -836,13 +1167,56 @@ class AsyncNuaClient:
             "POST", endpoint, payload=body, output=RephraseModel, timeout=120
         )
 
+    async def predict_rephrase(
+        self,
+        body: PredictRephraseRequest,
+        kbid: str | None = None,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 120,
+    ) -> PredictRephraseResponse:
+        """Call Predict's KB-aware rephrase endpoint."""
+
+        self._validate_predict_request(kbid)
+        response = await self._request_raw(
+            "POST",
+            self._predict_endpoint("rephrase", kbid),
+            payload=body.model_dump(mode="json"),
+            extra_headers=self._headers_for(kbid, extra_headers),
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+        try:
+            content = response.json()
+            headers = response.headers
+        finally:
+            await response.aclose()
+        if not isinstance(content, str):
+            raise PredictRephraseError("Predict returned an invalid rephrase response")
+        if content.endswith("-1"):
+            raise PredictRephraseError(content[:-2])
+        if content.endswith("-2"):
+            raise PredictRephraseMissingContextError(content[:-2])
+        if content.endswith("0"):
+            content = content[:-1]
+
+        return PredictRephraseResponse(
+            rephrased_query=content,
+            use_chat_history=(
+                headers[LEARNING_CHAT_HISTORY_HEADER].lower() == "true"
+                if LEARNING_CHAT_HISTORY_HEADER in headers
+                else None
+            ),
+            learning_id=headers.get(LEARNING_ID_HEADER),
+            model=headers.get(LEARNING_MODEL_HEADER),
+        )
+
     async def remi(
         self,
         request: RemiRequest,
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 120,
     ) -> RemiResponse:
-        endpoint = f"{self.url}{REMI_PREDICT}"
+        endpoint = self._predict_endpoint("remi")
         return await self._request(
             "POST",
             endpoint,
@@ -858,7 +1232,7 @@ class AsyncNuaClient:
         context: list[str],
         model: Optional[str] = None,
     ) -> ChatResponse:
-        endpoint = f"{self.url}{CHAT_PREDICT}"
+        endpoint = self._predict_endpoint("chat")
         if model:
             endpoint += f"?model={model}"
         body = ChatModel(
@@ -980,11 +1354,24 @@ class AsyncNuaClient:
     async def rerank(
         self, model: RerankModel, extra_headers: Optional[dict[str, str]] = None
     ) -> RerankResponse:
-        endpoint = f"{self.url}{RERANK}"
+        return await self.predict_rerank(model, extra_headers=extra_headers)
+
+    async def predict_rerank(
+        self,
+        model: RerankModel,
+        kbid: str | None = None,
+        extra_headers: Optional[dict[str, str]] = None,
+        timeout: int = 60,
+    ) -> RerankResponse:
+        """Call the KB-aware Predict rerank endpoint."""
+
+        self._validate_predict_request(kbid)
         return await self._request(
             "POST",
-            endpoint,
-            payload=model.model_dump(),
+            self._predict_endpoint("rerank", kbid),
+            payload=model.model_dump(mode="json"),
             output=RerankResponse,
-            extra_headers=extra_headers,
+            extra_headers=self._headers_for(kbid, extra_headers),
+            timeout=timeout,
+            error_type=PredictAPIException,
         )

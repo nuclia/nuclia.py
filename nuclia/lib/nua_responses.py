@@ -4,6 +4,10 @@ from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
+from nucliadb_models.internal.predict import (
+    RerankModel,  # noqa: F401
+    RerankResponse,  # noqa: F401
+)
 from pydantic import BaseModel, Field, RootModel, field_serializer, model_validator
 from typing_extensions import Annotated, Self
 
@@ -649,16 +653,3 @@ class QueryInfo(BaseModel):
     max_context: int
     entities: Optional[TokenSearch]
     sentence: Optional[SentenceSearch]
-
-
-class RerankModel(BaseModel):
-    question: str
-    user_id: str
-    context: dict[str, str] = {}
-
-
-class RerankResponse(BaseModel):
-    context_scores: dict[str, float] = Field(
-        description="Scores for each context given by the reranker"
-    )
-    consumption: Optional[Consumption] = None
