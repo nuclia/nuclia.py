@@ -56,15 +56,25 @@ def test_internal_query_predict_uses_kbid_headers():
     assert requests[0].method == "POST"
 
 
-def test_legacy_query_predict_uses_get_response_model():
+def test_legacy_query_predict_uses_post_request_model():
     def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url == "http://predict/api/v1/predict/query?text=hello"
+        assert request.url == "http://predict/api/v1/predict/query"
+        assert request.method == "POST"
+        assert json.loads(request.content) == {
+            "text": "hello",
+            "semantic_models": ["semantic"],
+            "semantic_model": "semantic",
+            "token_model": "ner",
+            "generative_model": "generative",
+            "rephrase": False,
+            "agentic_entities": False,
+        }
         return httpx.Response(
             200,
             json={
                 "language": "en",
                 "stop_words": [],
-                "semantic_threshold": 0.5,
+                "semantic_thresholds": {"semantic": 0.5},
                 "visual_llm": False,
                 "max_context": 1000,
                 "entities": None,
@@ -75,11 +85,54 @@ def test_legacy_query_predict_uses_get_response_model():
     client = NuaClient("http://predict", account="")
     client.client = httpx.Client(transport=httpx.MockTransport(handler))
     try:
-        result = client.query_predict("hello")
+        result = client.query_predict("hello", "semantic", "ner", "generative")
     finally:
         close_client(client)
 
     assert isinstance(result, QueryInfo)
+
+
+def test_onprem_kbid_query_predict_uses_kb_request_model():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/query/kb-1"
+        assert json.loads(request.content)["semantic_models"] == ["semantic"]
+        assert json.loads(request.content)["semantic_model"] == "semantic"
+        assert json.loads(request.content)["token_model"] == "ner"
+        return httpx.Response(
+            200,
+            json={
+                "semantic_thresholds": {"semantic": 0.5},
+                "visual_llm": False,
+                "max_context": 1000,
+                "entities": None,
+                "sentence": None,
+            },
+        )
+
+    client = NuaClient.onprem(
+        "http://predict", service_account="service-account", kbid="kb-1"
+    )
+    client.client = httpx.Client(transport=httpx.MockTransport(handler))
+    try:
+        client.query_predict("hello", "semantic", "ner")
+    finally:
+        close_client(client)
+
+
+def test_sentence_predict_url_encodes_query_parameters():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert (
+            request.url
+            == "http://predict/api/v1/predict/sentence?text=hello+world%26&model=model%2F1"
+        )
+        return httpx.Response(200, json={"data": [], "time": 0})
+
+    client = NuaClient("http://predict", account="")
+    client.client = httpx.Client(transport=httpx.MockTransport(handler))
+    try:
+        client.sentence_predict("hello world&", "model/1")
+    finally:
+        close_client(client)
 
 
 def test_legacy_rephrase_uses_root_response_model():

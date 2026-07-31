@@ -115,8 +115,8 @@ StreamType = TypeVar("StreamType")
 ContextItem: TypeAlias = Message
 
 
-class AsyncNuaEndpoint(str, Enum):
-    """Endpoint profile used by :class:`AsyncNuaClient`."""
+class NuaEndpoint(str, Enum):
+    """Endpoint profile used by NUA clients."""
 
     PUBLIC = "public"
     INTERNAL = "internal"
@@ -225,7 +225,7 @@ def _resolve_url(region: str) -> str:
 
 def _build_headers(
     *,
-    endpoint: AsyncNuaEndpoint,
+    endpoint: NuaEndpoint,
     account: str,
     token: str | None,
     headers: dict[str, str] | None,
@@ -233,14 +233,14 @@ def _build_headers(
     service_account: str | None,
     local_predict_headers: dict[str, str] | None,
 ) -> dict[str, str]:
-    if endpoint is AsyncNuaEndpoint.INTERNAL:
+    if endpoint is NuaEndpoint.INTERNAL:
         result = {"X-STF-KBID": kbid} if kbid else {}
         if account:
             result["X-STF-ACCOUNT"] = account
         if headers:
             result.update(headers)
         return result
-    if endpoint is AsyncNuaEndpoint.ONPREM:
+    if endpoint is NuaEndpoint.ONPREM:
         result = (
             {"X-STF-NUAKEY": f"Bearer {service_account}"}
             if service_account is not None
@@ -256,13 +256,11 @@ def _build_headers(
 
 def _validate_predict_request(
     *,
-    endpoint: AsyncNuaEndpoint,
+    endpoint: NuaEndpoint,
     headers: dict[str, str],
     local_predict: bool,
-    configured_kbid: str | None,
-    kbid: str | None,
 ) -> None:
-    if endpoint is not AsyncNuaEndpoint.ONPREM:
+    if endpoint is not NuaEndpoint.ONPREM:
         return
     if not local_predict and "X-STF-NUAKEY" not in headers:
         raise NuaKeyMissingError(
@@ -274,17 +272,17 @@ def _validate_predict_request(
 def _predict_endpoint(
     *,
     url: str,
-    endpoint: AsyncNuaEndpoint,
+    endpoint: NuaEndpoint,
     configured_kbid: str | None,
     operation: str,
     kbid: str | None,
 ) -> str:
     path = (
         f"{INTERNAL_PREDICT}/{operation}"
-        if endpoint is AsyncNuaEndpoint.INTERNAL
+        if endpoint is NuaEndpoint.INTERNAL
         else f"{PUBLIC_PREDICT}/{operation}"
     )
-    if endpoint is AsyncNuaEndpoint.ONPREM:
+    if endpoint is NuaEndpoint.ONPREM:
         resolved_kbid = kbid or configured_kbid
         if resolved_kbid:
             path = f"{path}/{resolved_kbid}"
@@ -294,12 +292,12 @@ def _predict_endpoint(
 def _headers_for(
     *,
     headers: dict[str, str],
-    endpoint: AsyncNuaEndpoint,
+    endpoint: NuaEndpoint,
     kbid: str | None,
     extra_headers: dict[str, str] | None,
 ) -> dict[str, str] | None:
     result = headers.copy()
-    if endpoint is AsyncNuaEndpoint.INTERNAL and kbid is not None:
+    if endpoint is NuaEndpoint.INTERNAL and kbid is not None:
         result["X-STF-KBID"] = kbid
     if extra_headers:
         result.update(extra_headers)
@@ -337,7 +335,7 @@ class NuaClient:
         token: Optional[str] = None,
         headers: Optional[dict[str, str]] = None,
         *,
-        endpoint: AsyncNuaEndpoint = AsyncNuaEndpoint.PUBLIC,
+        endpoint: NuaEndpoint = NuaEndpoint.PUBLIC,
         kbid: str | None = None,
         service_account: str | None = None,
         local_predict: bool = False,
@@ -381,7 +379,7 @@ class NuaClient:
             region=url,
             account=account or "",
             headers=headers,
-            endpoint=AsyncNuaEndpoint.INTERNAL,
+            endpoint=NuaEndpoint.INTERNAL,
             kbid=kbid,
         )
 
@@ -401,7 +399,7 @@ class NuaClient:
         return cls(
             region=url,
             account="",
-            endpoint=AsyncNuaEndpoint.ONPREM,
+            endpoint=NuaEndpoint.ONPREM,
             kbid=kbid,
             service_account=None if local_predict else service_account,
             local_predict=local_predict,
@@ -413,8 +411,6 @@ class NuaClient:
             endpoint=self.endpoint,
             headers=self.headers,
             local_predict=self.local_predict,
-            configured_kbid=self.kbid,
-            kbid=kbid,
         )
 
     def _predict_endpoint(self, operation: str, kbid: str | None = None) -> str:
@@ -565,9 +561,10 @@ class NuaClient:
         model: Optional[str] = None,
         extra_headers: Optional[dict[str, str]] = None,
     ) -> Sentence:
-        endpoint = f"{self._predict_endpoint('sentence')}?text={text}"
-        if model:
-            endpoint += f"&model={model}"
+        params = {"text": text}
+        if model is not None:
+            params["model"] = model
+        endpoint = f"{self._predict_endpoint('sentence')}?{urlencode(params)}"
         return self._request(
             "GET", endpoint, output=Sentence, extra_headers=extra_headers
         )
@@ -609,15 +606,12 @@ class NuaClient:
         """Call the Predict query endpoint."""
 
         if isinstance(request, str):
-            endpoint = f"{self._predict_endpoint('query')}?text={request}"
-            if semantic_model:
-                endpoint += f"&semantic_model={semantic_model}"
-            if token_model:
-                endpoint += f"&token_model={token_model}"
-            if generative_model:
-                endpoint += f"&generative_model={generative_model}"
-            return self._request(
-                "GET", endpoint, output=QueryInfo, extra_headers=extra_headers
+            request = QueryRequest(
+                text=request,
+                semantic_models=[semantic_model] if semantic_model else None,
+                semantic_model=semantic_model,
+                token_model=token_model,
+                generative_model=generative_model,
             )
 
         self._validate_predict_request(kbid)
@@ -1055,7 +1049,7 @@ class AsyncNuaClient:
         token: Optional[str] = None,
         headers: Optional[dict[str, str]] = None,
         *,
-        endpoint: AsyncNuaEndpoint = AsyncNuaEndpoint.PUBLIC,
+        endpoint: NuaEndpoint = NuaEndpoint.PUBLIC,
         kbid: str | None = None,
         service_account: str | None = None,
         local_predict: bool = False,
@@ -1100,7 +1094,7 @@ class AsyncNuaClient:
             region=url,
             account=account or "",
             headers=headers,
-            endpoint=AsyncNuaEndpoint.INTERNAL,
+            endpoint=NuaEndpoint.INTERNAL,
             kbid=kbid,
         )
         return client
@@ -1121,7 +1115,7 @@ class AsyncNuaClient:
         return cls(
             region=url,
             account="",
-            endpoint=AsyncNuaEndpoint.ONPREM,
+            endpoint=NuaEndpoint.ONPREM,
             kbid=kbid,
             service_account=None if local_predict else service_account,
             local_predict=local_predict,
@@ -1133,8 +1127,6 @@ class AsyncNuaClient:
             endpoint=self.endpoint,
             headers=self.headers,
             local_predict=self.local_predict,
-            configured_kbid=self.kbid,
-            kbid=kbid,
         )
 
     def _predict_endpoint(self, operation: str, kbid: str | None = None) -> str:
@@ -1337,9 +1329,10 @@ class AsyncNuaClient:
         model: Optional[str] = None,
         extra_headers: Optional[dict[str, str]] = None,
     ) -> Sentence:
-        endpoint = f"{self._predict_endpoint('sentence')}?text={text}"
-        if model:
-            endpoint += f"&model={model}"
+        params = {"text": text}
+        if model is not None:
+            params["model"] = model
+        endpoint = f"{self._predict_endpoint('sentence')}?{urlencode(params)}"
         return await self._request(
             "GET", endpoint, output=Sentence, extra_headers=extra_headers
         )
@@ -1381,15 +1374,12 @@ class AsyncNuaClient:
         """Call the Predict query endpoint."""
 
         if isinstance(request, str):
-            endpoint = f"{self._predict_endpoint('query')}?text={request}"
-            if semantic_model:
-                endpoint += f"&semantic_model={semantic_model}"
-            if token_model:
-                endpoint += f"&token_model={token_model}"
-            if generative_model:
-                endpoint += f"&generative_model={generative_model}"
-            return await self._request(
-                "GET", endpoint, output=QueryInfo, extra_headers=extra_headers
+            request = QueryRequest(
+                text=request,
+                semantic_models=[semantic_model] if semantic_model else None,
+                semantic_model=semantic_model,
+                token_model=token_model,
+                generative_model=generative_model,
             )
 
         self._validate_predict_request(kbid)

@@ -58,15 +58,25 @@ async def test_internal_query_predict_uses_kbid_headers():
 
 
 @pytest.mark.asyncio
-async def test_legacy_query_predict_uses_get_response_model():
+async def test_legacy_query_predict_uses_post_request_model():
     async def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url == "http://predict/api/v1/predict/query?text=hello"
+        assert request.url == "http://predict/api/v1/predict/query"
+        assert request.method == "POST"
+        assert json.loads(request.content) == {
+            "text": "hello",
+            "semantic_models": ["semantic"],
+            "semantic_model": "semantic",
+            "token_model": "ner",
+            "generative_model": "generative",
+            "rephrase": False,
+            "agentic_entities": False,
+        }
         return httpx.Response(
             200,
             json={
                 "language": "en",
                 "stop_words": [],
-                "semantic_threshold": 0.5,
+                "semantic_thresholds": {"semantic": 0.5},
                 "visual_llm": False,
                 "max_context": 1000,
                 "entities": None,
@@ -77,11 +87,56 @@ async def test_legacy_query_predict_uses_get_response_model():
     client = AsyncNuaClient("http://predict", account="")
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.query_predict("hello")
+        result = await client.query_predict("hello", "semantic", "ner", "generative")
     finally:
         await client.aclose()
 
     assert isinstance(result, QueryInfo)
+
+
+@pytest.mark.asyncio
+async def test_onprem_kbid_query_predict_uses_kb_request_model():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/query/kb-1"
+        assert json.loads(request.content)["semantic_models"] == ["semantic"]
+        assert json.loads(request.content)["semantic_model"] == "semantic"
+        assert json.loads(request.content)["token_model"] == "ner"
+        return httpx.Response(
+            200,
+            json={
+                "semantic_thresholds": {"semantic": 0.5},
+                "visual_llm": False,
+                "max_context": 1000,
+                "entities": None,
+                "sentence": None,
+            },
+        )
+
+    client = AsyncNuaClient.onprem(
+        "http://predict", service_account="service-account", kbid="kb-1"
+    )
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        await client.query_predict("hello", "semantic", "ner")
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_sentence_predict_url_encodes_query_parameters():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert (
+            request.url
+            == "http://predict/api/v1/predict/sentence?text=hello+world%26&model=model%2F1"
+        )
+        return httpx.Response(200, json={"data": [], "time": 0})
+
+    client = AsyncNuaClient("http://predict", account="")
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        await client.sentence_predict("hello world&", "model/1")
+    finally:
+        await client.aclose()
 
 
 @pytest.mark.asyncio
