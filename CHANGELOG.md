@@ -1,6 +1,11 @@
 # Changelog
 
-## 4.13.2 (2026-07-31)
+## 4.14.0 (2026-07-31)
+
+- Added support for internal and on-prem Predict APIs in `NuaClient` and `AsyncNuaClient`.
+- Consolidated Predict client APIs around `query_predict`, `tokens_predict`, `generate_stream`, `rephrase`, and `rerank`.
+- Added richer shared NUA request and response models for query, rephrase, rerank, tokens, and graph results.
+- Query requests now use the current POST Predict endpoints.
 
 ## 4.13.1 (2026-07-09)
 
