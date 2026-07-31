@@ -156,7 +156,7 @@ class NucliaPredict:
         **kwargs,
     ) -> Tokens:
         nc: NuaClient = kwargs["nc"]
-        return nc.ner_predict(
+        return nc.tokens_predict(
             text,
             model=model,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
@@ -197,7 +197,7 @@ class NucliaPredict:
                 prompt=prompt,
             )
         )
-        return response.root
+        return response.rephrased_query
 
     @nua
     def rag(
@@ -370,7 +370,7 @@ class AsyncNucliaPredict:
         **kwargs,
     ) -> Tokens:
         nc: AsyncNuaClient = kwargs["nc"]
-        return await nc.ner_predict(
+        return await nc.tokens_predict(
             text,
             model=model,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
@@ -432,7 +432,7 @@ class AsyncNucliaPredict:
                 prompt=prompt,
             )
         )
-        return response.root
+        return response.rephrased_query
 
     @nua
     async def rag(

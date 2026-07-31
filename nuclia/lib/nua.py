@@ -572,19 +572,6 @@ class NuaClient:
             "GET", endpoint, output=Sentence, extra_headers=extra_headers
         )
 
-    def tokens_predict(
-        self,
-        text: str,
-        model: Optional[str] = None,
-        extra_headers: Optional[dict[str, str]] = None,
-    ) -> Tokens:
-        endpoint = f"{self._predict_endpoint('tokens')}?text={text}"
-        if model:
-            endpoint += f"&model={model}"
-        return self._request(
-            "GET", endpoint, output=Tokens, extra_headers=extra_headers
-        )
-
     @overload
     def query_predict(
         self,
@@ -644,12 +631,13 @@ class NuaClient:
             error_type=PredictAPIException,
         )
 
-    def ner_predict(
+    def tokens_predict(
         self,
         text: str,
-        kbid: str | None = None,
         model: Optional[str] = None,
         extra_headers: Optional[dict[str, str]] = None,
+        *,
+        kbid: str | None = None,
         timeout: int = 60,
     ) -> Tokens:
         """Call Predict's token endpoint."""
@@ -1356,19 +1344,6 @@ class AsyncNuaClient:
             "GET", endpoint, output=Sentence, extra_headers=extra_headers
         )
 
-    async def tokens_predict(
-        self,
-        text: str,
-        model: Optional[str] = None,
-        extra_headers: Optional[dict[str, str]] = None,
-    ) -> Tokens:
-        endpoint = f"{self._predict_endpoint('tokens')}?text={text}"
-        if model:
-            endpoint += f"&model={model}"
-        return await self._request(
-            "GET", endpoint, output=Tokens, extra_headers=extra_headers
-        )
-
     @overload
     async def query_predict(
         self,
@@ -1428,12 +1403,13 @@ class AsyncNuaClient:
             error_type=PredictAPIException,
         )
 
-    async def ner_predict(
+    async def tokens_predict(
         self,
         text: str,
-        kbid: str | None = None,
         model: Optional[str] = None,
         extra_headers: Optional[dict[str, str]] = None,
+        *,
+        kbid: str | None = None,
         timeout: int = 60,
     ) -> Tokens:
         """Call Predict's token endpoint for a hosted or on-prem KB."""

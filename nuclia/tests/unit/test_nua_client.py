@@ -95,7 +95,7 @@ def test_legacy_rephrase_uses_root_response_model():
         close_client(client)
 
     assert isinstance(result, RephraseModel)
-    assert result.root == "new query"
+    assert result.rephrased_query == "new query"
 
 
 def test_legacy_generate_stream_returns_iterator():
@@ -171,7 +171,7 @@ def test_onprem_rephrase_parses_headers():
     finally:
         close_client(client)
 
-    assert result.root == "new query"
+    assert result.rephrased_query == "new query"
     assert result.use_chat_history is False
     assert result.learning_id == "learning-2"
     assert result.model == "model-2"
@@ -189,7 +189,7 @@ def test_onprem_rephrase_without_kbid_uses_base_endpoint():
     finally:
         close_client(client)
 
-    assert result.root == "new query"
+    assert result.rephrased_query == "new query"
 
 
 def test_internal_rerank_uses_request_headers():
@@ -231,7 +231,7 @@ def test_onprem_predict_requires_service_account():
     client = NuaClient.onprem("http://predict")
     try:
         with pytest.raises(NuaKeyMissingError):
-            client.ner_predict("hello")
+            client.tokens_predict("hello")
     finally:
         close_client(client)
 
@@ -244,7 +244,7 @@ def test_onprem_predict_requires_service_account():
     client = NuaClient.onprem("http://predict", service_account="service-account")
     client.client = httpx.Client(transport=httpx.MockTransport(handler))
     try:
-        result = client.ner_predict("hello")
+        result = client.tokens_predict("hello")
     finally:
         close_client(client)
 
@@ -261,7 +261,7 @@ def test_predict_limits_error_is_typed_and_includes_api_detail():
     )
     try:
         with pytest.raises(PredictLimitsExceededError) as error:
-            client.ner_predict("hello")
+            client.tokens_predict("hello")
     finally:
         close_client(client)
 
@@ -278,7 +278,7 @@ def test_predict_errors_are_typed_and_include_plain_text_detail():
     )
     try:
         with pytest.raises(PredictAPIException) as error:
-            client.ner_predict("hello")
+            client.tokens_predict("hello")
     finally:
         close_client(client)
 

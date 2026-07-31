@@ -337,12 +337,6 @@ class RephraseModel(BaseModel):
             return {"rephrased_query": value}
         return value
 
-    @property
-    def root(self) -> str:
-        """Backward-compatible access to the legacy root-string response."""
-
-        return self.rephrased_query
-
 
 class WebhookConfig(BaseModel):
     uri: Optional[str] = None

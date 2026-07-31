@@ -98,7 +98,7 @@ async def test_legacy_rephrase_uses_root_response_model():
         await client.aclose()
 
     assert isinstance(result, RephraseModel)
-    assert result.root == "new query"
+    assert result.rephrased_query == "new query"
 
 
 @pytest.mark.asyncio
@@ -180,7 +180,7 @@ async def test_onprem_rephrase_parses_headers():
     finally:
         await client.aclose()
 
-    assert result.root == "new query"
+    assert result.rephrased_query == "new query"
     assert result.use_chat_history is False
     assert result.learning_id == "learning-2"
     assert result.model == "model-2"
@@ -199,7 +199,7 @@ async def test_onprem_rephrase_without_kbid_uses_base_endpoint():
     finally:
         await client.aclose()
 
-    assert result.root == "new query"
+    assert result.rephrased_query == "new query"
 
 
 @pytest.mark.asyncio
@@ -240,7 +240,7 @@ async def test_onprem_rerank_without_kbid_uses_base_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_ner_predict_encodes_text_and_uses_kbid_override():
+async def test_tokens_predict_encodes_text_and_uses_kbid_override():
     async def handler(request: httpx.Request) -> httpx.Response:
         assert (
             request.url == "http://predict/api/internal/predict/tokens?text=hello+world"
@@ -251,7 +251,7 @@ async def test_ner_predict_encodes_text_and_uses_kbid_override():
     client = AsyncNuaClient.internal("http://predict", kbid="kb-1")
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.ner_predict("hello world", kbid="kb-2")
+        result = await client.tokens_predict("hello world", kbid="kb-2")
     finally:
         await client.aclose()
 
@@ -263,7 +263,7 @@ async def test_onprem_predict_requires_service_account():
     client = AsyncNuaClient.onprem("http://predict")
     try:
         with pytest.raises(NuaKeyMissingError):
-            await client.ner_predict("hello")
+            await client.tokens_predict("hello")
     finally:
         await client.aclose()
 
@@ -276,7 +276,7 @@ async def test_onprem_predict_requires_service_account():
     client = AsyncNuaClient.onprem("http://predict", service_account="service-account")
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.ner_predict("hello")
+        result = await client.tokens_predict("hello")
     finally:
         await client.aclose()
 
@@ -293,7 +293,7 @@ async def test_onprem_local_predict_allows_requests_without_service_account():
     client = AsyncNuaClient.onprem("http://predict", kbid="kb-1", local_predict=True)
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.ner_predict("hello")
+        result = await client.tokens_predict("hello")
     finally:
         await client.aclose()
 
@@ -309,7 +309,7 @@ async def test_predict_limits_error_is_typed_and_includes_api_detail():
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
         with pytest.raises(PredictLimitsExceededError) as error:
-            await client.ner_predict("hello")
+            await client.tokens_predict("hello")
     finally:
         await client.aclose()
 
@@ -326,7 +326,7 @@ async def test_predict_errors_are_typed_and_include_plain_text_detail():
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
         with pytest.raises(PredictAPIException) as error:
-            await client.ner_predict("hello")
+            await client.tokens_predict("hello")
     finally:
         await client.aclose()
 
