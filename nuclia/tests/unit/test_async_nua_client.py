@@ -3,7 +3,6 @@ import json
 import httpx
 import pytest
 from nuclia_models.predict.generative_responses import TextGenerativeResponse
-from nucliadb_models.internal.predict import RerankModel
 
 from nuclia.exceptions import (
     PredictAPIException,
@@ -13,11 +12,10 @@ from nuclia.exceptions import (
 from nuclia.lib.nua import (
     AsyncNuaClient,
     NuaKeyMissingError,
-    PredictQueryRequest,
-    PredictRephraseMissingContextError,
-    PredictRephraseRequest,
+    QueryRequest,
+    RephraseRequest,
 )
-from nuclia.lib.nua_responses import ChatModel
+from nuclia.lib.nua_responses import ChatModel, QueryInfo, RephraseModel, RerankModel
 
 
 def chunk(chunk_type: str, **data) -> str:
@@ -25,7 +23,7 @@ def chunk(chunk_type: str, **data) -> str:
 
 
 @pytest.mark.asyncio
-async def test_internal_predict_query_uses_kbid_headers():
+async def test_internal_query_predict_uses_kbid_headers():
     requests = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -48,7 +46,7 @@ async def test_internal_predict_query_uses_kbid_headers():
     client = AsyncNuaClient.internal("http://predict", kbid="kb-1", account="account-1")
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.predict_query(PredictQueryRequest(text="hello"))
+        result = await client.query_predict(QueryRequest(text="hello"))
     finally:
         await client.aclose()
 
@@ -60,7 +58,72 @@ async def test_internal_predict_query_uses_kbid_headers():
 
 
 @pytest.mark.asyncio
-async def test_onprem_predict_chat_stream_returns_headers_and_chunks():
+async def test_legacy_query_predict_uses_get_response_model():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/query?text=hello"
+        return httpx.Response(
+            200,
+            json={
+                "language": "en",
+                "stop_words": [],
+                "semantic_threshold": 0.5,
+                "visual_llm": False,
+                "max_context": 1000,
+                "entities": None,
+                "sentence": None,
+            },
+        )
+
+    client = AsyncNuaClient("http://predict", account="")
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        result = await client.query_predict("hello")
+    finally:
+        await client.aclose()
+
+    assert isinstance(result, QueryInfo)
+
+
+@pytest.mark.asyncio
+async def test_legacy_rephrase_uses_root_response_model():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/rephrase?model=model-1"
+        return httpx.Response(200, json="new query")
+
+    client = AsyncNuaClient("http://predict", account="")
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        result = await client.rephrase("old", model="model-1")
+    finally:
+        await client.aclose()
+
+    assert isinstance(result, RephraseModel)
+    assert result.root == "new query"
+
+
+@pytest.mark.asyncio
+async def test_legacy_generate_stream_returns_async_iterator():
+    client = AsyncNuaClient("http://predict", account="")
+    client.stream_client = httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, content=chunk("text", text="hello"))
+        )
+    )
+    try:
+        chunks = [
+            chunk
+            async for chunk in client.generate_stream(
+                ChatModel(question="hello", user_id="user")
+            )
+        ]
+    finally:
+        await client.aclose()
+
+    assert isinstance(chunks[0].chunk, TextGenerativeResponse)
+
+
+@pytest.mark.asyncio
+async def test_onprem_generate_stream_returns_headers_and_chunks():
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "http://predict/api/v1/predict/chat/kb-1"
         assert request.headers["x-stf-nuakey"] == "Bearer service-account"
@@ -81,21 +144,21 @@ async def test_onprem_predict_chat_stream_returns_headers_and_chunks():
     )
     client.stream_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        learning_id, model, stream = await client.predict_chat_stream(
-            ChatModel(question="hello", user_id="user")
+        response = await client.generate_stream(
+            ChatModel(question="hello", user_id="user"), return_metadata=True
         )
-        chunks = [item async for item in stream]
+        chunks = [item async for item in response.stream]
     finally:
         await client.aclose()
 
-    assert learning_id == "learning-1"
-    assert model == "model-1"
+    assert response.learning_id == "learning-1"
+    assert response.model == "model-1"
     assert isinstance(chunks[0].chunk, TextGenerativeResponse)
     assert chunks[0].chunk.text == "hello"
 
 
 @pytest.mark.asyncio
-async def test_onprem_predict_rephrase_parses_status_and_headers():
+async def test_onprem_rephrase_parses_headers():
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "http://predict/api/v1/predict/rephrase/kb-1"
         return httpx.Response(
@@ -105,7 +168,7 @@ async def test_onprem_predict_rephrase_parses_status_and_headers():
                 "nuclia-learning-model": "model-2",
                 "nuclia-learning-chat-history": "false",
             },
-            json="new query0",
+            json="new query",
         )
 
     client = AsyncNuaClient.onprem(
@@ -113,38 +176,34 @@ async def test_onprem_predict_rephrase_parses_status_and_headers():
     )
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.predict_rephrase(
-            PredictRephraseRequest(question="old", user_id="user")
-        )
+        result = await client.rephrase(RephraseRequest(question="old", user_id="user"))
     finally:
         await client.aclose()
 
-    assert result.rephrased_query == "new query"
+    assert result.root == "new query"
     assert result.use_chat_history is False
     assert result.learning_id == "learning-2"
     assert result.model == "model-2"
 
 
 @pytest.mark.asyncio
-async def test_predict_rephrase_missing_context_is_typed():
+async def test_onprem_rephrase_without_kbid_uses_base_endpoint():
     async def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json="no context-2")
+        assert request.url == "http://predict/api/v1/predict/rephrase"
+        return httpx.Response(200, json="new query")
 
-    client = AsyncNuaClient.onprem(
-        "http://predict", kbid="kb-1", service_account="service-account"
-    )
+    client = AsyncNuaClient.onprem("http://predict", service_account="service-account")
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        with pytest.raises(PredictRephraseMissingContextError):
-            await client.predict_rephrase(
-                PredictRephraseRequest(question="old", user_id="user")
-            )
+        result = await client.rephrase(RephraseRequest(question="old"))
     finally:
         await client.aclose()
 
+    assert result.root == "new query"
+
 
 @pytest.mark.asyncio
-async def test_internal_predict_rerank_uses_request_headers():
+async def test_internal_rerank_uses_request_headers():
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "http://predict/api/internal/predict/rerank"
         assert request.headers["x-stf-kbid"] == "kb-1"
@@ -153,7 +212,7 @@ async def test_internal_predict_rerank_uses_request_headers():
     client = AsyncNuaClient.internal("http://predict", kbid="kb-1")
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.predict_rerank(
+        result = await client.rerank(
             RerankModel(question="hello", user_id="user", context={"1": "text"})
         )
     finally:
@@ -163,7 +222,25 @@ async def test_internal_predict_rerank_uses_request_headers():
 
 
 @pytest.mark.asyncio
-async def test_predict_tokens_encodes_text_and_uses_kbid_override():
+async def test_onprem_rerank_without_kbid_uses_base_endpoint():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/rerank"
+        return httpx.Response(200, json={"context_scores": {"1": 0.9}})
+
+    client = AsyncNuaClient.onprem("http://predict", service_account="service-account")
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        result = await client.rerank(
+            RerankModel(question="hello", user_id="user", context={"1": "text"})
+        )
+    finally:
+        await client.aclose()
+
+    assert result.context_scores == {"1": 0.9}
+
+
+@pytest.mark.asyncio
+async def test_ner_predict_encodes_text_and_uses_kbid_override():
     async def handler(request: httpx.Request) -> httpx.Response:
         assert (
             request.url == "http://predict/api/internal/predict/tokens?text=hello+world"
@@ -174,7 +251,7 @@ async def test_predict_tokens_encodes_text_and_uses_kbid_override():
     client = AsyncNuaClient.internal("http://predict", kbid="kb-1")
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.predict_tokens("hello world", kbid="kb-2")
+        result = await client.ner_predict("hello world", kbid="kb-2")
     finally:
         await client.aclose()
 
@@ -182,20 +259,29 @@ async def test_predict_tokens_encodes_text_and_uses_kbid_override():
 
 
 @pytest.mark.asyncio
-async def test_onprem_predict_requires_service_account_and_kbid():
+async def test_onprem_predict_requires_service_account():
     client = AsyncNuaClient.onprem("http://predict")
     try:
         with pytest.raises(NuaKeyMissingError):
-            await client.predict_tokens("hello")
+            await client.ner_predict("hello")
     finally:
         await client.aclose()
 
+    requests = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"tokens": [], "time": 0})
+
     client = AsyncNuaClient.onprem("http://predict", service_account="service-account")
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        with pytest.raises(ValueError, match="knowledge box ID"):
-            await client.predict_tokens("hello")
+        result = await client.ner_predict("hello")
     finally:
         await client.aclose()
+
+    assert result.tokens == []
+    assert requests[0].url == "http://predict/api/v1/predict/tokens?text=hello"
 
 
 @pytest.mark.asyncio
@@ -207,7 +293,7 @@ async def test_onprem_local_predict_allows_requests_without_service_account():
     client = AsyncNuaClient.onprem("http://predict", kbid="kb-1", local_predict=True)
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        result = await client.predict_tokens("hello")
+        result = await client.ner_predict("hello")
     finally:
         await client.aclose()
 
@@ -223,7 +309,7 @@ async def test_predict_limits_error_is_typed_and_includes_api_detail():
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
         with pytest.raises(PredictLimitsExceededError) as error:
-            await client.predict_tokens("hello")
+            await client.ner_predict("hello")
     finally:
         await client.aclose()
 
@@ -240,7 +326,7 @@ async def test_predict_errors_are_typed_and_include_plain_text_detail():
     client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
         with pytest.raises(PredictAPIException) as error:
-            await client.predict_tokens("hello")
+            await client.ner_predict("hello")
     finally:
         await client.aclose()
 

@@ -5,15 +5,10 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Self, Union, c
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
-from nucliadb_models.internal.predict import (
-    RerankModel,  # noqa: F401
-    RerankResponse,  # noqa: F401
-)
 from nucliadb_models.search import Image
 from pydantic import (
     BaseModel,
     Field,
-    RootModel,
     field_serializer,
 )
 
@@ -329,8 +324,24 @@ class SummarizedModel(BaseModel):
     consumption: Optional[Consumption] = None
 
 
-class RephraseModel(RootModel[str]):
-    pass
+class RephraseModel(BaseModel):
+    rephrased_query: str
+    use_chat_history: Optional[bool] = None
+    learning_id: Optional[str] = None
+    model: Optional[str] = None
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def parse_legacy_response(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return {"rephrased_query": value}
+        return value
+
+    @property
+    def root(self) -> str:
+        """Backward-compatible access to the legacy root-string response."""
+
+        return self.rephrased_query
 
 
 class WebhookConfig(BaseModel):
@@ -705,8 +716,16 @@ class StoredLearningConfiguration(BaseModel):
 
 
 class SentenceSearch(BaseModel):
-    data: List[float] = []
-    time: float
+    data: List[float] = Field(default_factory=list, deprecated=True)
+    time: float = Field(default=0, deprecated=True)
+    vectors: dict[str, List[float]] = Field(
+        default_factory=dict,
+        description="Sentence vectors for each semantic model",
+    )
+    timings: dict[str, float] = Field(
+        default_factory=dict,
+        description="Time taken to compute the sentence vector for each semantic model",
+    )
     consumption: Optional[Consumption] = None
 
 
@@ -718,16 +737,62 @@ class Ner(BaseModel):
 
 
 class TokenSearch(BaseModel):
-    tokens: List[Ner] = []
+    tokens: List[Ner] = Field(default_factory=list)
     time: float
+    input_tokens: int = Field(default=0, deprecated=True)
+    consumption: Optional[Consumption] = None
+
+
+class GraphNodeSearch(BaseModel):
+    vectors: dict[str, dict[str, List[float]]] = Field(
+        default_factory=dict,
+        description="Graph node embeddings for each node and semantic model",
+    )
+    timings: dict[str, float] = Field(
+        default_factory=dict,
+        description="Time taken to compute graph node embeddings for each semantic model",
+    )
+    consumption: Optional[Consumption] = None
+
+
+class GraphEdgeSearch(BaseModel):
+    vectors: dict[str, dict[str, List[float]]] = Field(
+        default_factory=dict,
+        description="Graph edge embeddings for each edge and semantic model",
+    )
+    timings: dict[str, float] = Field(
+        default_factory=dict,
+        description="Time taken to compute graph edge embeddings for each semantic model",
+    )
     consumption: Optional[Consumption] = None
 
 
 class QueryInfo(BaseModel):
-    language: str
-    stop_words: List[str]
-    semantic_threshold: float
+    language: Optional[str] = None
+    stop_words: List[str] = Field(default_factory=list)
+    semantic_threshold: Optional[float] = Field(default=None, deprecated=True)
+    semantic_thresholds: dict[str, float] = Field(
+        default_factory=dict,
+        description="Semantic threshold for each semantic model",
+    )
     visual_llm: bool
     max_context: int
     entities: Optional[TokenSearch]
     sentence: Optional[SentenceSearch]
+    query: Optional[str] = None
+    rephrased_query: Optional[str] = None
+    graph_nodes: Optional[GraphNodeSearch] = None
+    graph_edges: Optional[GraphEdgeSearch] = None
+
+
+class RerankModel(BaseModel):
+    question: str
+    user_id: str
+    context: dict[str, str] = Field(default_factory=dict)
+
+
+class RerankResponse(BaseModel):
+    context_scores: dict[str, float] = Field(
+        description="Scores for each context given by the reranker"
+    )
+    consumption: Optional[Consumption] = None
