@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum, IntEnum
 from typing import Annotated, Any, Dict, List, Literal, Optional, Self, Union, cast
@@ -8,6 +9,7 @@ from nucliadb_models.internal.predict import (
     RerankModel,  # noqa: F401
     RerankResponse,  # noqa: F401
 )
+from nucliadb_models.search import Image
 from pydantic import (
     BaseModel,
     Field,
@@ -108,12 +110,7 @@ RichMessage = Annotated[
 
 
 class UserPrompt(BaseModel):
-    prompt: str
-
-
-class Image(BaseModel):
-    content_type: str
-    b64encoded: str
+    prompt: str = Field(description="Optional custom prompt input by the user")
 
 
 class Tool(BaseModel):
@@ -171,16 +168,37 @@ class ToolChoiceForced(BaseModel):
 
 
 class ChatModel(BaseModel):
-    question: str
+    """Payload for a Predict chat request."""
+
+    question: str = Field(description="Question to ask the generative model")
     retrieval: bool = True
     user_id: str = "system"
-    system: Optional[str] = None
-    chat_history: List[RichMessage] = Field(default_factory=list)
-    context: List[Message] = []
-    query_context: Union[List[str], Dict[str, str]] = {}
-    query_context_order: Dict[str, int] = {}
-    truncate: Optional[bool] = True
-    user_prompt: Optional[UserPrompt] = None
+    system: Optional[str] = Field(
+        default=None,
+        title="System prompt",
+        description="Optional system prompt input by the user",
+    )
+    chat_history: Sequence[RichMessage] = Field(
+        default_factory=list,
+        description="The chat conversation history",
+    )
+    context: List[Message] = Field(default_factory=list)
+    query_context: Union[List[str], Dict[str, str]] = Field(
+        default_factory=dict,
+        description="The information retrieval context for the current query",
+    )
+    query_context_order: Dict[str, int] = Field(
+        default_factory=dict,
+        description="The order of the query context elements. This is used to sort the context elements by relevance before sending them to the generative model",
+    )
+    truncate: Optional[bool] = Field(
+        default=True,
+        description="Truncate the chat context in case it doesn't fit the generative input",
+    )
+    user_prompt: Optional[UserPrompt] = Field(
+        default=None,
+        description="Optional custom prompt input by the user",
+    )
     citations: Union[bool, None, CitationsType] = Field(
         default=None,
         description="Whether to include citations in the response. "
@@ -194,14 +212,31 @@ class ChatModel(BaseModel):
         ge=0.0,
         le=1.0,
     )
-    generative_model: Optional[str] = None
-    max_tokens: Optional[int] = None
-    query_context_images: Union[
-        List[Image], Dict[str, Image]
-    ] = {}  # base64.b64encode(image_file.read()).decode('utf-8')
-    prefer_markdown: Optional[bool] = None
-    json_schema: Optional[Dict[str, Any]] = None
-    format_prompt: bool = True
+    generative_model: Optional[str] = Field(
+        default=None,
+        title="Generative model",
+        description="The generative model to use for the predict chat endpoint. If not provided, the model configured for the Knowledge Box is used.",
+    )
+    max_tokens: Optional[int] = Field(
+        default=None,
+        description="Maximum tokens to generate",
+    )
+    query_context_images: Union[List[Image], Dict[str, Image]] = Field(
+        default_factory=dict,
+        description="The information retrieval context images, keyed by context ID or provided as a list",
+    )
+    prefer_markdown: Optional[bool] = Field(
+        default=None,
+        description="Whether the response should be formatted as Markdown",
+    )
+    json_schema: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="The JSON schema to use for the generative model answer",
+    )
+    format_prompt: bool = Field(
+        default=True,
+        description="Whether the custom prompt is formatted with the question and context placeholders",
+    )
     rerank_context: bool = Field(
         default=False,
         description="Whether to reorder the query context based on a reranker. This option will also make it so the first response will contain the scores given for each context piece.",
@@ -233,7 +268,7 @@ class ChatModel(BaseModel):
 
     seed: Optional[int] = Field(
         default=None,
-        description="Seed use for the generative model for a deterministic output.",
+        description="Seed used for deterministic generative-model output.",
     )
 
     image_generation: bool = Field(

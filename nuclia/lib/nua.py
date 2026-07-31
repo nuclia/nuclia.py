@@ -11,6 +11,7 @@ from typing import (
     Iterator,
     Optional,
     Type,
+    TypeAlias,
     TypeVar,
     Union,
 )
@@ -41,7 +42,7 @@ from nucliadb_models.internal.predict import (
     RerankModel,
     RerankResponse,
 )
-from nucliadb_models.search import Image as PredictImage
+from nucliadb_models.search import Image
 from pydantic import BaseModel, Field, ValidationError
 from tqdm import tqdm
 
@@ -60,6 +61,7 @@ from nuclia.lib.nua_responses import (
     LearningConfigurationCreation,
     LearningConfigurationUpdate,
     LinkUpload,
+    Message,
     ProcessRequestStatus,
     ProcessRequestStatusResults,
     PushPayload,
@@ -108,14 +110,8 @@ LEARNING_CHAT_HISTORY_HEADER = "nuclia-learning-chat-history"
 ConvertType = TypeVar("ConvertType", bound=BaseModel)
 
 
-class Author(str, Enum):
-    NUCLIA = "NUCLIA"
-    USER = "USER"
-
-
-class ContextItem(BaseModel):
-    author: Author
-    text: str
+# Backward-compatible name for the shared chat-history message model.
+ContextItem: TypeAlias = Message
 
 
 class AsyncNuaEndpoint(str, Enum):
@@ -140,7 +136,7 @@ class PredictQueryRequest(BaseModel):
     """Request payload for the current KB-aware Predict query endpoint."""
 
     text: str | None = None
-    query_image: PredictImage | None = None
+    query_image: Image | None = None
     rephrase: bool = False
     rephrase_prompt: str | None = None
     generative_model: str | None = None
