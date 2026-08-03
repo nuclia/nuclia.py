@@ -8,7 +8,13 @@ from nuclia_models.predict.remi import RemiRequest, RemiResponse
 
 from nuclia.data import get_auth
 from nuclia.decorators import nua
-from nuclia.lib.nua import AsyncNuaClient, ContextItem, NuaClient
+from nuclia.lib.nua import (
+    AsyncNuaClient,
+    ContextItem,
+    NuaClient,
+    QueryRequest,
+    RephraseRequest,
+)
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,
@@ -79,10 +85,12 @@ class NucliaPredict:
     ) -> QueryInfo:
         nc: NuaClient = kwargs["nc"]
         return nc.query_predict(
-            text=text,
-            semantic_model=semantic_model,
-            token_model=token_model,
-            generative_model=generative_model,
+            QueryRequest(
+                text=text,
+                semantic_model=semantic_model,
+                token_model=token_model,
+                generative_model=generative_model,
+            ),
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
@@ -130,11 +138,13 @@ class NucliaPredict:
         else:
             body = text
 
-        for chunk in nc.generate_stream(
+        response = nc.generate_stream(
             body=body,
             model=model,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
-        ):
+            return_metadata=True,
+        )
+        for chunk in response.stream:
             yield chunk
 
     @nua
@@ -148,7 +158,7 @@ class NucliaPredict:
         nc: NuaClient = kwargs["nc"]
         return nc.tokens_predict(
             text,
-            model,
+            model=model,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
@@ -178,7 +188,16 @@ class NucliaPredict:
         **kwargs,
     ) -> str:
         nc: NuaClient = kwargs["nc"]
-        return nc.rephrase(question, user_context, context, model, prompt).root
+        response = nc.rephrase(
+            RephraseRequest(
+                question=question,
+                user_context=user_context or [],
+                context=context or [],
+                generative_model=model,
+                prompt=prompt,
+            )
+        )
+        return response.rephrased_query
 
     @nua
     def rag(
@@ -333,11 +352,13 @@ class AsyncNucliaPredict:
         else:
             body = text
 
-        async for chunk in nc.generate_stream(
+        response = await nc.generate_stream(
             body=body,
             model=model,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
-        ):
+            return_metadata=True,
+        )
+        async for chunk in response.stream:
             yield chunk
 
     @nua
@@ -351,7 +372,7 @@ class AsyncNucliaPredict:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.tokens_predict(
             text,
-            model,
+            model=model,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
@@ -367,10 +388,12 @@ class AsyncNucliaPredict:
     ) -> QueryInfo:
         nc: AsyncNuaClient = kwargs["nc"]
         return await nc.query_predict(
-            text=text,
-            semantic_model=semantic_model,
-            token_model=token_model,
-            generative_model=generative_model,
+            QueryRequest(
+                text=text,
+                semantic_model=semantic_model,
+                token_model=token_model,
+                generative_model=generative_model,
+            ),
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
@@ -400,7 +423,16 @@ class AsyncNucliaPredict:
         **kwargs,
     ) -> str:
         nc: AsyncNuaClient = kwargs["nc"]
-        return (await nc.rephrase(question, user_context, context, model, prompt)).root
+        response = await nc.rephrase(
+            RephraseRequest(
+                question=question,
+                user_context=user_context or [],
+                context=context or [],
+                generative_model=model,
+                prompt=prompt,
+            )
+        )
+        return response.rephrased_query
 
     @nua
     async def rag(

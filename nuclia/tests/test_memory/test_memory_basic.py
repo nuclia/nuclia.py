@@ -337,10 +337,22 @@ async def test_basic(
 
     assert page >= 2
 
-    # Graph tests
+    # Graph tests, they are created after facts are processed, so we need to wait a bit
+    graph_ready = False
+    for _ in range(60):
+        graph_result = await maybe_await(
+            memory.graph(topic="vacation-policy", user_id="user-a")
+        )
+        if len(graph_result) >= 1:
+            graph_ready = True
+            break
+        else:
+            print("Graph not ready yet, waiting...")
+            await asyncio.sleep(1)
     graph_result = await maybe_await(
         memory.graph(topic="vacation-policy", user_id=USER_A)
     )
+    assert graph_ready, "Graph did not become ready in time."
     assert len(graph_result) >= 1, "Graph should contain at least one path."
 
     # Test forgetting entries cascades to corresponding facts
