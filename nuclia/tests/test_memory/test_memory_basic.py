@@ -356,11 +356,18 @@ async def test_basic(
     assert len(graph_result) >= 1, "Graph should contain at least one path."
 
     # Test forgetting entries cascades to corresponding facts
-    await maybe_await(
-        memory.forget_entry(
-            user_id=USER_A, topic="vacation-policy", entry_id=topic_entries[0].id
+    topic_entries_after_forget = [
+        e
+        async for e in maybe_async_iterate(
+            memory.entries(user_id=USER_A, topic="vacation-policy")
         )
     ]
+    for entry in topic_entries_after_forget:
+        await maybe_await(
+            memory.forget_entry(
+                user_id=USER_A, topic="vacation-policy", entry_id=entry.id
+            )
+        )
     topic_facts_after_forget = [
         f
         async for f in maybe_async_iterate(
