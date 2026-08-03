@@ -1,11 +1,16 @@
+from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum, IntEnum
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Annotated, Any, Dict, List, Literal, Optional, Self, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
-from pydantic import BaseModel, Field, RootModel, field_serializer, model_validator
-from typing_extensions import Annotated, Self
+from nucliadb_models.search import Image
+from pydantic import (
+    BaseModel,
+    Field,
+    field_serializer,
+)
 
 
 class GenerativeOption(BaseModel):
@@ -61,17 +66,46 @@ class Author(str, Enum):
 
 
 class Message(BaseModel):
+    type: Literal["message"] = "message"
     author: Author
     text: str
 
 
+class MessageToolFunction(BaseModel):
+    name: str
+    arguments: Any = None
+
+
+class MessageToolCall(BaseModel):
+    id: str
+    type: Literal["function"] = "function"
+    function: MessageToolFunction
+
+
+class AssistantMessage(BaseModel):
+    type: Literal["assistant"] = "assistant"
+    author: Author = Author.NUCLIA
+    text: str = ""
+    content: Any = None
+    tool_calls: List[MessageToolCall] = Field(default_factory=list)
+
+
+class ToolMessage(BaseModel):
+    type: Literal["tool"] = "tool"
+    author: Author = Author.USER
+    text: str = ""
+    tool_call_id: str
+    name: Optional[str] = None
+    content: Any = None
+
+
+RichMessage = Annotated[
+    Union[AssistantMessage, ToolMessage, Message], Field(discriminator="type")
+]
+
+
 class UserPrompt(BaseModel):
-    prompt: str
-
-
-class Image(BaseModel):
-    content_type: str
-    b64encoded: str
+    prompt: str = Field(description="Optional custom prompt input by the user")
 
 
 class Tool(BaseModel):
@@ -129,16 +163,37 @@ class ToolChoiceForced(BaseModel):
 
 
 class ChatModel(BaseModel):
-    question: str
+    """Payload for a Predict chat request."""
+
+    question: str = Field(description="Question to ask the generative model")
     retrieval: bool = True
-    user_id: str
-    system: Optional[str] = None
-    chat_history: List[Message] = []
-    context: List[Message] = []
-    query_context: Union[List[str], Dict[str, str]] = {}
-    query_context_order: Dict[str, int] = {}
-    truncate: Optional[bool] = True
-    user_prompt: Optional[UserPrompt] = None
+    user_id: str = "system"
+    system: Optional[str] = Field(
+        default=None,
+        title="System prompt",
+        description="Optional system prompt input by the user",
+    )
+    chat_history: Sequence[RichMessage] = Field(
+        default_factory=list,
+        description="The chat conversation history",
+    )
+    context: List[Message] = Field(default_factory=list)
+    query_context: Union[List[str], Dict[str, str]] = Field(
+        default_factory=dict,
+        description="The information retrieval context for the current query",
+    )
+    query_context_order: Dict[str, int] = Field(
+        default_factory=dict,
+        description="The order of the query context elements. This is used to sort the context elements by relevance before sending them to the generative model",
+    )
+    truncate: Optional[bool] = Field(
+        default=True,
+        description="Truncate the chat context in case it doesn't fit the generative input",
+    )
+    user_prompt: Optional[UserPrompt] = Field(
+        default=None,
+        description="Optional custom prompt input by the user",
+    )
     citations: Union[bool, None, CitationsType] = Field(
         default=None,
         description="Whether to include citations in the response. "
@@ -152,14 +207,31 @@ class ChatModel(BaseModel):
         ge=0.0,
         le=1.0,
     )
-    generative_model: Optional[str] = None
-    max_tokens: Optional[int] = None
-    query_context_images: Union[
-        List[Image], Dict[str, Image]
-    ] = {}  # base64.b64encode(image_file.read()).decode('utf-8')
-    prefer_markdown: Optional[bool] = None
-    json_schema: Optional[Dict[str, Any]] = None
-    format_prompt: bool = True
+    generative_model: Optional[str] = Field(
+        default=None,
+        title="Generative model",
+        description="The generative model to use for the predict chat endpoint. If not provided, the model configured for the Knowledge Box is used.",
+    )
+    max_tokens: Optional[int] = Field(
+        default=None,
+        description="Maximum tokens to generate",
+    )
+    query_context_images: Union[List[Image], Dict[str, Image]] = Field(
+        default_factory=dict,
+        description="The information retrieval context images, keyed by context ID or provided as a list",
+    )
+    prefer_markdown: Optional[bool] = Field(
+        default=None,
+        description="Whether the response should be formatted as Markdown",
+    )
+    json_schema: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="The JSON schema to use for the generative model answer",
+    )
+    format_prompt: bool = Field(
+        default=True,
+        description="Whether the custom prompt is formatted with the question and context placeholders",
+    )
     rerank_context: bool = Field(
         default=False,
         description="Whether to reorder the query context based on a reranker. This option will also make it so the first response will contain the scores given for each context piece.",
@@ -191,10 +263,15 @@ class ChatModel(BaseModel):
 
     seed: Optional[int] = Field(
         default=None,
-        description="Seed use for the generative model for a deterministic output.",
+        description="Seed used for deterministic generative-model output.",
     )
 
-    @model_validator(mode="after")
+    image_generation: bool = Field(
+        default=False,
+        description="Whether to enable image generation in the response.",
+    )
+
+    @pydantic.model_validator(mode="after")
     def validate_model(self) -> Self:
         if self.prefer_markdown is True and self.json_schema is not None:
             raise ValueError("Can not setup markdown and JSON Schema at the same time")
@@ -247,8 +324,18 @@ class SummarizedModel(BaseModel):
     consumption: Optional[Consumption] = None
 
 
-class RephraseModel(RootModel[str]):
-    pass
+class RephraseModel(BaseModel):
+    rephrased_query: str
+    use_chat_history: Optional[bool] = None
+    learning_id: Optional[str] = None
+    model: Optional[str] = None
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def parse_legacy_response(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return {"rephrased_query": value}
+        return value
 
 
 class WebhookConfig(BaseModel):
@@ -623,8 +710,16 @@ class StoredLearningConfiguration(BaseModel):
 
 
 class SentenceSearch(BaseModel):
-    data: List[float] = []
-    time: float
+    data: List[float] = Field(default_factory=list, deprecated=True)
+    time: float = Field(default=0, deprecated=True)
+    vectors: dict[str, List[float]] = Field(
+        default_factory=dict,
+        description="Sentence vectors for each semantic model",
+    )
+    timings: dict[str, float] = Field(
+        default_factory=dict,
+        description="Time taken to compute the sentence vector for each semantic model",
+    )
     consumption: Optional[Consumption] = None
 
 
@@ -636,25 +731,58 @@ class Ner(BaseModel):
 
 
 class TokenSearch(BaseModel):
-    tokens: List[Ner] = []
+    tokens: List[Ner] = Field(default_factory=list)
     time: float
+    input_tokens: int = Field(default=0, deprecated=True)
+    consumption: Optional[Consumption] = None
+
+
+class GraphNodeSearch(BaseModel):
+    vectors: dict[str, dict[str, List[float]]] = Field(
+        default_factory=dict,
+        description="Graph node embeddings for each node and semantic model",
+    )
+    timings: dict[str, float] = Field(
+        default_factory=dict,
+        description="Time taken to compute graph node embeddings for each semantic model",
+    )
+    consumption: Optional[Consumption] = None
+
+
+class GraphEdgeSearch(BaseModel):
+    vectors: dict[str, dict[str, List[float]]] = Field(
+        default_factory=dict,
+        description="Graph edge embeddings for each edge and semantic model",
+    )
+    timings: dict[str, float] = Field(
+        default_factory=dict,
+        description="Time taken to compute graph edge embeddings for each semantic model",
+    )
     consumption: Optional[Consumption] = None
 
 
 class QueryInfo(BaseModel):
-    language: str
-    stop_words: List[str]
-    semantic_threshold: float
+    language: Optional[str] = None
+    stop_words: List[str] = Field(default_factory=list)
+    semantic_threshold: Optional[float] = Field(default=None, deprecated=True)
+    semantic_thresholds: dict[str, float] = Field(
+        default_factory=dict,
+        description="Semantic threshold for each semantic model",
+    )
     visual_llm: bool
     max_context: int
     entities: Optional[TokenSearch]
     sentence: Optional[SentenceSearch]
+    query: Optional[str] = None
+    rephrased_query: Optional[str] = None
+    graph_nodes: Optional[GraphNodeSearch] = None
+    graph_edges: Optional[GraphEdgeSearch] = None
 
 
 class RerankModel(BaseModel):
     question: str
     user_id: str
-    context: dict[str, str] = {}
+    context: dict[str, str] = Field(default_factory=dict)
 
 
 class RerankResponse(BaseModel):

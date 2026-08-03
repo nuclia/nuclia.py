@@ -36,6 +36,20 @@ class NuaAPIException(APIException):
     api_name: str = "NUA"
 
 
+class PredictAPIException(NuaAPIException):
+    """Predict returned a non-success response."""
+
+    api_name: str = "Predict"
+
+
+class PredictLimitsExceededError(PredictAPIException):
+    """Predict rejected the request because an account limit was exceeded."""
+
+
+class RetriablePredictAPIException(PredictAPIException):
+    """Predict returned a transient failure that the client will retry."""
+
+
 class AlreadyConsumed(Exception):
     pass
 
