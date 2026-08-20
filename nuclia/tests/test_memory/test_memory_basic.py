@@ -14,9 +14,6 @@ from nuclia.sdk.memory import (
 )
 from nuclia.tests.utils import maybe_async_iterate, maybe_await
 
-USER_A = "user-a"
-USER_B = "user-b"
-
 TOPIC_VACATION_POLICY = "vacation-policy"
 TOPIC_VACATION_POLICY_LINK = "vacation-policy-link"
 TOPIC_VACATION_POLICY_FILE = "vacation-policy-file"
@@ -71,6 +68,9 @@ async def test_basic(
     testing_config,
     memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
 ) -> None:
+
+    USER_A = "user-a"
+
     memory = memory_klass()
     await maybe_await(
         memory.initialize(
@@ -456,6 +456,9 @@ async def test_basic_nontopic(
 
     Covers global entries: remember, listing, deduplication, and deletion.
     """
+    USER_A = "user-axx"
+    USER_B = "user-bxx"
+
     memory = memory_klass()
 
     async def _cleanup():
