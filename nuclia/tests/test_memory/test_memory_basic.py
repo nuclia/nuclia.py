@@ -17,6 +17,10 @@ from nuclia.tests.utils import maybe_async_iterate, maybe_await
 USER_A = "user-a"
 USER_B = "user-b"
 
+TOPIC_VACATION_POLICY = "vacation-policy"
+TOPIC_VACATION_POLICY_LINK = "vacation-policy-link"
+TOPIC_VACATION_POLICY_FILE = "vacation-policy-file"
+
 
 async def _wait_until_topic_ready_for_search(
     memory: Union[NucliaMemory, AsyncNucliaMemory],
@@ -61,8 +65,7 @@ async def _wait_until_topic_ready_for_search(
 
 @pytest.mark.parametrize(
     "memory_klass",
-    #    [NucliaMemory, AsyncNucliaMemory],
-    [NucliaMemory],
+    [NucliaMemory, AsyncNucliaMemory],
 )
 async def test_basic(
     testing_config,
@@ -85,19 +88,19 @@ async def test_basic(
             memory.initialize(rules=["foobar"], graph_extraction=False, overwrite=False)
         )
 
-    async def _cleanup(slugs):
-        for slug in slugs:
+    async def _cleanup():
+        for slug in [
+            TOPIC_VACATION_POLICY,
+            TOPIC_VACATION_POLICY_LINK,
+            TOPIC_VACATION_POLICY_FILE,
+        ]:
             try:
                 await maybe_await(memory.delete_topic(topic=slug, confirm=True))
             except TopicNotFoundError:
-                pass
-            await maybe_await(memory.forget_entries(user_id=USER_A, topic=slug))
-            await maybe_await(memory.forget_facts(user_id=USER_A, topic=slug))
-        await maybe_await(memory.forget_entries(user_id=USER_A))
-        await maybe_await(memory.forget_facts(user_id=USER_A))
+                continue
 
     # Make sure topic doesn't exist at test start
-    await _cleanup(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
+    await _cleanup()
 
     # Test creating topic with a text content
     await maybe_await(
@@ -108,15 +111,15 @@ async def test_basic(
                 "To request vacation, employees must submit a request form at least 2 weeks in advance."
                 "In case of emergencies, employees can request last-minute leave, which will be evaluated on a case by case basis."
             },
-            slug="vacation-policy",
+            slug=TOPIC_VACATION_POLICY,
             title="Company Vacation Policy",
             summary="Company's vacation policy including leave days, carry over, and request process.",
         )
     )
 
     # Test getting the created topic
-    topic = await maybe_await(memory.get_topic(topic="vacation-policy"))
-    assert topic.slug == "vacation-policy"
+    topic = await maybe_await(memory.get_topic(topic=TOPIC_VACATION_POLICY))
+    assert topic.slug == TOPIC_VACATION_POLICY
     assert topic.title == "Company Vacation Policy"
     assert (
         topic.summary
@@ -128,7 +131,7 @@ async def test_basic(
         memory.list_topics(query="Company Vacation Policy", size=1)
     )
     assert len(topic_page.items) == 1
-    assert topic_page.items[0].slug == "vacation-policy"
+    assert topic_page.items[0].slug == TOPIC_VACATION_POLICY
     assert topic_page.items[0].title == "Company Vacation Policy"
     assert (
         topic_page.items[0].summary
@@ -140,7 +143,7 @@ async def test_basic(
         await maybe_await(
             memory.create_topic(
                 texts={"text": "Duplicate topic content"},
-                slug="vacation-policy",
+                slug=TOPIC_VACATION_POLICY,
                 title="Duplicate Vacation Policy",
                 summary="This should not be created.",
             )
@@ -150,7 +153,7 @@ async def test_basic(
     await maybe_await(
         memory.create_topic(
             urls={"link": "https://www.example.com/vacation-policy"},
-            slug="vacation-policy-link",
+            slug=TOPIC_VACATION_POLICY_LINK,
             title="Vacation Policy Link",
             summary="Link to the company's vacation policy page.",
         )
@@ -163,7 +166,7 @@ async def test_basic(
         await maybe_await(
             memory.create_topic(
                 file_paths={"file": tmp_file.name},
-                slug="vacation-policy-file",
+                slug=TOPIC_VACATION_POLICY_FILE,
                 title="Vacation Policy File",
                 summary="File containing the company's vacation policy.",
             )
@@ -173,13 +176,13 @@ async def test_basic(
     await maybe_await(
         memory.update_topic(
             texts={"text2": "Additional information about the vacation policy."},
-            topic="vacation-policy",
+            topic=TOPIC_VACATION_POLICY,
         )
     )
     await maybe_await(
         memory.update_topic(
             urls={"link2": "https://www.example.com/vacation-policy-faq"},
-            topic="vacation-policy",
+            topic=TOPIC_VACATION_POLICY,
         )
     )
     with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
@@ -188,18 +191,9 @@ async def test_basic(
         await maybe_await(
             memory.update_topic(
                 file_paths={"file2": tmp_file.name},
-                topic="vacation-policy",
+                topic=TOPIC_VACATION_POLICY,
             )
         )
-
-    # Remember an entry globally (not attached to any topic)
-    await maybe_await(
-        memory.remember(
-            "Charles can always request vacation days. He is entitled to 20 days of paid leave per year.",
-            user_id=USER_A,
-            entry_id="foobar",
-        )
-    )
 
     # Remember an entry attached to the topic
     await maybe_await(
@@ -208,7 +202,7 @@ async def test_basic(
             "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
             "Exception approved for the full 8 days as a one-time allowance.",
             user_id=USER_A,
-            topic="vacation-policy",
+            topic=TOPIC_VACATION_POLICY,
             reasoning="The product launch was a company-wide priority that required Maria's presence. "
             "Denying the exception would penalise her for meeting business needs.",
             context=[
@@ -240,7 +234,7 @@ async def test_basic(
             "Denied carry-over exception for Leo (EMP-5512). "
             "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
             "The 6 days will be forfeited per standard policy.",
-            topic="vacation-policy",
+            topic=TOPIC_VACATION_POLICY,
             user_id=USER_A,
             reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
             "personal planning choices. Policy should be applied as written.",
@@ -263,25 +257,40 @@ async def test_basic(
     )
 
     # Make sure entries are retrievable
-    global_entries = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
-    ]
-    assert len(global_entries) >= 1, "Expected at least one global entry."
-
-    topic_entries = [
+    entries = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, topic="vacation-policy")
+            memory.entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
         )
     ]
-    assert len(topic_entries) >= 1, "Expected at least one topic entry."
+    assert len(entries) >= 1, "Expected at least one topic entry."
+
+    # Check that querying a non-existent topic or user returns no entries
+    entries_non_existent_topic = [
+        e
+        async for e in maybe_async_iterate(
+            memory.entries(user_id=USER_A, topic="non-existent-topic")
+        )
+    ]
+    assert len(entries_non_existent_topic) == 0, (
+        "Expected no entries for a non-existent topic."
+    )
+    entries_non_existent_user = [
+        e
+        async for e in maybe_async_iterate(
+            memory.entries(user_id="non-existent-user", topic=TOPIC_VACATION_POLICY)
+        )
+    ]
+    assert len(entries_non_existent_user) == 0, (
+        "Expected no entries for a non-existent user."
+    )
 
     # Wait until the topic is ready for search before recall tests
     processed = await _wait_until_topic_ready_for_search(
         memory,
-        topic="vacation-policy",
+        topic=TOPIC_VACATION_POLICY,
         user_id=USER_A,
-        check_global_facts=True,
+        check_global_facts=False,
     )
 
     assert processed, "Topic was not processed within the expected time."
@@ -289,7 +298,7 @@ async def test_basic(
     result = await maybe_await(
         memory.ask(
             query="Can employees carry over unused vacation days?",
-            topic="vacation-policy",
+            topic=TOPIC_VACATION_POLICY,
         )
     )
     assert "5" in result.answer, (
@@ -301,25 +310,38 @@ async def test_basic(
     facts = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id=USER_A)
+            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
         )
     ]
     assert len(facts) >= 2, "Expected at least two fact for the topic."
     oldest_first = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id=USER_A, recent_first=False)
+            memory.facts(
+                topic=TOPIC_VACATION_POLICY, user_id=USER_A, recent_first=False
+            )
         )
     ]
     assert oldest_first[0].id == facts[-1].id
     assert oldest_first[-1].id == facts[0].id
 
-    global_facts = [f async for f in maybe_async_iterate(memory.facts(user_id=USER_A))]
-    assert len(global_facts) >= 1, "Expected at least one global fact."
+    # Check that facts for non-existent topic or user return no facts
+    assert [
+        f
+        async for f in maybe_async_iterate(
+            memory.facts(topic="non-existent-topic", user_id=USER_A)
+        )
+    ] == [], "Expected no facts for a non-existent topic."
+    assert [
+        f
+        async for f in maybe_async_iterate(
+            memory.facts(topic=TOPIC_VACATION_POLICY, user_id="non-existent-user")
+        )
+    ] == [], "Expected no facts for a non-existent user."
 
     # List users tests
-    users_in_topic = await maybe_await(memory.list_users(topic="vacation-policy"))
-    assert USER_A in users_in_topic, (
+    users_in_topic = await maybe_await(memory.list_users(topic=TOPIC_VACATION_POLICY))
+    assert users_in_topic == [USER_A], (
         f"{USER_A} should be listed as a user in 'vacation-policy' topic."
     )
 
@@ -341,7 +363,7 @@ async def test_basic(
     graph_ready = False
     for _ in range(60):
         graph_result = await maybe_await(
-            memory.graph(topic="vacation-policy", user_id="user-a")
+            memory.graph(topic=TOPIC_VACATION_POLICY, user_id="user-a")
         )
         if len(graph_result) >= 1:
             graph_ready = True
@@ -350,105 +372,81 @@ async def test_basic(
             print("Graph not ready yet, waiting...")
             await asyncio.sleep(1)
     graph_result = await maybe_await(
-        memory.graph(topic="vacation-policy", user_id=USER_A)
+        memory.graph(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
     )
     assert graph_ready, "Graph did not become ready in time."
     assert len(graph_result) >= 1, "Graph should contain at least one path."
 
     # Test forgetting entries cascades to corresponding facts
-    topic_entries_after_forget = [
+    entries_before_forget = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, topic="vacation-policy")
+            memory.entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
         )
     ]
-    for entry in topic_entries_after_forget:
+
+    facts_before_forget = [
+        f
+        async for f in maybe_async_iterate(
+            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
+        )
+    ]
+    assert len(entries_before_forget) >= 1, "Expected at least one topic entry."
+    assert len(facts_before_forget) >= 1, "Expected at least one topic fact."
+
+    for entry in entries_before_forget:
         await maybe_await(
             memory.forget_entry(
-                user_id=USER_A, topic="vacation-policy", entry_id=entry.id
+                user_id=USER_A, topic=TOPIC_VACATION_POLICY, entry_id=entry.id
             )
         )
-    topic_facts_after_forget = [
+
+    assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id=USER_A)
+            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
         )
-    ]
-    assert len(topic_entries_after_forget) == 0, (
-        "All topic entries for user-a should have been deleted."
+    ] == [], "Forgetting topic entries should also delete corresponding topic facts."
+
+    await maybe_await(
+        memory.forget_entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
     )
 
-    await maybe_await(memory.forget_entries(user_id=USER_A, topic="vacation-policy"))
-
-    topic_entries_after_forget = [
+    assert [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, topic="vacation-policy")
+            memory.entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
         )
-    ]
-    topic_facts_after_forget = [
+    ] == [], "All topic entries for user-a should have been deleted."
+
+    assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="vacation-policy", user_id=USER_A)
+            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
         )
-    ]
-    assert len(topic_entries_after_forget) == 0, (
-        "All topic entries for user-a should have been deleted."
-    )
-    assert len(topic_facts_after_forget) == 0, (
-        "Forgetting topic entries should also delete corresponding topic facts."
-    )
-
-    await maybe_await(memory.forget_entries(user_id=USER_A))
-
-    global_entries_after_forget = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
-    ]
-    global_facts_after_forget = [
-        f async for f in maybe_async_iterate(memory.facts(user_id=USER_A))
-    ]
-    assert len(global_entries_after_forget) == 0, (
-        "All global entries for user-a should have been deleted."
-    )
-    assert len(global_facts_after_forget) == 0, (
-        "Forgetting global entries should also delete corresponding global facts."
-    )
+    ] == [], "Forgetting topic entries should also delete corresponding topic facts."
 
     # No-op cleanup calls should still be safe
-    await maybe_await(memory.forget_facts(user_id=USER_A, topic="vacation-policy"))
-    await maybe_await(memory.forget_facts(user_id=USER_A))
-
-    global_entries_after_forget = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
-    ]
-    global_facts_after_forget = [
-        f async for f in maybe_async_iterate(memory.facts(user_id=USER_A))
-    ]
-    assert len(global_entries_after_forget) == 0, (
-        "All global entries for user-a should have been deleted."
+    await maybe_await(memory.forget_facts(user_id=USER_A, topic=TOPIC_VACATION_POLICY))
+    await maybe_await(
+        memory.forget_fact(
+            user_id=USER_A,
+            topic=TOPIC_VACATION_POLICY,
+            fact_id=facts_before_forget[0].id,
+        )
     )
-    assert len(global_facts_after_forget) == 0, (
-        "Forgetting global entries should also delete corresponding global facts."
-    )
-
-    # No-op cleanup calls should still be safe
-    await maybe_await(memory.forget_facts(user_id=USER_A, topic="vacation-policy"))
-    await maybe_await(memory.forget_facts(user_id=USER_A))
 
     # Test delete topics
     with pytest.raises(ValueError):
         # Deleting without confirm should raise error
-        await maybe_await(memory.delete_topic(topic="vacation-policy"))
+        await maybe_await(memory.delete_topic(topic=TOPIC_VACATION_POLICY))
 
-    await _cleanup(["vacation-policy", "vacation-policy-link", "vacation-policy-file"])
+    await _cleanup()
 
 
 @pytest.mark.parametrize(
     "memory_klass",
-    #    [NucliaMemory, AsyncNucliaMemory],
-    [
-        NucliaMemory,
-    ],
+    [NucliaMemory, AsyncNucliaMemory],
 )
 async def test_basic_nontopic(
     testing_config,

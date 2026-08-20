@@ -783,8 +783,8 @@ class NucliaMemory:
     def entries(
         self,
         *,
-        topic: str,
         user_id: str,
+        topic: str,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
@@ -792,10 +792,10 @@ class NucliaMemory:
 
         Parameters
         ----------
-        topic:
-            Topic ID or slug to retrieve entries for.
         user_id:
             An identifier for the user whose entries to retrieve.
+        topic:
+            Topic ID or slug to retrieve entries for.
         recent_first:
             Whether to return the entries ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
@@ -824,8 +824,8 @@ class NucliaMemory:
     def entries(
         self,
         *,
-        topic: str | None = None,
         user_id: str,
+        topic: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
@@ -856,10 +856,10 @@ class NucliaMemory:
 
         Parameters
         ----------
-        topic:
-            topic ID or slug to retrieve entries for.
         user_id:
             An identifier for the user whose entries to retrieve.
+        topic:
+            topic ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
@@ -897,10 +897,10 @@ class NucliaMemory:
 
         Parameters
         ----------
-        topic:
-            topic ID or slug to retrieve entries for.
         user_id:
             An identifier for the user whose entries to retrieve.
+        topic:
+            topic ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
@@ -1712,8 +1712,8 @@ class AsyncNucliaMemory:
     async def entries(
         self,
         *,
-        topic: str | None = None,
         user_id: str,
+        topic: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> AsyncIterator[Entry]:
@@ -1744,10 +1744,10 @@ class AsyncNucliaMemory:
 
         Parameters
         ----------
-        topic:
-            topic ID or slug to retrieve entries for.
         user_id:
             An identifier for the user whose entries to retrieve.
+        topic:
+            topic ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
