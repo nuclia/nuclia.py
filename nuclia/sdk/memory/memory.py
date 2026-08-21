@@ -22,7 +22,7 @@ from nucliadb_models import (
 )
 from nucliadb_models.common import FieldTypeName
 from nucliadb_models.link import LinkField
-from nucliadb_models.resource import Resource
+from nucliadb_models.resource import Resource as NDBResource
 from nucliadb_models.search import (
     CatalogQuery,
     ChatContextMessage,
@@ -37,8 +37,8 @@ from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.kb import AsyncNucliaKB, NucliaKB
 from nuclia.sdk.memory.exceptions import (
     EntryAlreadyExistsError,
-    TopicAlreadyExistsError,
-    TopicNotFoundError,
+    ResourceAlreadyExistsError,
+    ResourceNotFoundError,
 )
 from nuclia.sdk.memory.models import (
     AskResult,
@@ -48,15 +48,15 @@ from nuclia.sdk.memory.models import (
     Fact,
     FactContent,
     RelevantContextBlock,
-    Topic,
-    TopicPage,
+    Resource,
+    ResourcePage,
 )
 from nuclia.sdk.memory.utils import (
     _add_conversation_message,
     _build_ask_request,
     _build_entry_message,
     _build_graph_search_request,
-    _build_list_topics_catalog_request,
+    _build_list_resources_catalog_request,
     _build_recall_find_request,
     _delete_conversation_message,
     _delete_resource_field,
@@ -65,14 +65,14 @@ from nuclia.sdk.memory.utils import (
     _facts_field_id,
     _get_global_users,
     _get_resource_basic,
-    _get_topic_status,
-    _get_topic_users,
+    _get_resource_status,
+    _get_resource_users,
     _global_entries_slug,
     _iter_conversation_messages,
     _parse_ask_result,
-    _parse_catalog_response_to_topic_page,
+    _parse_catalog_response_to_resource_page,
     _parse_recall_result,
-    _resolve_topic_location,
+    _resolve_resource_location,
     _slugify,
     _uuid_or_slug,
     validate_entry_id,
@@ -203,43 +203,43 @@ class NucliaMemory:
                         parameters=new_params,
                     )
 
-    # ── topic management ────────────────────────────────────────────────────────────
+    # ── resource management ────────────────────────────────────────────────────────────
 
     @kb
-    def get_topic(
+    def get_resource(
         self,
         *,
-        topic: str,
+        resource: str,
         **kwargs,
-    ) -> Topic:
-        """Retrieve an topic by ID or slug."""
-        ruuid, rslug = _uuid_or_slug(topic)
+    ) -> Resource:
+        """Retrieve an resource by ID or slug."""
+        ruuid, rslug = _uuid_or_slug(resource)
         try:
-            resource: Resource = self.kb.resource.get(
+            ndbresource: NDBResource = self.kb.resource.get(
                 rid=ruuid,
                 slug=rslug,
                 show=[ResourceProperties.BASIC.value, ResourceProperties.ERRORS.value],
             )
         except NotFoundError:
-            raise TopicNotFoundError(f"topic '{topic}' not found.")
-        return Topic(
-            id=resource.id,
-            slug=resource.slug or "",
-            title=resource.title or "",
-            summary=resource.summary,
-            status=_get_topic_status(resource),
+            raise ResourceNotFoundError(f"resource '{resource}' not found.")
+        return Resource(
+            id=ndbresource.id,
+            slug=ndbresource.slug or "",
+            title=ndbresource.title or "",
+            summary=ndbresource.summary,
+            status=_get_resource_status(ndbresource),
         )
 
     @kb
-    def list_topics(
+    def list_resources(
         self,
         *,
         query: str | CatalogQuery = "",
         page: int = 0,
         size: int = 20,
         **kwargs,
-    ) -> TopicPage:
-        """List topics in this memory.
+    ) -> ResourcePage:
+        """List resources in this memory.
 
         Parameters
         ----------
@@ -252,14 +252,14 @@ class NucliaMemory:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         global_users = _get_global_users(ndb)
-        catalog_request = _build_list_topics_catalog_request(
+        catalog_request = _build_list_resources_catalog_request(
             query, page, size, global_users
         )
         catalog_response = ndb.ndb.catalog(kbid=ndb.kbid, content=catalog_request)
-        return _parse_catalog_response_to_topic_page(catalog_response)
+        return _parse_catalog_response_to_resource_page(catalog_response)
 
     @kb
-    def create_topic(
+    def create_resource(
         self,
         *,
         title: str,
@@ -271,27 +271,27 @@ class NucliaMemory:
         **kwargs,
     ) -> str:
         """
-        Create a new topic.
+        Create a new resource.
 
-        Returns the ID of the newly created topic.
+        Returns the ID of the newly created resource.
 
         Parameters
         ----------
         title:
-            The title of the topic.
+            The title of the resource.
         slug:
-            Optional slug for the topic. If not provided, a slug will be generated from the title.
+            Optional slug for the resource. If not provided, a slug will be generated from the title.
         summary:
-            Optional summary for the topic.
+            Optional summary for the resource.
         texts:
-            Optional new text content for the topic. A dictionary mapping field IDs to text content.
+            Optional new text content for the resource. A dictionary mapping field IDs to text content.
         urls:
-            Optional new URLs for the topic. A dictionary mapping field IDs to URLs.
+            Optional new URLs for the resource. A dictionary mapping field IDs to URLs.
         file_paths:
-            Optional new file paths for the topic. A dictionary mapping field IDs to file paths.
+            Optional new file paths for the resource. A dictionary mapping field IDs to file paths.
         """
         try:
-            return self._create_new_topic(
+            return self._create_new_resource(
                 title=title,
                 slug=slug,
                 summary=summary,
@@ -301,12 +301,14 @@ class NucliaMemory:
                 **kwargs,
             )
         except ConflictError:
-            raise TopicAlreadyExistsError(f"topic with slug '{slug}' already exists.")
+            raise ResourceAlreadyExistsError(
+                f"resource with slug '{slug}' already exists."
+            )
 
     @kb
-    def update_topic(
+    def update_resource(
         self,
-        topic: str,
+        resource: str,
         *,
         title: str | None = None,
         summary: str | None = None,
@@ -316,28 +318,28 @@ class NucliaMemory:
         **kwargs,
     ) -> None:
         """
-        Update an existing topic.
+        Update an existing resource.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to update.
+        resource:
+            The ID or slug of the resource to update.
         title:
-            Optional new title for the topic.
+            Optional new title for the resource.
         slug:
-            Optional new slug for the topic.
+            Optional new slug for the resource.
         summary:
-            Optional new summary for the topic.
+            Optional new summary for the resource.
         texts:
-            Optional new text content for the topic. A dictionary mapping field IDs to text content.
+            Optional new text content for the resource. A dictionary mapping field IDs to text content.
         urls:
-            Optional new URLs for the topic. A dictionary mapping field IDs to URLs.
+            Optional new URLs for the resource. A dictionary mapping field IDs to URLs.
         file_paths:
-            Optional new file paths for the topic. A dictionary mapping field IDs to file paths.
+            Optional new file paths for the resource. A dictionary mapping field IDs to file paths.
         """
         try:
-            self._update_topic(
-                topic=topic,
+            self._update_resource(
+                resource=resource,
                 title=title,
                 summary=summary,
                 texts=texts,
@@ -346,38 +348,38 @@ class NucliaMemory:
                 **kwargs,
             )
         except NotFoundError:
-            raise TopicNotFoundError(f"topic '{topic}' not found.")
+            raise ResourceNotFoundError(f"resource '{resource}' not found.")
 
     @kb
-    def delete_topic(
+    def delete_resource(
         self,
-        topic: str,
+        resource: str,
         confirm: bool = False,
         **kwargs,
     ) -> None:
         """
-        Delete an existing topic.
+        Delete an existing resource.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to delete.
+        resource:
+            The ID or slug of the resource to delete.
         """
-        # Delete entire topic
-        assert topic is not None, "Either user_id or topic must be provided."
-        ruuid, rslug = _uuid_or_slug(topic)
+        # Delete entire resource
+        assert resource is not None, "Either user_id or resource must be provided."
+        ruuid, rslug = _uuid_or_slug(resource)
         if not confirm:
             raise ValueError(
-                "Deleting an entire topic is irreversible. To confirm, set confirm=True."
+                "Deleting an entire resource is irreversible. To confirm, set confirm=True."
             )
         try:
             self.kb.resource.delete(rid=ruuid, slug=rslug)
         except NotFoundError:
-            raise TopicNotFoundError(f"topic '{topic}' not found.")
+            raise ResourceNotFoundError(f"resource '{resource}' not found.")
 
-    def _update_topic(
+    def _update_resource(
         self,
-        topic: str,
+        resource: str,
         title: str | None = None,
         summary: str | None = None,
         texts: dict[str, str] | None = None,
@@ -386,7 +388,7 @@ class NucliaMemory:
         **kwargs,
     ) -> None:
         base_args: dict[str, Any] = {}
-        ruuid, rslug = _uuid_or_slug(topic)
+        ruuid, rslug = _uuid_or_slug(resource)
         if ruuid:
             base_args["rid"] = ruuid
         else:
@@ -416,8 +418,8 @@ class NucliaMemory:
             self.kb.resource.update(**update_resource_args)
         if file_paths:
             if ruuid is None:
-                resource = self.kb.resource.get(slug=rslug)
-                ruuid = resource.id
+                ndbresource = self.kb.resource.get(slug=rslug)
+                ruuid = ndbresource.id
             for fid, path in file_paths.items():
                 self.upload.file(
                     path=path,
@@ -426,7 +428,7 @@ class NucliaMemory:
                     **base_args,
                 )
 
-    def _create_new_topic(
+    def _create_new_resource(
         self,
         title: str,
         slug: str | None = None,
@@ -476,7 +478,7 @@ class NucliaMemory:
         self,
         text: str,
         *,
-        topic: str,
+        resource: str,
         user_id: str,
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
@@ -484,14 +486,14 @@ class NucliaMemory:
         entry_id: str | None = None,
         **kwargs,
     ) -> str:
-        """Add a memory entry to a specific topic.
+        """Add a memory entry to a specific resource.
 
         Parameters
         ----------
         text:
             The memory entry text.
-        topic:
-            Topic ID or slug to remember.
+        resource:
+            Resource ID or slug to remember.
         user_id:
             An identifier for the user creating the memory entry.
         context:
@@ -517,7 +519,7 @@ class NucliaMemory:
         entry_id: str | None = None,
         **kwargs,
     ) -> str:
-        """Add a global memory entry (not tied to any specific topic).
+        """Add a global memory entry (not tied to any specific resource).
 
         Parameters
         ----------
@@ -542,7 +544,7 @@ class NucliaMemory:
         text: str,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
@@ -553,8 +555,8 @@ class NucliaMemory:
         validate_entry_id(entry_id)
         validate_user_id(user_id)
         ndb: NucliaDBClient = kwargs["ndb"]
-        if topic is not None:
-            ruuid, rslug = _uuid_or_slug(topic)
+        if resource is not None:
+            ruuid, rslug = _uuid_or_slug(resource)
         else:
             ruuid = None
             rslug = _ensure_global_entries_resource(ndb, user_id)
@@ -587,15 +589,15 @@ class NucliaMemory:
     def list_users(
         self,
         *,
-        topic: str,
+        resource: str,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given topic.
+        """Return the list of user IDs that have entries in the given resource.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to inspect.
+        resource:
+            The ID or slug of the resource to inspect.
         """
         ...
 
@@ -604,7 +606,7 @@ class NucliaMemory:
         self,
         **kwargs,
     ) -> list[str]:
-        """Return the list of all user IDs that have global entries (not tied to any specific topic).
+        """Return the list of all user IDs that have global entries (not tied to any specific resource).
 
         Global entries live in per-user resources whose slugs begin with
         ``memory-global-entries-``. This overload lists all users that have
@@ -616,24 +618,24 @@ class NucliaMemory:
     def list_users(
         self,
         *,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given topic, or all users with global entries when no topic is given.
+        """Return the list of user IDs that have entries in the given resource, or all users with global entries when no resource is given.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to inspect. When omitted, returns all
-            users with global (topic-less) entries.
+        resource:
+            The ID or slug of the resource to inspect. When omitted, returns all
+            users with global (resource-less) entries.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        if topic is not None:
-            ruuid, rslug = _uuid_or_slug(topic)
+        if resource is not None:
+            ruuid, rslug = _uuid_or_slug(resource)
             try:
-                return _get_topic_users(ndb, ndb.kbid, ruuid, rslug)
+                return _get_resource_users(ndb, ndb.kbid, ruuid, rslug)
             except NotFoundError:
-                raise TopicNotFoundError(f"topic '{topic}' not found.")
+                raise ResourceNotFoundError(f"resource '{resource}' not found.")
         else:
             return _get_global_users(ndb)
 
@@ -644,20 +646,20 @@ class NucliaMemory:
         self,
         question: str,
         *,
-        topic: str,
+        resource: str,
         user_id: str,
         top_k: int = 20,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
-        Retrieve relevant context blocks from the memory for a given question, scoped to a specific topic and user.
+        Retrieve relevant context blocks from the memory for a given question, scoped to a specific resource and user.
 
         Parameters
         ----------
         question:
             Natural-language question to retrieve context for.
-        topic:
-            Scope the retrieval to a single topic (ID or slug).
+        resource:
+            Scope the retrieval to a single resource (ID or slug).
         user_id:
             An identifier for the user asking the question. Used to personalize retrieval results by including that user's entries and facts.
         top_k:
@@ -665,7 +667,7 @@ class NucliaMemory:
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
-            self.task_ident, question, topic, user_id, top_k
+            self.task_ident, question, resource, user_id, top_k
         )
         find_response = ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         return _parse_recall_result(find_response)
@@ -677,7 +679,7 @@ class NucliaMemory:
         self,
         query: str,
         *,
-        topic: str,
+        resource: str,
         user_id: str | None = None,
         context: list[ChatContextMessage] | None = None,
         include_global_facts: bool = False,
@@ -686,14 +688,14 @@ class NucliaMemory:
         ask_request_overrides: dict[str, Any] | None = None,
         **kwargs,
     ) -> AskResult:
-        """Ask a question and get a generative answer grounded in stored topics.
+        """Ask a question and get a generative answer grounded in stored resources.
 
         Parameters
         ----------
         query:
             Natural-language question.
-        topic:
-            Scope the answer to a single topic (ID or slug).
+        resource:
+            Scope the answer to a single resource (ID or slug).
         user_id:
             An identifier for the user asking the question. Used for personalization of the answer by including that user's entries and facts as context.
         context:
@@ -704,26 +706,27 @@ class NucliaMemory:
 
         global_facts: list[str] = []
         global_facts_rid = None
-        topic_facts: list[str] = []
+        resource_facts: list[str] = []
         if user_id:
             if include_global_facts:
                 global_facts_rid, global_facts = self._get_user_global_facts(
                     ndb, user_id
                 )
-            topic_facts = [
-                fact.content.text for fact in self.facts(topic=topic, user_id=user_id)
+            resource_facts = [
+                fact.content.text
+                for fact in self.facts(resource=resource, user_id=user_id)
             ]
 
         ask_request = _build_ask_request(
             self.task_ident,
             query,
-            topic,
+            resource,
             user_id,
             include_global_facts,
             global_facts_rid,
             extra_context,
             global_facts,
-            topic_facts,
+            resource_facts,
             context,
             custom_prompt,
             ask_request_overrides,
@@ -784,18 +787,18 @@ class NucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str,
+        resource: str,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
-        """Get all entries created by a user for a specific topic.
+        """Get all entries created by a user for a specific resource.
 
         Parameters
         ----------
         user_id:
             An identifier for the user whose entries to retrieve.
-        topic:
-            Topic ID or slug to retrieve entries for.
+        resource:
+            Resource ID or slug to retrieve entries for.
         recent_first:
             Whether to return the entries ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
@@ -809,7 +812,7 @@ class NucliaMemory:
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
-        """Get all global entries created by a user (not tied to any specific topic).
+        """Get all global entries created by a user (not tied to any specific resource).
 
         Parameters
         ----------
@@ -825,12 +828,12 @@ class NucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
@@ -848,18 +851,18 @@ class NucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str,
+        resource: str,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
-        """Get all extracted facts from entries of a user for a specific topic (from most recent to oldest).
+        """Get all extracted facts from entries of a user for a specific resource (from most recent to oldest).
 
         Parameters
         ----------
         user_id:
             An identifier for the user whose entries to retrieve.
-        topic:
-            topic ID or slug to retrieve entries for.
+        resource:
+            resource ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
@@ -873,7 +876,7 @@ class NucliaMemory:
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
-        """Get all extracted facts from global entries of a user (not tied to any specific topic).
+        """Get all extracted facts from global entries of a user (not tied to any specific resource).
 
         Parameters
         ----------
@@ -889,23 +892,23 @@ class NucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
-        """Get all extracted facts from entries of a user for a specific topic (from most recent to oldest).
+        """Get all extracted facts from entries of a user for a specific resource (from most recent to oldest).
 
         Parameters
         ----------
         user_id:
             An identifier for the user whose entries to retrieve.
-        topic:
-            topic ID or slug to retrieve entries for.
+        resource:
+            resource ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
@@ -922,21 +925,21 @@ class NucliaMemory:
     def graph(
         self,
         *,
-        topic: str,
+        resource: str,
         user_id: str,
         **kwargs,
     ) -> list[graph.responses.GraphPath]:
-        """Get the topic graph including all extracted entities and relations from the topic content and the entries of the specified user.
+        """Get the resource graph including all extracted entities and relations from the resource content and the entries of the specified user.
 
         Parameters
         ----------
-        topic:
-            topic ID or slug to retrieve graph for.
+        resource:
+            resource ID or slug to retrieve graph for.
         user_id:
             An identifier for the user whose entries facts to include in the graph.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        graph_request = _build_graph_search_request(self.task_ident, topic, user_id)
+        graph_request = _build_graph_search_request(self.task_ident, resource, user_id)
         graph_response: graph.responses.GraphSearchResponse = ndb.ndb.graph_search(
             kbid=ndb.kbid,
             content=graph_request,
@@ -951,17 +954,17 @@ class NucliaMemory:
         *,
         user_id: str,
         entry_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific entry from a topic or from the global entries topic created by the user.
+        Delete a specific entry from a resource or from the global entries resource created by the user.
 
         Any fact derived solely from this entry is also deleted.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
-        # Delete a specific entry for that user on that topic (or global)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        # Delete a specific entry for that user on that resource (or global)
         try:
             _delete_conversation_message(
                 ndb=ndb,
@@ -974,10 +977,10 @@ class NucliaMemory:
         except NotFoundError:
             pass
         else:
-            for fact in self.facts(topic=topic, user_id=user_id):
+            for fact in self.facts(resource=resource, user_id=user_id):
                 if fact.content.related_entry_ids == [entry_id]:
                     self.forget_fact(
-                        user_id=user_id, fact_id=fact.id, topic=topic, **kwargs
+                        user_id=user_id, fact_id=fact.id, resource=resource, **kwargs
                     )
 
     @kb
@@ -985,15 +988,15 @@ class NucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all entries from a topic for the specified user or from the global entries topic created by the user.
+        Delete all entries from a resource for the specified user or from the global entries resource created by the user.
 
         This operation also deletes the corresponding facts for that user and scope.
         """
-        if topic is None:
+        if resource is None:
             # Delete all entries and facts for that user
             try:
                 self.kb.resource.delete(slug=_global_entries_slug(user_id))
@@ -1002,7 +1005,7 @@ class NucliaMemory:
             return
 
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         try:
             _delete_resource_field(
                 ndb=ndb,
@@ -1015,7 +1018,7 @@ class NucliaMemory:
         except NotFoundError:
             pass
         else:
-            self.forget_facts(user_id=user_id, topic=topic, **kwargs)
+            self.forget_facts(user_id=user_id, resource=resource, **kwargs)
 
     @kb
     def forget_fact(
@@ -1023,14 +1026,14 @@ class NucliaMemory:
         *,
         user_id: str,
         fact_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific fact from a topic for the specified user entries on a topic or from the global entries topic created by the user.
+        Delete a specific fact from a resource for the specified user entries on a resource or from the global entries resource created by the user.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         try:
             _delete_conversation_message(
                 ndb=ndb,
@@ -1048,14 +1051,14 @@ class NucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all facts from a topic for the specified user entries on a topic or from the global entries topic created by the user.
+        Delete all facts from a resource for the specified user entries on a resource or from the global entries resource created by the user.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        if topic is None:
+        if resource is None:
             # Delete all global facts for that user
             try:
                 _delete_resource_field(
@@ -1070,7 +1073,7 @@ class NucliaMemory:
                 pass
             return
 
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         try:
             _delete_resource_field(
                 ndb=ndb,
@@ -1197,43 +1200,43 @@ class AsyncNucliaMemory:
                         parameters=new_params,
                     )
 
-    # ── topic management ────────────────────────────────────────────────────────────
+    # ── resource management ────────────────────────────────────────────────────────────
 
     @kb
-    async def get_topic(
+    async def get_resource(
         self,
         *,
-        topic: str,
+        resource: str,
         **kwargs,
-    ) -> Topic:
-        """Retrieve an topic by ID or slug."""
-        ruuid, rslug = _uuid_or_slug(topic)
+    ) -> Resource:
+        """Retrieve an resource by ID or slug."""
+        ruuid, rslug = _uuid_or_slug(resource)
         try:
-            resource: Resource = await self.kb.resource.get(
+            ndbresource: NDBResource = await self.kb.resource.get(
                 rid=ruuid,
                 slug=rslug,
                 show=[ResourceProperties.BASIC.value, ResourceProperties.ERRORS.value],
             )
         except NotFoundError:
-            raise TopicNotFoundError(f"topic '{topic}' not found.")
-        return Topic(
-            id=resource.id,
-            slug=resource.slug or "",
-            title=resource.title or "",
-            summary=resource.summary,
-            status=_get_topic_status(resource),
+            raise ResourceNotFoundError(f"resource '{resource}' not found.")
+        return Resource(
+            id=ndbresource.id,
+            slug=ndbresource.slug or "",
+            title=ndbresource.title or "",
+            summary=ndbresource.summary,
+            status=_get_resource_status(ndbresource),
         )
 
     @kb
-    async def list_topics(
+    async def list_resources(
         self,
         *,
         query: str = "",
         page: int = 0,
         size: int = 20,
         **kwargs,
-    ) -> TopicPage:
-        """List topics in this memory.
+    ) -> ResourcePage:
+        """List resources in this memory.
 
         Parameters
         ----------
@@ -1246,14 +1249,14 @@ class AsyncNucliaMemory:
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         global_users = await _get_global_users(ndb)
-        catalog_request = _build_list_topics_catalog_request(
+        catalog_request = _build_list_resources_catalog_request(
             query, page, size, global_users
         )
         catalog_response = await ndb.ndb.catalog(kbid=ndb.kbid, content=catalog_request)
-        return _parse_catalog_response_to_topic_page(catalog_response)
+        return _parse_catalog_response_to_resource_page(catalog_response)
 
     @kb
-    async def create_topic(
+    async def create_resource(
         self,
         *,
         title: str,
@@ -1265,27 +1268,27 @@ class AsyncNucliaMemory:
         **kwargs,
     ) -> str:
         """
-        Create a new topic.
+        Create a new resource.
 
-        Returns the ID of the newly created topic.
+        Returns the ID of the newly created resource.
 
         Parameters
         ----------
         title:
-            The title of the topic.
+            The title of the resource.
         slug:
-            Optional slug for the topic. If not provided, a slug will be generated from the title.
+            Optional slug for the resource. If not provided, a slug will be generated from the title.
         summary:
-            Optional summary for the topic.
+            Optional summary for the resource.
         texts:
-            Optional new text content for the topic. A dictionary mapping field IDs to text content.
+            Optional new text content for the resource. A dictionary mapping field IDs to text content.
         urls:
-            Optional new URLs for the topic. A dictionary mapping field IDs to URLs.
+            Optional new URLs for the resource. A dictionary mapping field IDs to URLs.
         file_paths:
-            Optional new file paths for the topic. A dictionary mapping field IDs to file paths.
+            Optional new file paths for the resource. A dictionary mapping field IDs to file paths.
         """
         try:
-            return await self._create_new_topic(
+            return await self._create_new_resource(
                 title=title,
                 slug=slug,
                 summary=summary,
@@ -1295,12 +1298,14 @@ class AsyncNucliaMemory:
                 **kwargs,
             )
         except ConflictError:
-            raise TopicAlreadyExistsError(f"topic with slug '{slug}' already exists.")
+            raise ResourceAlreadyExistsError(
+                f"resource with slug '{slug}' already exists."
+            )
 
     @kb
-    async def update_topic(
+    async def update_resource(
         self,
-        topic: str,
+        resource: str,
         *,
         title: str | None = None,
         summary: str | None = None,
@@ -1310,28 +1315,28 @@ class AsyncNucliaMemory:
         **kwargs,
     ) -> None:
         """
-        Update an existing topic.
+        Update an existing resource.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to update.
+        resource:
+            The ID or slug of the resource to update.
         title:
-            Optional new title for the topic.
+            Optional new title for the resource.
         slug:
-            Optional new slug for the topic.
+            Optional new slug for the resource.
         summary:
-            Optional new summary for the topic.
+            Optional new summary for the resource.
         texts:
-            Optional new text content for the topic. A dictionary mapping field IDs to text content.
+            Optional new text content for the resource. A dictionary mapping field IDs to text content.
         urls:
-            Optional new URLs for the topic. A dictionary mapping field IDs to URLs.
+            Optional new URLs for the resource. A dictionary mapping field IDs to URLs.
         file_paths:
-            Optional new file paths for the topic. A dictionary mapping field IDs to file paths.
+            Optional new file paths for the resource. A dictionary mapping field IDs to file paths.
         """
         try:
-            await self._update_topic(
-                topic=topic,
+            await self._update_resource(
+                resource=resource,
                 title=title,
                 summary=summary,
                 texts=texts,
@@ -1340,37 +1345,37 @@ class AsyncNucliaMemory:
                 **kwargs,
             )
         except NotFoundError:
-            raise TopicNotFoundError(f"topic '{topic}' not found.")
+            raise ResourceNotFoundError(f"resource '{resource}' not found.")
 
     @kb
-    async def delete_topic(
+    async def delete_resource(
         self,
-        topic: str,
+        resource: str,
         confirm: bool = False,
         **kwargs,
     ) -> None:
         """
-        Delete an existing topic.
+        Delete an existing resource.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to delete.
+        resource:
+            The ID or slug of the resource to delete.
         """
-        assert topic is not None, "Either user_id or topic must be provided."
-        ruuid, rslug = _uuid_or_slug(topic)
+        assert resource is not None, "Either user_id or resource must be provided."
+        ruuid, rslug = _uuid_or_slug(resource)
         if not confirm:
             raise ValueError(
-                "Deleting an entire topic is irreversible. To confirm, set confirm=True."
+                "Deleting an entire resource is irreversible. To confirm, set confirm=True."
             )
         try:
             await self.kb.resource.delete(rid=ruuid, slug=rslug)
         except NotFoundError:
-            raise TopicNotFoundError(f"topic '{topic}' not found.")
+            raise ResourceNotFoundError(f"resource '{resource}' not found.")
 
-    async def _update_topic(
+    async def _update_resource(
         self,
-        topic: str,
+        resource: str,
         title: str | None = None,
         summary: str | None = None,
         texts: dict[str, str] | None = None,
@@ -1379,7 +1384,7 @@ class AsyncNucliaMemory:
         **kwargs,
     ) -> None:
         base_args: dict[str, Any] = {}
-        ruuid, rslug = _uuid_or_slug(topic)
+        ruuid, rslug = _uuid_or_slug(resource)
         if ruuid:
             base_args["rid"] = ruuid
         else:
@@ -1409,8 +1414,8 @@ class AsyncNucliaMemory:
             await self.kb.resource.update(**update_resource_args)
         if file_paths:
             if ruuid is None:
-                resource = await self.kb.resource.get(slug=rslug)
-                ruuid = resource.id
+                ndbresource = await self.kb.resource.get(slug=rslug)
+                ruuid = ndbresource.id
             for fid, path in file_paths.items():
                 await self.upload.file(
                     path=path,
@@ -1419,7 +1424,7 @@ class AsyncNucliaMemory:
                     **base_args,
                 )
 
-    async def _create_new_topic(
+    async def _create_new_resource(
         self,
         title: str,
         slug: str | None = None,
@@ -1470,7 +1475,7 @@ class AsyncNucliaMemory:
         text: str,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
@@ -1481,8 +1486,8 @@ class AsyncNucliaMemory:
         validate_entry_id(entry_id)
         validate_user_id(user_id)
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        if topic is not None:
-            ruuid, rslug = _uuid_or_slug(topic)
+        if resource is not None:
+            ruuid, rslug = _uuid_or_slug(resource)
         else:
             ruuid = None
             rslug = await _ensure_global_entries_resource(ndb, user_id)
@@ -1515,15 +1520,15 @@ class AsyncNucliaMemory:
     async def list_users(
         self,
         *,
-        topic: str,
+        resource: str,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given topic.
+        """Return the list of user IDs that have entries in the given resource.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to inspect.
+        resource:
+            The ID or slug of the resource to inspect.
         """
         ...
 
@@ -1532,7 +1537,7 @@ class AsyncNucliaMemory:
         self,
         **kwargs,
     ) -> list[str]:
-        """Return the list of all user IDs that have global entries (not tied to any specific topic).
+        """Return the list of all user IDs that have global entries (not tied to any specific resource).
 
         Global entries live in per-user resources whose slugs begin with
         ``memory-global-entries-``. This overload lists all users that have
@@ -1544,24 +1549,24 @@ class AsyncNucliaMemory:
     async def list_users(
         self,
         *,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given topic, or all users with global entries when no topic is given.
+        """Return the list of user IDs that have entries in the given resource, or all users with global entries when no resource is given.
 
         Parameters
         ----------
-        topic:
-            The ID or slug of the topic to inspect. When omitted, returns all
-            users with global (topic-less) entries.
+        resource:
+            The ID or slug of the resource to inspect. When omitted, returns all
+            users with global (resource-less) entries.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        if topic is not None:
-            ruuid, rslug = _uuid_or_slug(topic)
+        if resource is not None:
+            ruuid, rslug = _uuid_or_slug(resource)
             try:
-                return await _get_topic_users(ndb, ndb.kbid, ruuid, rslug)
+                return await _get_resource_users(ndb, ndb.kbid, ruuid, rslug)
             except NotFoundError:
-                raise TopicNotFoundError(f"topic '{topic}' not found.")
+                raise ResourceNotFoundError(f"resource '{resource}' not found.")
         else:
             return await _get_global_users(ndb)
 
@@ -1572,20 +1577,20 @@ class AsyncNucliaMemory:
         self,
         question: str,
         *,
-        topic: str,
+        resource: str,
         user_id: str,
         top_k: int = 20,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
-        Retrieve relevant context blocks from the memory for a given question, scoped to a specific topic and user.
+        Retrieve relevant context blocks from the memory for a given question, scoped to a specific resource and user.
 
         Parameters
         ----------
         question:
             Natural-language question to retrieve context for.
-        topic:
-            Scope the retrieval to a single topic (ID or slug).
+        resource:
+            Scope the retrieval to a single resource (ID or slug).
         user_id:
             An identifier for the user asking the question. Used to personalize retrieval results by including that user's entries and facts.
         top_k:
@@ -1593,7 +1598,7 @@ class AsyncNucliaMemory:
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
-            self.task_ident, question, topic, user_id, top_k
+            self.task_ident, question, resource, user_id, top_k
         )
         find_response = await ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         return _parse_recall_result(find_response)
@@ -1605,7 +1610,7 @@ class AsyncNucliaMemory:
         self,
         query: str,
         *,
-        topic: str,
+        resource: str,
         user_id: str | None = None,
         context: list[ChatContextMessage] | None = None,
         include_global_facts: bool = False,
@@ -1614,14 +1619,14 @@ class AsyncNucliaMemory:
         ask_request_overrides: dict[str, Any] | None = None,
         **kwargs,
     ) -> AskResult:
-        """Ask a question and get a generative answer grounded in stored topics.
+        """Ask a question and get a generative answer grounded in stored resources.
 
         Parameters
         ----------
         query:
             Natural-language question.
-        topic:
-            Scope the answer to a single topic (ID or slug).
+        resource:
+            Scope the answer to a single resource (ID or slug).
         user_id:
             An identifier for the user asking the question. Used for personalization of the answer by including that user's entries and facts as context.
         context:
@@ -1632,27 +1637,29 @@ class AsyncNucliaMemory:
 
         global_facts: list[str] = []
         global_facts_rid = None
-        topic_facts: list[str] = []
+        resource_facts: list[str] = []
         if user_id:
             if include_global_facts:
                 global_facts_rid, global_facts = await self._get_user_global_facts(
                     ndb, user_id
                 )
-            topic_facts = [
+            resource_facts = [
                 fact.content.text
-                async for fact in self.facts(topic=topic, user_id=user_id, **kwargs)
+                async for fact in self.facts(
+                    resource=resource, user_id=user_id, **kwargs
+                )
             ]
 
         ask_request = _build_ask_request(
             self.task_ident,
             query,
-            topic,
+            resource,
             user_id,
             include_global_facts,
             global_facts_rid,
             extra_context,
             global_facts,
-            topic_facts,
+            resource_facts,
             context,
             custom_prompt,
             ask_request_overrides,
@@ -1713,12 +1720,12 @@ class AsyncNucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> AsyncIterator[Entry]:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         async for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
@@ -1736,23 +1743,23 @@ class AsyncNucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> AsyncIterator[Fact]:
-        """Get all extracted facts from entries of a user for a specific topic (from most recent to oldest).
+        """Get all extracted facts from entries of a user for a specific resource (from most recent to oldest).
 
         Parameters
         ----------
         user_id:
             An identifier for the user whose entries to retrieve.
-        topic:
-            topic ID or slug to retrieve entries for.
+        resource:
+            resource ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         async for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
@@ -1769,21 +1776,21 @@ class AsyncNucliaMemory:
     async def graph(
         self,
         *,
-        topic: str,
+        resource: str,
         user_id: str,
         **kwargs,
     ) -> list[graph.responses.GraphPath]:
-        """Get the topic graph including all extracted entities and relations from the topic content and the entries of the specified user.
+        """Get the resource graph including all extracted entities and relations from the resource content and the entries of the specified user.
 
         Parameters
         ----------
-        topic:
-            topic ID or slug to retrieve graph for.
+        resource:
+            resource ID or slug to retrieve graph for.
         user_id:
             An identifier for the user whose entries facts to include in the graph.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        graph_request = _build_graph_search_request(self.task_ident, topic, user_id)
+        graph_request = _build_graph_search_request(self.task_ident, resource, user_id)
         graph_response: graph.responses.GraphSearchResponse = (
             await ndb.ndb.graph_search(
                 kbid=ndb.kbid,
@@ -1800,17 +1807,17 @@ class AsyncNucliaMemory:
         *,
         user_id: str,
         entry_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific entry from a topic or from the global entries topic created by the user.
+        Delete a specific entry from a resource or from the global entries resource created by the user.
 
         Any fact derived solely from this entry is also deleted.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
-        # Delete a specific entry for that user on that topic (or global)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        # Delete a specific entry for that user on that resource (or global)
         try:
             await _delete_conversation_message(
                 ndb=ndb,
@@ -1823,10 +1830,10 @@ class AsyncNucliaMemory:
         except NotFoundError:
             pass
         else:
-            async for fact in self.facts(topic=topic, user_id=user_id, **kwargs):
+            async for fact in self.facts(resource=resource, user_id=user_id, **kwargs):
                 if fact.content.related_entry_ids == [entry_id]:
                     await self.forget_fact(
-                        user_id=user_id, fact_id=fact.id, topic=topic, **kwargs
+                        user_id=user_id, fact_id=fact.id, resource=resource, **kwargs
                     )
 
     @kb
@@ -1834,15 +1841,15 @@ class AsyncNucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all entries from a topic for the specified user or from the global entries topic created by the user.
+        Delete all entries from a resource for the specified user or from the global entries resource created by the user.
 
         This operation also deletes the corresponding facts for that user and scope.
         """
-        if topic is None:
+        if resource is None:
             # Delete all global entries and facts for that user
             try:
                 await self.kb.resource.delete(slug=_global_entries_slug(user_id))
@@ -1851,7 +1858,7 @@ class AsyncNucliaMemory:
             return
 
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         try:
             await _delete_resource_field(
                 ndb=ndb,
@@ -1864,7 +1871,7 @@ class AsyncNucliaMemory:
         except NotFoundError:
             pass
         else:
-            await self.forget_facts(user_id=user_id, topic=topic, **kwargs)
+            await self.forget_facts(user_id=user_id, resource=resource, **kwargs)
 
     @kb
     async def forget_fact(
@@ -1872,14 +1879,14 @@ class AsyncNucliaMemory:
         *,
         user_id: str,
         fact_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific fact from a topic for the specified user entries on a topic or from the global entries topic created by the user.
+        Delete a specific fact from a resource for the specified user entries on a resource or from the global entries resource created by the user.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         try:
             await _delete_conversation_message(
                 ndb=ndb,
@@ -1897,14 +1904,14 @@ class AsyncNucliaMemory:
         self,
         *,
         user_id: str,
-        topic: str | None = None,
+        resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all facts from a topic for the specified user entries on a topic or from the global entries topic created by the user.
+        Delete all facts from a resource for the specified user entries on a resource or from the global entries resource created by the user.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        if topic is None:
+        if resource is None:
             # Delete all global facts for that user
             try:
                 await _delete_resource_field(
@@ -1919,7 +1926,7 @@ class AsyncNucliaMemory:
                 pass
             return
 
-        ruuid, rslug = _resolve_topic_location(topic, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, user_id)
         try:
             await _delete_resource_field(
                 ndb=ndb,

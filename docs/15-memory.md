@@ -2,8 +2,8 @@
 
 `NucliaMemory` is a high-level SDK component that turns any Nuclia Knowledge Box into a **personalised, multi-user memory store**. It lets you:
 
-- Organise knowledge into **topics** (discrete memory domains backed by KB resources).
-- Attach **entries** (annotated observations, decisions, or notes) to topics on behalf of specific users.
+- Organise knowledge into **resources** (discrete memory domains backed by KB resources).
+- Attach **entries** (annotated observations, decisions, or notes) to resources on behalf of specific users.
 - Automatically extract distilled **facts** and a **knowledge graph** from each entry via a background data-augmentation task.
 - **Recall** grounded, personalised answers for any user without mixing up other users' context.
 
@@ -13,11 +13,11 @@ All examples assume you have [authenticated](02-auth.md) and set a [default Know
 
 | Concept | Description |
 |---------|-------------|
-| **Topic** | A named memory domain stored as a KB resource. It can contain reference documents (policy text, guidelines, etc.) and collects the entries of all users. |
-| **Entry** | A timestamped text entry belonging to a topic. It records any content to be remembered. For example, decisions, observations, or conversation transcripts. It may also contain optional `reasoning`, `context` messages, and structured `metadata`. |
+| **Resource** | A named memory domain stored as a KB resource. It can contain reference documents (policy text, guidelines, etc.) and collects the entries of all users. |
+| **Entry** | A timestamped text entry belonging to a resource. It records any content to be remembered. For example, decisions, observations, or conversation transcripts. It may also contain optional `reasoning`, `context` messages, and structured `metadata`. |
 | **Fact** | A short, distilled statement automatically extracted from an entry by the Memory data augmentation task. Facts act as a compressed, searchable index of entries. |
-| **Graph** | An entity–relation graph extracted from both the topic's reference content and a user's entries, giving a personalised knowledge graph view. |
-| **Global entry** | An entry not tied to any specific topic. Stored under a per-user resource. Useful for cross-topic or agent-level memory. |
+| **Graph** | An entity–relation graph extracted from both the resource's reference content and a user's entries, giving a personalised knowledge graph view. |
+| **Global entry** | An entry not tied to any specific resource. Stored under a per-user resource. Useful for cross-resource or agent-level memory. |
 
 ---
 
@@ -68,14 +68,14 @@ nuclia memory initialize --rules='["Facts must be objective."]' --graph_extracti
 
 ---
 
-## Managing Topics
+## Managing Resources
 
-### Create a topic
+### Create a resource
 
-Topics are the named memory domains. Create one before writing entries to it.
+Resources are the named memory domains. Create one before writing entries to it.
 
 ```python
-topic_id = memory.create_topic(
+resource_id = memory.create_resource(
     title="Vacation Policy",
     slug="vacation-policy",          # optional; auto-generated from title if omitted
     summary="Rules governing PTO.",  # optional
@@ -86,45 +86,45 @@ topic_id = memory.create_topic(
 You can also attach remote URLs or local files as reference content:
 
 ```python
-memory.create_topic(
+memory.create_resource(
     title="Employee Handbook",
     urls={"handbook": "https://example.com/handbook.pdf"},
 )
 
-memory.create_topic(
+memory.create_resource(
     title="Onboarding Guide",
     file_paths={"guide": "/path/to/onboarding.pdf"},
 )
 ```
 
-Raises `TopicAlreadyExistsError` if the slug already exists.
+Raises `ResourceAlreadyExistsError` if the slug already exists.
 
 #### CLI
 
 ```bash
-nuclia memory create_topic --title="Vacation Policy" --slug=vacation-policy
+nuclia memory create_resource --title="Vacation Policy" --slug=vacation-policy
 ```
 
 ---
 
-### Get a topic
+### Get a resource
 
 ```python
-from nuclia.sdk.memory import NucliaMemory, TopicNotFoundError
+from nuclia.sdk.memory import NucliaMemory, ResourceNotFoundError
 
 memory = NucliaMemory()
 try:
-    topic = memory.get_topic(topic="vacation-policy")
-    print(topic.id, topic.title, topic.status)
-except TopicNotFoundError:
-    print("Topic not found")
+    resource = memory.get_resource(resource="vacation-policy")
+    print(resource.id, resource.title, resource.status)
+except ResourceNotFoundError:
+    print("Resource not found")
 ```
 
-**`Topic` fields:**
+**`Resource` fields:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | `str` | UUID of the topic resource. |
+| `id` | `str` | UUID of the resource resource. |
 | `slug` | `str` | URL-friendly identifier. |
 | `title` | `str` | Human-readable title. |
 | `summary` | `str \| None` | Short description. |
@@ -133,36 +133,36 @@ except TopicNotFoundError:
 #### CLI
 
 ```bash
-nuclia memory get_topic --topic=vacation-policy
+nuclia memory get_resource --resource=vacation-policy
 ```
 
 ---
 
-### List topics
+### List resources
 
 ```python
-page = memory.list_topics(query="policy", page=0, size=10)
+page = memory.list_resources(query="policy", page=0, size=10)
 
-print(f"Total topics: {page.total}")
-for topic in page.items:
-    print(f"  {topic.slug}: {topic.title}")
+print(f"Total resources: {page.total}")
+for resource in page.items:
+    print(f"  {resource.slug}: {resource.title}")
 ```
 
-**`TopicPage` fields:** `items`, `total`, `has_more`.
+**`ResourcePage` fields:** `items`, `total`, `has_more`.
 
 #### CLI
 
 ```bash
-nuclia memory list_topics
-nuclia memory list_topics --query=policy --page=0 --size=10
+nuclia memory list_resources
+nuclia memory list_resources --query=policy --page=0 --size=10
 ```
 
 ---
 
-### Update a topic
+### Update a resource
 
 ```python
-memory.update_topic(
+memory.update_resource(
     "vacation-policy",
     title="PTO & Vacation Policy",
     texts={"policy": "...updated text..."},
@@ -172,40 +172,40 @@ memory.update_topic(
 #### CLI
 
 ```bash
-nuclia memory update_topic vacation-policy --title="PTO & Vacation Policy"
+nuclia memory update_resource vacation-policy --title="PTO & Vacation Policy"
 ```
 
 ---
 
-### Delete a topic
+### Delete a resource
 
 ```python
-memory.delete_topic("vacation-policy", confirm=True)
+memory.delete_resource("vacation-policy", confirm=True)
 ```
 
-> ⚠️ `confirm=True` is required. This permanently deletes the topic and all its entries.
+> ⚠️ `confirm=True` is required. This permanently deletes the resource and all its entries.
 
 #### CLI
 
 ```bash
-nuclia memory delete_topic vacation-policy --confirm=true
+nuclia memory delete_resource vacation-policy --confirm=true
 ```
 
 ---
 
-### List users per topic
+### List users per resource
 
-Returns the list of user IDs that have at least one entry in a given topic. This is useful for serverless or stateless workloads where you don't keep a local registry of which users exist.
+Returns the list of user IDs that have at least one entry in a given resource. This is useful for serverless or stateless workloads where you don't keep a local registry of which users exist.
 
 ```python
-users = memory.list_users(topic="vacation-policy")
+users = memory.list_users(resource="vacation-policy")
 print(users)
 # ["alice-hr", "bob-hr"]
 ```
 
 #### List all users with global entries
 
-Omit `topic` to get every user that has created at least one global (cross-topic) entry:
+Omit `resource` to get every user that has created at least one global (cross-resource) entry:
 
 ```python
 users = memory.list_users()
@@ -219,30 +219,30 @@ This call paginates through the KB catalog automatically, so it works correctly 
 
 #### Error handling
 
-`TopicNotFoundError` is raised if the given topic does not exist:
+`ResourceNotFoundError` is raised if the given resource does not exist:
 
 ```python
-from nuclia.sdk.memory import NucliaMemory, TopicNotFoundError
+from nuclia.sdk.memory import NucliaMemory, ResourceNotFoundError
 
 memory = NucliaMemory()
 
 try:
-    users = memory.list_users(topic="non-existent-topic")
-except TopicNotFoundError:
-    print("Topic does not exist.")
+    users = memory.list_users(resource="non-existent-resource")
+except ResourceNotFoundError:
+    print("Resource does not exist.")
 ```
 
 #### Async
 
 ```python
-users = await memory.list_users(topic="vacation-policy")
+users = await memory.list_users(resource="vacation-policy")
 users = await memory.list_users()  # global entries
 ```
 
 #### CLI
 
 ```bash
-nuclia memory list_users --topic=vacation-policy
+nuclia memory list_users --resource=vacation-policy
 nuclia memory list_users
 ```
 
@@ -250,9 +250,9 @@ nuclia memory list_users
 
 ## Writing Entries
 
-`remember()` writes a timestamped entry for a user on a topic. The background task automatically distils a fact and updates the knowledge graph.
+`remember()` writes a timestamped entry for a user on a resource. The background task automatically distils a fact and updates the knowledge graph.
 
-### Topic-scoped entry
+### Resource-scoped entry
 
 ```python
 from nuclia.sdk.memory import EntryContextMessage, NucliaMemory
@@ -262,7 +262,7 @@ memory = NucliaMemory()
 memory.remember(
     text="Approved carry-over exception for Maria (EMP-1042). "
          "She could not use 8 vacation days due to a Q4 product launch.",
-    topic="vacation-policy",
+    resource="vacation-policy",
     user_id="alice-hr",
     entry_id="alice-entry-001",          # optional; random ID used if omitted
     reasoning="Business-critical event justified the exception.",
@@ -285,11 +285,11 @@ memory.remember(
 )
 ```
 
-Raises `EntryAlreadyExistsError` if an entry with the same `entry_id` already exists for this user and topic.
+Raises `EntryAlreadyExistsError` if an entry with the same `entry_id` already exists for this user and resource.
 
-### Global entry (not tied to a topic)
+### Global entry (not tied to a resource)
 
-Omit `topic` to write a cross-topic or agent-level entry. Each user gets their own dedicated resource for global entries.
+Omit `resource` to write a cross-resource or agent-level entry. Each user gets their own dedicated resource for global entries.
 
 ```python
 memory.remember(
@@ -303,7 +303,7 @@ memory.remember(
 ```bash
 nuclia memory remember \
   --text="Approved carry-over for Maria (EMP-1042)" \
-  --topic=vacation-policy \
+  --resource=vacation-policy \
   --user_id=alice-hr \
   --entry_id=alice-entry-001
 ```
@@ -321,14 +321,14 @@ nuclia memory remember \
 
 ### List entries
 
-Iterate over all entries written by a user for a topic:
+Iterate over all entries written by a user for a resource:
 
 ```python
-for entry in memory.entries(topic="vacation-policy", user_id="alice-hr"):
+for entry in memory.entries(resource="vacation-policy", user_id="alice-hr"):
     print(f"[{entry.id}] {entry.timestamp}: {entry.content.text}")
 ```
 
-List **global** entries (omit `topic`):
+List **global** entries (omit `resource`):
 
 ```python
 for entry in memory.entries(user_id="agent-session-abc123"):
@@ -348,7 +348,7 @@ Pass `recent_first=False` to get oldest entries first.
 #### CLI
 
 ```bash
-nuclia memory entries --topic=vacation-policy --user_id=alice-hr
+nuclia memory entries --resource=vacation-policy --user_id=alice-hr
 nuclia memory entries --user_id=agent-session-abc123
 ```
 
@@ -359,7 +359,7 @@ nuclia memory entries --user_id=agent-session-abc123
 After the background task runs, each entry is distilled into one or more short facts:
 
 ```python
-for fact in memory.facts(topic="vacation-policy", user_id="alice-hr"):
+for fact in memory.facts(resource="vacation-policy", user_id="alice-hr"):
     ts = fact.timestamp.strftime("%Y-%m-%d %H:%M")
     print(f"[{ts}] {fact.content.text}")
     if fact.content.related_entry_ids:
@@ -377,17 +377,17 @@ for fact in memory.facts(topic="vacation-policy", user_id="alice-hr"):
 #### CLI
 
 ```bash
-nuclia memory facts --topic=vacation-policy --user_id=alice-hr
+nuclia memory facts --resource=vacation-policy --user_id=alice-hr
 ```
 
 ---
 
 ### Query the knowledge graph
 
-Retrieve entity–relation paths extracted from the topic content and a user's entries:
+Retrieve entity–relation paths extracted from the resource content and a user's entries:
 
 ```python
-edges = memory.graph(topic="vacation-policy", user_id="alice-hr")
+edges = memory.graph(resource="vacation-policy", user_id="alice-hr")
 for edge in edges:
     print(
         f"{edge.source.value!r} --{edge.relation.label}--> {edge.destination.value!r}"
@@ -397,7 +397,7 @@ for edge in edges:
 #### CLI
 
 ```bash
-nuclia memory graph --topic=vacation-policy --user_id=alice-hr
+nuclia memory graph --resource=vacation-policy --user_id=alice-hr
 ```
 
 ---
@@ -411,7 +411,7 @@ Returns a ranked list of relevant context blocks without generating an answer. U
 ```python
 blocks = memory.recall(
     question="Has anyone ever approved a carry-over exception?",
-    topic="vacation-policy",
+    resource="vacation-policy",
     user_id="alice-hr",
     top_k=10,
 )
@@ -433,7 +433,7 @@ for block in blocks:
 ```bash
 nuclia memory recall \
   --question="Has anyone approved a carry-over exception?" \
-  --topic=vacation-policy \
+  --resource=vacation-policy \
   --user_id=alice-hr
 ```
 
@@ -441,9 +441,9 @@ nuclia memory recall \
 
 ### Generative answer (`ask`)
 
-Returns a grounded, personalised answer generated by an LLM over the topic and user's facts. This is the primary entry point for building memory-powered assistants.
+Returns a grounded, personalised answer generated by an LLM over the resource and user's facts. This is the primary entry point for building memory-powered assistants.
 
-Internally it builds a request to the `/ask` endpoint with a filter to only retrieve memories relevant to the provided user and topic
+Internally it builds a request to the `/ask` endpoint with a filter to only retrieve memories relevant to the provided user and resource
 
 ```python
 from nuclia.sdk.memory import NucliaMemory
@@ -452,7 +452,7 @@ memory = NucliaMemory()
 
 result = memory.ask(
     query="Have I ever approved a carry-over exception?",
-    topic="vacation-policy",
+    resource="vacation-policy",
     user_id="alice-hr",
 )
 
@@ -467,10 +467,10 @@ for key, block in result.citations.items():
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `query` | `str` | — | Natural-language question. |
-| `topic` | `str` | — | Topic ID or slug to scope the answer to. |
+| `resource` | `str` | — | Resource ID or slug to scope the answer to. |
 | `user_id` | `str \| None` | `None` | User whose entries and facts are used for personalisation. |
 | `context` | `list[ChatContextMessage] \| None` | `None` | Prior conversation messages (oldest first) to include as extra context. |
-| `include_global_facts` | `bool` | `False` | Also include this user's global (cross-topic) facts in the context. |
+| `include_global_facts` | `bool` | `False` | Also include this user's global (cross-resource) facts in the context. |
 | `extra_context` | `list[str] \| None` | `None` | Additional free-text snippets to inject into the prompt. |
 | `custom_prompt` | `CustomPrompt \| None` | `None` | Override system, user, and/or rephrase prompt templates. |
 | `ask_request_overrides` | `dict \| None` | `None` | Low-level overrides for the underlying `AskRequest`. |
@@ -489,7 +489,7 @@ from nucliadb_models.search import CustomPrompt
 
 result = memory.ask(
     query="Have I approved any carry-over exceptions this year?",
-    topic="vacation-policy",
+    resource="vacation-policy",
     user_id="alice-hr",
     custom_prompt=CustomPrompt(
         system=(
@@ -519,7 +519,7 @@ history = [
 
 result = memory.ask(
     query="What was the reasoning behind that decision?",
-    topic="vacation-policy",
+    resource="vacation-policy",
     user_id="alice-hr",
     context=history,
 )
@@ -530,7 +530,7 @@ result = memory.ask(
 ```bash
 nuclia memory ask \
   --query="Have I approved a carry-over exception?" \
-  --topic=vacation-policy \
+  --resource=vacation-policy \
   --user_id=alice-hr
 ```
 
@@ -543,31 +543,31 @@ nuclia memory ask \
 Deletes one entry and any facts derived solely from it.
 
 ```python
-memory.forget_entry(user_id="alice-hr", entry_id="alice-entry-001", topic="vacation-policy")
+memory.forget_entry(user_id="alice-hr", entry_id="alice-entry-001", resource="vacation-policy")
 ```
 
-Omit `topic` to delete from global entries.
+Omit `resource` to delete from global entries.
 
 #### CLI
 
 ```bash
-nuclia memory forget_entry --user_id=alice-hr --entry_id=alice-entry-001 --topic=vacation-policy
+nuclia memory forget_entry --user_id=alice-hr --entry_id=alice-entry-001 --resource=vacation-policy
 ```
 
 ---
 
-### Delete all entries for a user on a topic
+### Delete all entries for a user on a resource
 
 Deletes all entries in scope and also deletes the corresponding facts for that same scope.
 
 ```python
-memory.forget_entries(user_id="alice-hr", topic="vacation-policy")
+memory.forget_entries(user_id="alice-hr", resource="vacation-policy")
 ```
 
 #### CLI
 
 ```bash
-nuclia memory forget_entries --user_id=alice-hr --topic=vacation-policy
+nuclia memory forget_entries --user_id=alice-hr --resource=vacation-policy
 ```
 
 ---
@@ -575,27 +575,27 @@ nuclia memory forget_entries --user_id=alice-hr --topic=vacation-policy
 ### Delete a single fact
 
 ```python
-memory.forget_fact(user_id="alice-hr", fact_id="fact-xyz", topic="vacation-policy")
+memory.forget_fact(user_id="alice-hr", fact_id="fact-xyz", resource="vacation-policy")
 ```
 
 #### CLI
 
 ```bash
-nuclia memory forget_fact --user_id=alice-hr --fact_id=fact-xyz --topic=vacation-policy
+nuclia memory forget_fact --user_id=alice-hr --fact_id=fact-xyz --resource=vacation-policy
 ```
 
 ---
 
-### Delete all facts for a user on a topic
+### Delete all facts for a user on a resource
 
 ```python
-memory.forget_facts(user_id="alice-hr", topic="vacation-policy")
+memory.forget_facts(user_id="alice-hr", resource="vacation-policy")
 ```
 
 #### CLI
 
 ```bash
-nuclia memory forget_facts --user_id=alice-hr --topic=vacation-policy
+nuclia memory forget_facts --user_id=alice-hr --resource=vacation-policy
 ```
 
 ---
@@ -604,22 +604,22 @@ nuclia memory forget_facts --user_id=alice-hr --topic=vacation-policy
 
 | Exception | Raised when |
 |-----------|-------------|
-| `TopicAlreadyExistsError` | `create_topic()` is called with a slug that already exists. |
-| `TopicNotFoundError` | `get_topic()`, `update_topic()`, or `delete_topic()` targets a non-existent topic. |
-| `EntryAlreadyExistsError` | `remember()` is called with an `entry_id` that already exists for the user/topic. |
+| `ResourceAlreadyExistsError` | `create_resource()` is called with a slug that already exists. |
+| `ResourceNotFoundError` | `get_resource()`, `update_resource()`, or `delete_resource()` targets a non-existent resource. |
+| `EntryAlreadyExistsError` | `remember()` is called with an `entry_id` that already exists for the user/resource. |
 
 ---
 
 ## Complete Example: Personalised HR Assistant
 
-In the following example, two HR operators (Alice and Bob) handle different employee requests on the same policy topics, and `ask()` produces personalised answers for each of them.
+In the following example, two HR operators (Alice and Bob) handle different employee requests on the same policy resources, and `ask()` produces personalised answers for each of them.
 
 ```python
 from nuclia.sdk.memory import (
     EntryAlreadyExistsError,
     EntryContextMessage,
     NucliaMemory,
-    TopicAlreadyExistsError,
+    ResourceAlreadyExistsError,
 )
 
 # ── 1. Initialise ─────────────────────────────────────────────────────────────
@@ -632,12 +632,12 @@ memory.initialize(
     ]
 )
 
-# ── 2. Create a topic with reference content ──────────────────────────────────
+# ── 2. Create a resource with reference content ──────────────────────────────────
 
 import textwrap
 
 try:
-    memory.create_topic(
+    memory.create_resource(
         slug="vacation-policy",
         title="Vacation Policy",
         summary="Rules governing employee paid time off.",
@@ -649,7 +649,7 @@ try:
             """)
         },
     )
-except TopicAlreadyExistsError:
+except ResourceAlreadyExistsError:
     pass  # already created in a previous run
 
 # ── 3. Alice records a decision ───────────────────────────────────────────────
@@ -660,7 +660,7 @@ try:
             "Approved carry-over exception for Maria (EMP-1042). "
             "She was unable to take her 8 remaining days due to the Q4 product launch."
         ),
-        topic="vacation-policy",
+        resource="vacation-policy",
         user_id="alice-hr",
         entry_id="alice-entry-001",
         reasoning="Business-critical event; denying would penalise her for serving company needs.",
@@ -681,7 +681,7 @@ try:
             "Denied carry-over exception for Leo (EMP-5512). "
             "Leo had adequate opportunity to schedule vacation. 6 days will be forfeited."
         ),
-        topic="vacation-policy",
+        resource="vacation-policy",
         user_id="bob-hr",
         entry_id="bob-entry-001",
         reasoning="No business-critical event; policy should be applied as written.",
@@ -698,7 +698,7 @@ except EntryAlreadyExistsError:
 question = "Have you ever approved a carry-over exception, and if so, under what conditions?"
 
 for user_id, name in [("alice-hr", "Alice"), ("bob-hr", "Bob")]:
-    result = memory.ask(query=question, topic="vacation-policy", user_id=user_id)
+    result = memory.ask(query=question, resource="vacation-policy", user_id=user_id)
     print(f"\n[{name}] {result.answer}")
 ```
 
@@ -710,10 +710,10 @@ Expected output (paraphrased):
 
 ## Complete Example: Conversational Memory
 
-`NucliaMemory` maps naturally onto multi-session conversations: a **topic** represents an ongoing conversation thread, and each **entry** holds one full session as formatted turns. The background data-augmentation task extracts facts from every entry, so `ask()` can answer questions that reach back across many sessions.
+`NucliaMemory` maps naturally onto multi-session conversations: a **resource** represents an ongoing conversation thread, and each **entry** holds one full session as formatted turns. The background data-augmentation task extracts facts from every entry, so `ask()` can answer questions that reach back across many sessions.
 
 ```python
-from nuclia.sdk.memory import EntryAlreadyExistsError, NucliaMemory, TopicAlreadyExistsError
+from nuclia.sdk.memory import EntryAlreadyExistsError, NucliaMemory, ResourceAlreadyExistsError
 
 USER_ID = "user-42"
 
@@ -728,14 +728,14 @@ def format_session(n: int, date: str, turns: list[dict]) -> str:
     return f"{header}\n\n{body}"
 
 
-# ── Create the topic once ─────────────────────────────────────────────────────
+# ── Create the resource once ─────────────────────────────────────────────────────
 
 try:
-    memory.create_topic(
+    memory.create_resource(
         slug="caroline-melanie",
         title="Caroline & Melanie",
     )
-except TopicAlreadyExistsError:
+except ResourceAlreadyExistsError:
     pass
 
 
@@ -744,7 +744,7 @@ def remember_session(n: int, date: str, turns: list[dict]) -> None:
     try:
         memory.remember(
             text=format_session(n, date, turns),
-            topic="caroline-melanie",
+            resource="caroline-melanie",
             user_id=USER_ID,
             entry_id=f"caroline-melanie-s{n}",
             metadata={"session": n, "date": date},
@@ -787,7 +787,7 @@ remember_session(3, "9 June 2023", [
 
 result = memory.ask(
     query="What career path has Caroline been considering?",
-    topic="caroline-melanie",
+    resource="caroline-melanie",
     user_id=USER_ID,
 )
 print(result.answer)
@@ -796,7 +796,7 @@ print(result.answer)
 
 result = memory.ask(
     query="When did Melanie run a charity race, and what was it for?",
-    topic="caroline-melanie",
+    resource="caroline-melanie",
     user_id=USER_ID,
 )
 print(result.answer)
@@ -804,7 +804,7 @@ print(result.answer)
 
 result = memory.ask(
     query="Where did Caroline move from before settling in her current city?",
-    topic="caroline-melanie",
+    resource="caroline-melanie",
     user_id=USER_ID,
 )
 print(result.answer)

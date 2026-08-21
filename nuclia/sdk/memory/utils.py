@@ -62,7 +62,7 @@ GRAPH_EXTRACTION_TEMPLATE = "memory-graph-{task_ident}"
 
 def _build_field_filter_expression(
     task_ident: str,
-    topic: str,
+    resource: str,
     user_id: str | None,
     include_content: bool = True,
     include_facts: bool = True,
@@ -71,19 +71,19 @@ def _build_field_filter_expression(
     user_global_facts_resource_id: str | None = None,
 ) -> filters.FieldFilterExpression:
     """
-    Build a filter expression to scope recall or retrieve to a specific topic and include user entries and facts while
+    Build a filter expression to scope recall or retrieve to a specific resource and include user entries and facts while
     excluding other users' entries and facts.
 
     Parameters
     ----------
-    topic:
-        topic ID or slug to scope the retrieval to.
+    resource:
+        resource ID or slug to scope the retrieval to.
     user_id:
         An identifier for the user whose entries and facts to include in the retrieval results.
     """
-    ruuid, rslug = _uuid_or_slug(topic)
+    ruuid, rslug = _uuid_or_slug(resource)
 
-    # First off, make sure any retrieval is scoped to the specified topic
+    # First off, make sure any retrieval is scoped to the specified resource
     # Include the global entries resource if the flag is set, to allow retrieval of global facts.
     resource_filter: filters.FieldFilterExpression = filters.Or(
         operands=[
@@ -145,14 +145,16 @@ def _build_field_filter_expression(
         )
 
 
-def _uuid_or_slug(topic_uuid_or_slug: str) -> Union[tuple[str, None], tuple[None, str]]:
-    """Helper to determine if topic identifier is a UUID or slug."""
+def _uuid_or_slug(
+    resource_uuid_or_slug: str,
+) -> Union[tuple[str, None], tuple[None, str]]:
+    """Helper to determine if resource identifier is a UUID or slug."""
     try:
-        # If this succeeds, topic is a uuid
-        return str(uuid.UUID(topic_uuid_or_slug)), None
+        # If this succeeds, resource is a uuid
+        return str(uuid.UUID(resource_uuid_or_slug)), None
     except ValueError:
         # Otherwise, treat it as a slug
-        return None, topic_uuid_or_slug
+        return None, resource_uuid_or_slug
 
 
 def _slugify(text: str) -> str:
@@ -223,7 +225,7 @@ def _parse_recall_result(
     ]
 
 
-def _get_topic_status(resource: Resource) -> str:
+def _get_resource_status(resource: Resource) -> str:
     """
     We check for title field status as a proxy for the overall resource processing
     status, since the title is a required field that is processed in the first steps
@@ -739,13 +741,13 @@ def _global_entries_slug(user_id: str) -> str:
     return f"{GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX}-{user_id}"
 
 
-def _resolve_topic_location(
-    topic: str | None,
+def _resolve_resource_location(
+    resource: str | None,
     user_id: str,
 ) -> tuple[str | None, str | None]:
-    """Return (ruuid, rslug) scoped to topic, or the global entries resource slug when topic is None."""
-    if topic is not None:
-        return _uuid_or_slug(topic)
+    """Return (ruuid, rslug) scoped to resource, or the global entries resource slug when resource is None."""
+    if resource is not None:
+        return _uuid_or_slug(resource)
     return None, _global_entries_slug(user_id)
 
 
@@ -835,7 +837,7 @@ def validate_entry_id(entry_id: str) -> None:
 
 
 @overload
-def _get_topic_users(
+def _get_resource_users(
     ndb: NucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -844,7 +846,7 @@ def _get_topic_users(
 
 
 @overload
-def _get_topic_users(
+def _get_resource_users(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -852,23 +854,23 @@ def _get_topic_users(
 ) -> Awaitable[list[str]]: ...
 
 
-def _get_topic_users(
+def _get_resource_users(
     ndb: NucliaDBClient | AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
     slug: str | None,
 ) -> list[str] | Awaitable[list[str]]:
-    """Return the list of user IDs that have entries in the given topic resource.
+    """Return the list of user IDs that have entries in the given resource resource.
 
     Inspects the resource's conversation fields for entries stored under the
     ``__memory__{user_id}`` naming convention.
     """
     if isinstance(ndb, AsyncNucliaDBClient):
-        return _get_topic_users_async(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
-    return _get_topic_users_sync(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
+        return _get_resource_users_async(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
+    return _get_resource_users_sync(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
 
 
-def _get_topic_users_sync(
+def _get_resource_users_sync(
     ndb: NucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -895,7 +897,7 @@ def _get_topic_users_sync(
     ]
 
 
-async def _get_topic_users_async(
+async def _get_resource_users_async(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -937,7 +939,7 @@ def _get_global_users(
 def _get_global_users(
     ndb: NucliaDBClient | AsyncNucliaDBClient,
 ) -> list[str] | Awaitable[list[str]]:
-    """Return the list of all user IDs that have at least one global (topic-less) entry.
+    """Return the list of all user IDs that have at least one global (resource-less) entry.
 
     Global entries live in per-user resources whose slugs start with
     ``GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX-``. This function paginates the
@@ -1011,7 +1013,7 @@ async def _get_global_users_async(ndb: AsyncNucliaDBClient) -> list[str]:
 # ─── Pure request / response builders ────────────────────────────────────────
 
 
-def _build_list_topics_catalog_request(
+def _build_list_resources_catalog_request(
     query: str | CatalogQuery,
     page: int,
     size: int,
@@ -1059,7 +1061,7 @@ def _build_entry_message(entry_id: str, entry_content: EntryContent) -> InputMes
 def _build_recall_find_request(
     task_ident: str,
     question: str,
-    topic: str,
+    resource: str,
     user_id: str,
     top_k: int,
 ) -> FindRequest:
@@ -1069,7 +1071,7 @@ def _build_recall_find_request(
         features=[FindOptions.SEMANTIC, FindOptions.KEYWORD],
         filter_expression=filters.FilterExpression(
             field=_build_field_filter_expression(
-                task_ident, topic=topic, user_id=user_id
+                task_ident, resource=resource, user_id=user_id
             )
         ),
         top_k=top_k,
@@ -1081,13 +1083,13 @@ def _build_recall_find_request(
 def _build_ask_request(
     task_ident: str,
     query: str,
-    topic: str,
+    resource: str,
     user_id: str | None,
     include_global_facts: bool,
     global_facts_rid: str | None,
     extra_context: list[str] | None,
     global_facts: list[str],
-    topic_facts: list[str],
+    resource_facts: list[str],
     context: list[ChatContextMessage] | None,
     custom_prompt: CustomPrompt | None,
     ask_request_overrides: dict[str, Any] | None,
@@ -1104,14 +1106,14 @@ def _build_ask_request(
         filter_expression=filters.FilterExpression(
             field=_build_field_filter_expression(
                 task_ident,
-                topic=topic,
+                resource=resource,
                 user_id=user_id,
                 include_global_facts=include_global_facts,
                 user_global_facts_resource_id=global_facts_rid,
             )
         ),
         chat_history=context,
-        extra_context=(extra_context or []) + global_facts + topic_facts,
+        extra_context=(extra_context or []) + global_facts + resource_facts,
     )
     if ask_request_overrides:
         for key, value in ask_request_overrides.items():
@@ -1124,7 +1126,7 @@ def _build_ask_request(
 
 def _build_graph_search_request(
     task_ident: str,
-    topic: str,
+    resource: str,
     user_id: str,
 ) -> graph.requests.GraphSearchRequest:
     """Build the GraphSearchRequest used by graph(), scoped to entity-to-entity paths."""
@@ -1133,7 +1135,7 @@ def _build_graph_search_request(
         filter_expression=graph.requests.GraphFilterExpression(
             field=_build_field_filter_expression(
                 task_ident,
-                topic=topic,
+                resource=resource,
                 user_id=user_id,
                 include_global_facts=False,
             )
@@ -1158,7 +1160,7 @@ def _build_graph_search_request(
     )
 
 
-def _parse_catalog_response_to_topic_page(
+def _parse_catalog_response_to_resource_page(
     catalog_response: CatalogResponse,
 ) -> TopicPage:
     """Convert a raw catalog API response into a TopicPage model."""
@@ -1169,10 +1171,10 @@ def _parse_catalog_response_to_topic_page(
                 slug=resource.slug or "",
                 title=resource.title or "",
                 summary=resource.summary,
-                status=_get_topic_status(resource),
+                status=_get_resource_status(resource),
             )
             for resource in catalog_response.resources.values()
-            # Do not include global entry resources in the topic listing.
+            # Do not include global entry resources in the resource listing.
             if not (resource.slug or "").startswith(
                 GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
             )

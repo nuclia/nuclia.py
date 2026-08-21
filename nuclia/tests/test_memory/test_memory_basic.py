@@ -9,36 +9,36 @@ from nuclia.sdk.memory import (
     EntryAlreadyExistsError,
     EntryContextMessage,
     NucliaMemory,
-    TopicAlreadyExistsError,
-    TopicNotFoundError,
+    ResourceAlreadyExistsError,
+    ResourceNotFoundError,
 )
 from nuclia.tests.utils import maybe_async_iterate, maybe_await
 
-TOPIC_VACATION_POLICY = "vacation-policy"
-TOPIC_VACATION_POLICY_LINK = "vacation-policy-link"
-TOPIC_VACATION_POLICY_FILE = "vacation-policy-file"
+RESOURCE_VACATION_POLICY = "vacation-policy"
+RESOURCE_VACATION_POLICY_LINK = "vacation-policy-link"
+RESOURCE_VACATION_POLICY_FILE = "vacation-policy-file"
 
 
-async def _wait_until_topic_ready_for_search(
+async def _wait_until_resource_ready_for_search(
     memory: Union[NucliaMemory, AsyncNucliaMemory],
     *,
-    topic: str,
+    resource: str,
     user_id: str,
     max_seconds: int = 120,
     check_global_facts: bool = False,
 ) -> bool:
-    """Wait until a topic is processed and has stable extracted facts."""
+    """Wait until a resource is processed and has stable extracted facts."""
     successful_rounds = 0
     for _ in range(max_seconds):
-        topic_data = await maybe_await(memory.get_topic(topic=topic))
-        if topic_data.status == "processed":
+        resource_data = await maybe_await(memory.get_resource(resource=resource))
+        if resource_data.status == "processed":
             facts = [
                 f
                 async for f in maybe_async_iterate(
-                    memory.facts(topic=topic, user_id=user_id)
+                    memory.facts(resource=resource, user_id=user_id)
                 )
             ]
-            has_topic_facts = len(facts) >= 1
+            has_resource_facts = len(facts) >= 1
             has_global_facts = True
             if check_global_facts:
                 global_facts = [
@@ -46,16 +46,20 @@ async def _wait_until_topic_ready_for_search(
                 ]
                 has_global_facts = len(global_facts) >= 1
 
-            if has_topic_facts and has_global_facts:
+            if has_resource_facts and has_global_facts:
                 successful_rounds += 1
                 if successful_rounds >= 3:
                     return True
             else:
                 successful_rounds = 0
-                print("Topic is processed but facts are not yet available, waiting...")
+                print(
+                    "Resource is processed but facts are not yet available, waiting..."
+                )
         else:
             successful_rounds = 0
-            print(f"Topic status: {topic_data.status}, waiting for 'processed'...")
+            print(
+                f"Resource status: {resource_data.status}, waiting for 'processed'..."
+            )
         await asyncio.sleep(1)
     return False
 
@@ -90,119 +94,119 @@ async def test_basic(
 
     async def _cleanup():
         for slug in [
-            TOPIC_VACATION_POLICY,
-            TOPIC_VACATION_POLICY_LINK,
-            TOPIC_VACATION_POLICY_FILE,
+            RESOURCE_VACATION_POLICY,
+            RESOURCE_VACATION_POLICY_LINK,
+            RESOURCE_VACATION_POLICY_FILE,
         ]:
             try:
-                await maybe_await(memory.delete_topic(topic=slug, confirm=True))
-            except TopicNotFoundError:
+                await maybe_await(memory.delete_resource(resource=slug, confirm=True))
+            except ResourceNotFoundError:
                 continue
 
-    # Make sure topic doesn't exist at test start
+    # Make sure resource doesn't exist at test start
     await _cleanup()
 
-    # Test creating topic with a text content
+    # Test creating resource with a text content
     await maybe_await(
-        memory.create_topic(
+        memory.create_resource(
             texts={
                 "text": "Our vacation policy allows employees to take 20 days of paid leave per year."
                 "Employees can also carry over up to 5 unused days to the next year."
                 "To request vacation, employees must submit a request form at least 2 weeks in advance."
                 "In case of emergencies, employees can request last-minute leave, which will be evaluated on a case by case basis."
             },
-            slug=TOPIC_VACATION_POLICY,
+            slug=RESOURCE_VACATION_POLICY,
             title="Company Vacation Policy",
             summary="Company's vacation policy including leave days, carry over, and request process.",
         )
     )
 
-    # Test getting the created topic
-    topic = await maybe_await(memory.get_topic(topic=TOPIC_VACATION_POLICY))
-    assert topic.slug == TOPIC_VACATION_POLICY
-    assert topic.title == "Company Vacation Policy"
+    # Test getting the created resource
+    resource = await maybe_await(memory.get_resource(resource=RESOURCE_VACATION_POLICY))
+    assert resource.slug == RESOURCE_VACATION_POLICY
+    assert resource.title == "Company Vacation Policy"
     assert (
-        topic.summary
+        resource.summary
         == "Company's vacation policy including leave days, carry over, and request process."
     )
 
-    # Test listing topics after creation
-    topic_page = await maybe_await(
-        memory.list_topics(query="Company Vacation Policy", size=1)
+    # Test listing resources after creation
+    resource_page = await maybe_await(
+        memory.list_resources(query="Company Vacation Policy", size=1)
     )
-    assert len(topic_page.items) == 1
-    assert topic_page.items[0].slug == TOPIC_VACATION_POLICY
-    assert topic_page.items[0].title == "Company Vacation Policy"
+    assert len(resource_page.items) == 1
+    assert resource_page.items[0].slug == RESOURCE_VACATION_POLICY
+    assert resource_page.items[0].title == "Company Vacation Policy"
     assert (
-        topic_page.items[0].summary
+        resource_page.items[0].summary
         == "Company's vacation policy including leave days, carry over, and request process."
     )
 
-    # Try creating a topic with the same slug, should raise error
-    with pytest.raises(TopicAlreadyExistsError):
+    # Try creating a resource with the same slug, should raise error
+    with pytest.raises(ResourceAlreadyExistsError):
         await maybe_await(
-            memory.create_topic(
-                texts={"text": "Duplicate topic content"},
-                slug=TOPIC_VACATION_POLICY,
+            memory.create_resource(
+                texts={"text": "Duplicate resource content"},
+                slug=RESOURCE_VACATION_POLICY,
                 title="Duplicate Vacation Policy",
                 summary="This should not be created.",
             )
         )
 
-    # Test creating a topic with a link content
+    # Test creating a resource with a link content
     await maybe_await(
-        memory.create_topic(
+        memory.create_resource(
             urls={"link": "https://www.example.com/vacation-policy"},
-            slug=TOPIC_VACATION_POLICY_LINK,
+            slug=RESOURCE_VACATION_POLICY_LINK,
             title="Vacation Policy Link",
             summary="Link to the company's vacation policy page.",
         )
     )
 
-    # Test creating a topic with a file content
+    # Test creating a resource with a file content
     with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
         tmp_file.write(b"File content")
         tmp_file.seek(0)
         await maybe_await(
-            memory.create_topic(
+            memory.create_resource(
                 file_paths={"file": tmp_file.name},
-                slug=TOPIC_VACATION_POLICY_FILE,
+                slug=RESOURCE_VACATION_POLICY_FILE,
                 title="Vacation Policy File",
                 summary="File containing the company's vacation policy.",
             )
         )
 
-    # Test adding another content to an existing topic
+    # Test adding another content to an existing resource
     await maybe_await(
-        memory.update_topic(
+        memory.update_resource(
             texts={"text2": "Additional information about the vacation policy."},
-            topic=TOPIC_VACATION_POLICY,
+            resource=RESOURCE_VACATION_POLICY,
         )
     )
     await maybe_await(
-        memory.update_topic(
+        memory.update_resource(
             urls={"link2": "https://www.example.com/vacation-policy-faq"},
-            topic=TOPIC_VACATION_POLICY,
+            resource=RESOURCE_VACATION_POLICY,
         )
     )
     with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
         tmp_file.write(b"Additional file content")
         tmp_file.seek(0)
         await maybe_await(
-            memory.update_topic(
+            memory.update_resource(
                 file_paths={"file2": tmp_file.name},
-                topic=TOPIC_VACATION_POLICY,
+                resource=RESOURCE_VACATION_POLICY,
             )
         )
 
-    # Remember an entry attached to the topic
+    # Remember an entry attached to the resource
     await maybe_await(
         memory.remember(
             "Approved carry-over exception for Maria (employee ID: EMP-1042). "
             "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
             "Exception approved for the full 8 days as a one-time allowance.",
             user_id=USER_A,
-            topic=TOPIC_VACATION_POLICY,
+            resource=RESOURCE_VACATION_POLICY,
             reasoning="The product launch was a company-wide priority that required Maria's presence. "
             "Denying the exception would penalise her for meeting business needs.",
             context=[
@@ -234,7 +238,7 @@ async def test_basic(
             "Denied carry-over exception for Leo (EMP-5512). "
             "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
             "The 6 days will be forfeited per standard policy.",
-            topic=TOPIC_VACATION_POLICY,
+            resource=RESOURCE_VACATION_POLICY,
             user_id=USER_A,
             reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
             "personal planning choices. Policy should be applied as written.",
@@ -260,45 +264,47 @@ async def test_basic(
     entries = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
+            memory.entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
         )
     ]
-    assert len(entries) >= 1, "Expected at least one topic entry."
+    assert len(entries) >= 1, "Expected at least one resource entry."
 
-    # Check that querying a non-existent topic or user returns no entries
-    entries_non_existent_topic = [
+    # Check that querying a non-existent resource or user returns no entries
+    entries_non_existent_resource = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, topic="non-existent-topic")
+            memory.entries(user_id=USER_A, resource="non-existent-resource")
         )
     ]
-    assert len(entries_non_existent_topic) == 0, (
-        "Expected no entries for a non-existent topic."
+    assert len(entries_non_existent_resource) == 0, (
+        "Expected no entries for a non-existent resource."
     )
     entries_non_existent_user = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id="non-existent-user", topic=TOPIC_VACATION_POLICY)
+            memory.entries(
+                user_id="non-existent-user", resource=RESOURCE_VACATION_POLICY
+            )
         )
     ]
     assert len(entries_non_existent_user) == 0, (
         "Expected no entries for a non-existent user."
     )
 
-    # Wait until the topic is ready for search before recall tests
-    processed = await _wait_until_topic_ready_for_search(
+    # Wait until the resource is ready for search before recall tests
+    processed = await _wait_until_resource_ready_for_search(
         memory,
-        topic=TOPIC_VACATION_POLICY,
+        resource=RESOURCE_VACATION_POLICY,
         user_id=USER_A,
         check_global_facts=False,
     )
 
-    assert processed, "Topic was not processed within the expected time."
+    assert processed, "Resource was not processed within the expected time."
 
     result = await maybe_await(
         memory.ask(
             query="Can employees carry over unused vacation days?",
-            topic=TOPIC_VACATION_POLICY,
+            resource=RESOURCE_VACATION_POLICY,
         )
     )
     assert "5" in result.answer, (
@@ -310,50 +316,52 @@ async def test_basic(
     facts = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
         )
     ]
-    assert len(facts) >= 2, "Expected at least two fact for the topic."
+    assert len(facts) >= 2, "Expected at least two fact for the resource."
     oldest_first = [
         f
         async for f in maybe_async_iterate(
             memory.facts(
-                topic=TOPIC_VACATION_POLICY, user_id=USER_A, recent_first=False
+                resource=RESOURCE_VACATION_POLICY, user_id=USER_A, recent_first=False
             )
         )
     ]
     assert oldest_first[0].id == facts[-1].id
     assert oldest_first[-1].id == facts[0].id
 
-    # Check that facts for non-existent topic or user return no facts
+    # Check that facts for non-existent resource or user return no facts
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic="non-existent-topic", user_id=USER_A)
+            memory.facts(resource="non-existent-resource", user_id=USER_A)
         )
-    ] == [], "Expected no facts for a non-existent topic."
+    ] == [], "Expected no facts for a non-existent resource."
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic=TOPIC_VACATION_POLICY, user_id="non-existent-user")
+            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id="non-existent-user")
         )
     ] == [], "Expected no facts for a non-existent user."
 
     # List users tests
-    users_in_topic = await maybe_await(memory.list_users(topic=TOPIC_VACATION_POLICY))
-    assert users_in_topic == [USER_A], (
-        f"{USER_A} should be listed as a user in 'vacation-policy' topic."
+    users_in_resource = await maybe_await(
+        memory.list_users(resource=RESOURCE_VACATION_POLICY)
+    )
+    assert users_in_resource == [USER_A], (
+        f"{USER_A} should be listed as a user in 'vacation-policy' resource."
     )
 
-    # Listing users for a non-existent topic should raise TopicNotFoundError
-    with pytest.raises(TopicNotFoundError):
-        await maybe_await(memory.list_users(topic="non-existent-topic"))
+    # Listing users for a non-existent resource should raise ResourceNotFoundError
+    with pytest.raises(ResourceNotFoundError):
+        await maybe_await(memory.list_users(resource="non-existent-resource"))
 
     # Pagination tests
     page = 0
     while True:
-        topic_page = await maybe_await(memory.list_topics(size=1, page=page))
-        if len(topic_page.items) == 0 or topic_page.has_more is False:
+        resource_page = await maybe_await(memory.list_resources(size=1, page=page))
+        if len(resource_page.items) == 0 or resource_page.has_more is False:
             break
         page += 1
 
@@ -363,7 +371,7 @@ async def test_basic(
     graph_ready = False
     for _ in range(60):
         graph_result = await maybe_await(
-            memory.graph(topic=TOPIC_VACATION_POLICY, user_id="user-a")
+            memory.graph(resource=RESOURCE_VACATION_POLICY, user_id="user-a")
         )
         if len(graph_result) >= 1:
             graph_ready = True
@@ -372,7 +380,7 @@ async def test_basic(
             print("Graph not ready yet, waiting...")
             await asyncio.sleep(1)
     graph_result = await maybe_await(
-        memory.graph(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
+        memory.graph(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
     )
     assert graph_ready, "Graph did not become ready in time."
     assert len(graph_result) >= 1, "Graph should contain at least one path."
@@ -381,65 +389,71 @@ async def test_basic(
     entries_before_forget = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
+            memory.entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
         )
     ]
 
     facts_before_forget = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
         )
     ]
-    assert len(entries_before_forget) >= 1, "Expected at least one topic entry."
-    assert len(facts_before_forget) >= 1, "Expected at least one topic fact."
+    assert len(entries_before_forget) >= 1, "Expected at least one resource entry."
+    assert len(facts_before_forget) >= 1, "Expected at least one resource fact."
 
     for entry in entries_before_forget:
         await maybe_await(
             memory.forget_entry(
-                user_id=USER_A, topic=TOPIC_VACATION_POLICY, entry_id=entry.id
+                user_id=USER_A, resource=RESOURCE_VACATION_POLICY, entry_id=entry.id
             )
         )
 
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
         )
-    ] == [], "Forgetting topic entries should also delete corresponding topic facts."
+    ] == [], (
+        "Forgetting resource entries should also delete corresponding resource facts."
+    )
 
     await maybe_await(
-        memory.forget_entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
+        memory.forget_entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
     )
 
     assert [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, topic=TOPIC_VACATION_POLICY)
+            memory.entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
         )
-    ] == [], "All topic entries for user-a should have been deleted."
+    ] == [], "All resource entries for user-a should have been deleted."
 
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(topic=TOPIC_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
         )
-    ] == [], "Forgetting topic entries should also delete corresponding topic facts."
+    ] == [], (
+        "Forgetting resource entries should also delete corresponding resource facts."
+    )
 
     # No-op cleanup calls should still be safe
-    await maybe_await(memory.forget_facts(user_id=USER_A, topic=TOPIC_VACATION_POLICY))
+    await maybe_await(
+        memory.forget_facts(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
+    )
     await maybe_await(
         memory.forget_fact(
             user_id=USER_A,
-            topic=TOPIC_VACATION_POLICY,
+            resource=RESOURCE_VACATION_POLICY,
             fact_id=facts_before_forget[0].id,
         )
     )
 
-    # Test delete topics
+    # Test delete resources
     with pytest.raises(ValueError):
         # Deleting without confirm should raise error
-        await maybe_await(memory.delete_topic(topic=TOPIC_VACATION_POLICY))
+        await maybe_await(memory.delete_resource(resource=RESOURCE_VACATION_POLICY))
 
     await _cleanup()
 
@@ -448,11 +462,11 @@ async def test_basic(
     "memory_klass",
     [NucliaMemory, AsyncNucliaMemory],
 )
-async def test_basic_nontopic(
+async def test_basic_nonresource(
     testing_config,
     memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
 ) -> None:
-    """Test the memory API without attaching any content to a topic.
+    """Test the memory API without attaching any content to a resource.
 
     Covers global entries: remember, listing, deduplication, and deletion.
     """
@@ -571,7 +585,7 @@ async def test_basic_nontopic(
     ]
     assert len(user_b_entries) == 1
 
-    # ── list users (global, no topic) ──────────────────────────────────
+    # ── list users (global, no resource) ──────────────────────────────────
 
     all_users = await maybe_await(memory.list_users())
     assert USER_B in all_users, (
