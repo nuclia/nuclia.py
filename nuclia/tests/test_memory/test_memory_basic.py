@@ -25,7 +25,8 @@ async def _wait_until_resource_ready_for_search(
     resource: str,
     user_id: str,
     max_seconds: int = 120,
-    check_global_facts: bool = False,
+    min_resource_facts: int = 1,
+    min_global_facts: int = 0,
 ) -> bool:
     """Wait until a resource is processed and has stable extracted facts."""
     successful_rounds = 0
@@ -38,13 +39,13 @@ async def _wait_until_resource_ready_for_search(
                     memory.facts(resource=resource, user_id=user_id)
                 )
             ]
-            has_resource_facts = len(facts) >= 1
+            has_resource_facts = len(facts) >= min_resource_facts
             has_global_facts = True
-            if check_global_facts:
+            if min_global_facts > 0:
                 global_facts = [
                     f async for f in maybe_async_iterate(memory.facts(user_id=user_id))
                 ]
-                has_global_facts = len(global_facts) >= 1
+                has_global_facts = len(global_facts) >= min_global_facts
 
             if has_resource_facts and has_global_facts:
                 successful_rounds += 1
@@ -296,7 +297,7 @@ async def test_basic(
         memory,
         resource=RESOURCE_VACATION_POLICY,
         user_id=USER_A,
-        check_global_facts=False,
+        min_resource_facts=2,
     )
 
     assert processed, "Resource was not processed within the expected time."
