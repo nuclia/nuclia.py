@@ -63,23 +63,23 @@ GRAPH_EXTRACTION_TEMPLATE = "memory-graph-{task_ident}"
 def _build_field_filter_expression(
     task_ident: str,
     resource: str,
-    user_id: str | None,
+    session_id: str | None,
     include_content: bool = True,
     include_facts: bool = True,
     include_entries: bool = False,
     include_global_facts: bool = False,
-    user_global_facts_resource_id: str | None = None,
+    session_global_facts_resource_id: str | None = None,
 ) -> filters.FieldFilterExpression:
     """
-    Build a filter expression to scope recall or retrieve to a specific resource and include user entries and facts while
-    excluding other users' entries and facts.
+    Build a filter expression to scope recall or retrieve to a specific resource and include session entries and facts while
+    excluding other sessions' entries and facts.
 
     Parameters
     ----------
     resource:
         resource ID or slug to scope the retrieval to.
-    user_id:
-        An identifier for the user whose entries and facts to include in the retrieval results.
+    session_id:
+        An identifier for the session whose entries and facts to include in the retrieval results.
     """
     ruuid, rslug = _uuid_or_slug(resource)
 
@@ -88,9 +88,9 @@ def _build_field_filter_expression(
     resource_filter: filters.FieldFilterExpression = filters.Or(
         operands=[
             filters.Resource(id=ruuid, slug=rslug),
-            filters.Resource(id=user_global_facts_resource_id),
+            filters.Resource(id=session_global_facts_resource_id),
         ]
-        if include_global_facts and user_global_facts_resource_id is not None
+        if include_global_facts and session_global_facts_resource_id is not None
         else [filters.Resource(id=ruuid, slug=rslug)]
     )
 
@@ -119,18 +119,18 @@ def _build_field_filter_expression(
                 ]
             )
         )
-    if include_entries and user_id:
+    if include_entries and session_id:
         fields_filter_ops.append(
             filters.Field(
                 type=FieldTypeName.CONVERSATION,
-                name=_entries_field_id(user_id),
+                name=_entries_field_id(session_id),
             )
         )
-    if include_facts and user_id:
+    if include_facts and session_id:
         fields_filter_ops.append(
             filters.Field(
                 type=FieldTypeName.CONVERSATION,
-                name=_facts_field_id(user_id, task_ident),
+                name=_facts_field_id(session_id, task_ident),
             )
         )
     assert len(fields_filter_ops) > 0, (
@@ -726,84 +726,84 @@ def _get_resource_field(
     return fn(**get_field_args)
 
 
-def _entries_field_id(user_id: str) -> str:
+def _entries_field_id(session_id: str) -> str:
     # __memory__bob123
-    return f"{MEMORY_FIELD_PREFIX}{user_id}"
+    return f"{MEMORY_FIELD_PREFIX}{session_id}"
 
 
-def _facts_field_id(user_id: str, ident: str) -> str:
+def _facts_field_id(session_id: str, ident: str) -> str:
     # da-facts-memory-c-__memory__-bob123
-    return f"{FACTS_FIELD_PREFIX}{ident}-c-{MEMORY_FIELD_PREFIX}{user_id}"
+    return f"{FACTS_FIELD_PREFIX}{ident}-c-{MEMORY_FIELD_PREFIX}{session_id}"
 
 
-def _global_entries_slug(user_id: str) -> str:
-    """Return the predictable slug for the per-user global-entries resource."""
-    return f"{GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX}-{user_id}"
+def _global_entries_slug(session_id: str) -> str:
+    """Return the predictable slug for the per-session global-entries resource."""
+    return f"{GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX}-{session_id}"
 
 
 def _resolve_resource_location(
     resource: str | None,
-    user_id: str,
+    session_id: str,
 ) -> tuple[str | None, str | None]:
     """Return (ruuid, rslug) scoped to resource, or the global entries resource slug when resource is None."""
     if resource is not None:
         return _uuid_or_slug(resource)
-    return None, _global_entries_slug(user_id)
+    return None, _global_entries_slug(session_id)
 
 
 @overload
-def _ensure_global_entries_resource(ndb: NucliaDBClient, user_id: str) -> str: ...
+def _ensure_global_entries_resource(ndb: NucliaDBClient, session_id: str) -> str: ...
 
 
 @overload
 def _ensure_global_entries_resource(
-    ndb: AsyncNucliaDBClient, user_id: str
+    ndb: AsyncNucliaDBClient, session_id: str
 ) -> Awaitable[str]: ...
 
 
 def _ensure_global_entries_resource(
-    ndb: NucliaDBClient | AsyncNucliaDBClient, user_id: str
+    ndb: NucliaDBClient | AsyncNucliaDBClient, session_id: str
 ) -> str | Awaitable[str]:
     """
-    Ensure the per-user global-entries resource exists, creating it if necessary.
+    Ensure the per-session global-entries resource exists, creating it if necessary.
     Returns the resource slug.
     """
     if isinstance(ndb, AsyncNucliaDBClient):
-        return _ensure_global_entries_resource_async(ndb, user_id)
-    return _ensure_global_entries_resource_sync(ndb, user_id)
+        return _ensure_global_entries_resource_async(ndb, session_id)
+    return _ensure_global_entries_resource_sync(ndb, session_id)
 
 
-def _ensure_global_entries_resource_sync(ndb: NucliaDBClient, user_id: str) -> str:
-    slug = _global_entries_slug(user_id)
+def _ensure_global_entries_resource_sync(ndb: NucliaDBClient, session_id: str) -> str:
+    slug = _global_entries_slug(session_id)
     if not ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
         ndb.ndb.create_resource(
             kbid=ndb.kbid,
             content=CreateResourcePayload(
-                title=f"Memory global entries - {user_id}", slug=slug
+                title=f"Memory global entries - {session_id}", slug=slug
             ),
         )
     return slug
 
 
 async def _ensure_global_entries_resource_async(
-    ndb: AsyncNucliaDBClient, user_id: str
+    ndb: AsyncNucliaDBClient, session_id: str
 ) -> str:
-    slug = _global_entries_slug(user_id)
+    slug = _global_entries_slug(session_id)
     if not await ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
         await ndb.ndb.create_resource(
             kbid=ndb.kbid,
             content=CreateResourcePayload(
-                title=f"Memory global entries - {user_id}", slug=slug
+                title=f"Memory global entries - {session_id}", slug=slug
             ),
         )
     return slug
 
 
-def validate_user_id(user_id: str) -> None:
+def validate_session_id(session_id: str) -> None:
     field_id_pattern = r"^[a-zA-Z0-9:_-]+$"
-    if not re.match(field_id_pattern, user_id):
+    if not re.match(field_id_pattern, session_id):
         raise ValueError(
-            f"Invalid User ID '{user_id}'. User IDs can only contain letters, numbers, underscores, colons, and hyphens."
+            f"Invalid Session ID '{session_id}'. Session IDs can only contain letters, numbers, underscores, colons, and hyphens."
         )
 
 
@@ -833,11 +833,11 @@ def validate_entry_id(entry_id: str) -> None:
 # ─── Pure request / response builders ────────────────────────────────────────
 
 
-# ─── User listing helpers ─────────────────────────────────────────────────────
+# ─── Session listing helpers ─────────────────────────────────────────────────────
 
 
 @overload
-def _get_resource_users(
+def _get_resource_sessions(
     ndb: NucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -846,7 +846,7 @@ def _get_resource_users(
 
 
 @overload
-def _get_resource_users(
+def _get_resource_sessions(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -854,23 +854,23 @@ def _get_resource_users(
 ) -> Awaitable[list[str]]: ...
 
 
-def _get_resource_users(
+def _get_resource_sessions(
     ndb: NucliaDBClient | AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
     slug: str | None,
 ) -> list[str] | Awaitable[list[str]]:
-    """Return the list of user IDs that have entries in the given resource.
+    """Return the list of session IDs that have entries in the given resource.
 
     Inspects the resource's conversation fields for entries stored under the
-    ``__memory__{user_id}`` naming convention.
+    ``__memory__{session_id}`` naming convention.
     """
     if isinstance(ndb, AsyncNucliaDBClient):
-        return _get_resource_users_async(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
-    return _get_resource_users_sync(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
+        return _get_resource_sessions_async(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
+    return _get_resource_sessions_sync(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
 
 
-def _get_resource_users_sync(
+def _get_resource_sessions_sync(
     ndb: NucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -897,7 +897,7 @@ def _get_resource_users_sync(
     ]
 
 
-async def _get_resource_users_async(
+async def _get_resource_sessions_async(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -925,34 +925,34 @@ async def _get_resource_users_async(
 
 
 @overload
-def _get_global_users(
+def _get_global_sessions(
     ndb: NucliaDBClient,
 ) -> list[str]: ...
 
 
 @overload
-def _get_global_users(
+def _get_global_sessions(
     ndb: AsyncNucliaDBClient,
 ) -> Awaitable[list[str]]: ...
 
 
-def _get_global_users(
+def _get_global_sessions(
     ndb: NucliaDBClient | AsyncNucliaDBClient,
 ) -> list[str] | Awaitable[list[str]]:
-    """Return the list of all user IDs that have at least one global (resource-less) entry.
+    """Return the list of all session IDs that have at least one global (resource-less) entry.
 
-    Global entries live in per-user resources whose slugs start with
+    Global entries live in per-session resources whose slugs start with
     ``GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX-``. This function paginates the
-    catalog automatically so it works correctly with any number of users.
+    catalog automatically so it works correctly with any number of sessions.
     """
     if isinstance(ndb, AsyncNucliaDBClient):
-        return _get_global_users_async(ndb=ndb)
-    return _get_global_users_sync(ndb=ndb)
+        return _get_global_sessions_async(ndb=ndb)
+    return _get_global_sessions_sync(ndb=ndb)
 
 
-def _get_global_users_sync(ndb: NucliaDBClient) -> list[str]:
+def _get_global_sessions_sync(ndb: NucliaDBClient) -> list[str]:
     prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
-    page, user_ids = 0, []
+    page, session_ids = 0, []
     while True:
         catalog_response = ndb.ndb.catalog(
             kbid=ndb.kbid,
@@ -970,19 +970,19 @@ def _get_global_users_sync(ndb: NucliaDBClient) -> list[str]:
         for resource in catalog_response.resources.values():
             slug = resource.slug or ""
             if slug.startswith(prefix):
-                user_ids.append(slug[len(prefix) :])
+                session_ids.append(slug[len(prefix) :])
         has_more = (
             catalog_response.fulltext.next_page if catalog_response.fulltext else False
         )
         if not has_more:
             break
         page += 1
-    return user_ids
+    return session_ids
 
 
-async def _get_global_users_async(ndb: AsyncNucliaDBClient) -> list[str]:
+async def _get_global_sessions_async(ndb: AsyncNucliaDBClient) -> list[str]:
     prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
-    page, user_ids = 0, []
+    page, session_ids = 0, []
     while True:
         catalog_response = await ndb.ndb.catalog(
             kbid=ndb.kbid,
@@ -1000,14 +1000,14 @@ async def _get_global_users_async(ndb: AsyncNucliaDBClient) -> list[str]:
         for resource in catalog_response.resources.values():
             slug = resource.slug or ""
             if slug.startswith(prefix):
-                user_ids.append(slug[len(prefix) :])
+                session_ids.append(slug[len(prefix) :])
         has_more = (
             catalog_response.fulltext.next_page if catalog_response.fulltext else False
         )
         if not has_more:
             break
         page += 1
-    return user_ids
+    return session_ids
 
 
 # ─── Pure request / response builders ────────────────────────────────────────
@@ -1017,17 +1017,17 @@ def _build_list_resources_catalog_request(
     query: str | CatalogQuery,
     page: int,
     size: int,
-    global_users: list[str],
+    global_sessions: list[str],
 ) -> CatalogRequest:
     filter_expression = None
-    if len(global_users) > 0:
+    if len(global_sessions) > 0:
         # Exclude resources that are for global entries
         filter_expression = filters.CatalogFilterExpression(
             resource=filters.Not(
                 operand=filters.Or(
                     operands=[
-                        filters.Resource(slug=_global_entries_slug(user_id))
-                        for user_id in global_users
+                        filters.Resource(slug=_global_entries_slug(session_id))
+                        for session_id in global_sessions
                     ]
                 )
             )
@@ -1062,7 +1062,7 @@ def _build_recall_find_request(
     task_ident: str,
     question: str,
     resource: str,
-    user_id: str,
+    session_id: str,
     top_k: int,
 ) -> FindRequest:
     """Build the FindRequest used by recall."""
@@ -1071,7 +1071,7 @@ def _build_recall_find_request(
         features=[FindOptions.SEMANTIC, FindOptions.KEYWORD],
         filter_expression=filters.FilterExpression(
             field=_build_field_filter_expression(
-                task_ident, resource=resource, user_id=user_id
+                task_ident, resource=resource, session_id=session_id
             )
         ),
         top_k=top_k,
@@ -1084,7 +1084,7 @@ def _build_ask_request(
     task_ident: str,
     query: str,
     resource: str,
-    user_id: str | None,
+    session_id: str | None,
     include_global_facts: bool,
     global_facts_rid: str | None,
     extra_context: list[str] | None,
@@ -1107,9 +1107,9 @@ def _build_ask_request(
             field=_build_field_filter_expression(
                 task_ident,
                 resource=resource,
-                user_id=user_id,
+                session_id=session_id,
                 include_global_facts=include_global_facts,
-                user_global_facts_resource_id=global_facts_rid,
+                session_global_facts_resource_id=global_facts_rid,
             )
         ),
         chat_history=context,
@@ -1127,7 +1127,7 @@ def _build_ask_request(
 def _build_graph_search_request(
     task_ident: str,
     resource: str,
-    user_id: str,
+    session_id: str,
 ) -> graph.requests.GraphSearchRequest:
     """Build the GraphSearchRequest used by graph(), scoped to entity-to-entity paths."""
     return graph.requests.GraphSearchRequest(
@@ -1136,7 +1136,7 @@ def _build_graph_search_request(
             field=_build_field_filter_expression(
                 task_ident,
                 resource=resource,
-                user_id=user_id,
+                session_id=session_id,
                 include_global_facts=False,
             )
         ),

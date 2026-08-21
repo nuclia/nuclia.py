@@ -23,7 +23,7 @@ async def _wait_until_resource_ready_for_search(
     memory: Union[NucliaMemory, AsyncNucliaMemory],
     *,
     resource: str,
-    user_id: str,
+    session_id: str,
     max_seconds: int = 120,
     min_resource_facts: int = 1,
     min_global_facts: int = 0,
@@ -36,14 +36,17 @@ async def _wait_until_resource_ready_for_search(
             facts = [
                 f
                 async for f in maybe_async_iterate(
-                    memory.facts(resource=resource, user_id=user_id)
+                    memory.facts(resource=resource, session_id=session_id)
                 )
             ]
             has_resource_facts = len(facts) >= min_resource_facts
             has_global_facts = True
             if min_global_facts > 0:
                 global_facts = [
-                    f async for f in maybe_async_iterate(memory.facts(user_id=user_id))
+                    f
+                    async for f in maybe_async_iterate(
+                        memory.facts(session_id=session_id)
+                    )
                 ]
                 has_global_facts = len(global_facts) >= min_global_facts
 
@@ -206,7 +209,7 @@ async def test_basic(
             "Approved carry-over exception for Maria (employee ID: EMP-1042). "
             "She was unable to take her remaining 8 vacation days due to a critical product launch in Q4. "
             "Exception approved for the full 8 days as a one-time allowance.",
-            user_id=USER_A,
+            session_id=USER_A,
             resource=RESOURCE_VACATION_POLICY,
             reasoning="The product launch was a company-wide priority that required Maria's presence. "
             "Denying the exception would penalise her for meeting business needs.",
@@ -240,7 +243,7 @@ async def test_basic(
             "Leo had adequate opportunity to schedule vacation during the year and did not do so. "
             "The 6 days will be forfeited per standard policy.",
             resource=RESOURCE_VACATION_POLICY,
-            user_id=USER_A,
+            session_id=USER_A,
             reasoning="Unlike cases involving company-mandated business needs, Leo's unused days reflect "
             "personal planning choices. Policy should be applied as written.",
             context=[
@@ -265,38 +268,38 @@ async def test_basic(
     entries = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
+            memory.entries(session_id=USER_A, resource=RESOURCE_VACATION_POLICY)
         )
     ]
     assert len(entries) >= 1, "Expected at least one resource entry."
 
-    # Check that querying a non-existent resource or user returns no entries
+    # Check that querying a non-existent resource or session returns no entries
     entries_non_existent_resource = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, resource="non-existent-resource")
+            memory.entries(session_id=USER_A, resource="non-existent-resource")
         )
     ]
     assert len(entries_non_existent_resource) == 0, (
         "Expected no entries for a non-existent resource."
     )
-    entries_non_existent_user = [
+    entries_non_existent_session = [
         e
         async for e in maybe_async_iterate(
             memory.entries(
-                user_id="non-existent-user", resource=RESOURCE_VACATION_POLICY
+                session_id="non-existent-session", resource=RESOURCE_VACATION_POLICY
             )
         )
     ]
-    assert len(entries_non_existent_user) == 0, (
-        "Expected no entries for a non-existent user."
+    assert len(entries_non_existent_session) == 0, (
+        "Expected no entries for a non-existent session."
     )
 
     # Wait until the resource is ready for search before recall tests
     processed = await _wait_until_resource_ready_for_search(
         memory,
         resource=RESOURCE_VACATION_POLICY,
-        user_id=USER_A,
+        session_id=USER_A,
         min_resource_facts=2,
     )
 
@@ -317,7 +320,7 @@ async def test_basic(
     facts = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, session_id=USER_A)
         )
     ]
     assert len(facts) >= 2, "Expected at least two fact for the resource."
@@ -325,38 +328,40 @@ async def test_basic(
         f
         async for f in maybe_async_iterate(
             memory.facts(
-                resource=RESOURCE_VACATION_POLICY, user_id=USER_A, recent_first=False
+                resource=RESOURCE_VACATION_POLICY, session_id=USER_A, recent_first=False
             )
         )
     ]
     assert oldest_first[0].id == facts[-1].id
     assert oldest_first[-1].id == facts[0].id
 
-    # Check that facts for non-existent resource or user return no facts
+    # Check that facts for non-existent resource or session return no facts
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(resource="non-existent-resource", user_id=USER_A)
+            memory.facts(resource="non-existent-resource", session_id=USER_A)
         )
     ] == [], "Expected no facts for a non-existent resource."
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id="non-existent-user")
+            memory.facts(
+                resource=RESOURCE_VACATION_POLICY, session_id="non-existent-session"
+            )
         )
-    ] == [], "Expected no facts for a non-existent user."
+    ] == [], "Expected no facts for a non-existent session."
 
-    # List users tests
-    users_in_resource = await maybe_await(
-        memory.list_users(resource=RESOURCE_VACATION_POLICY)
+    # List sessions tests
+    sessions_in_resource = await maybe_await(
+        memory.list_sessions(resource=RESOURCE_VACATION_POLICY)
     )
-    assert users_in_resource == [USER_A], (
-        f"{USER_A} should be listed as a user in 'vacation-policy' resource."
+    assert sessions_in_resource == [USER_A], (
+        f"{USER_A} should be listed as a session in 'vacation-policy' resource."
     )
 
-    # Listing users for a non-existent resource should raise ResourceNotFoundError
+    # Listing sessions for a non-existent resource should raise ResourceNotFoundError
     with pytest.raises(ResourceNotFoundError):
-        await maybe_await(memory.list_users(resource="non-existent-resource"))
+        await maybe_await(memory.list_sessions(resource="non-existent-resource"))
 
     # Pagination tests
     page = 0
@@ -372,7 +377,7 @@ async def test_basic(
     graph_ready = False
     for _ in range(60):
         graph_result = await maybe_await(
-            memory.graph(resource=RESOURCE_VACATION_POLICY, user_id="user-a")
+            memory.graph(resource=RESOURCE_VACATION_POLICY, session_id="session-a")
         )
         if len(graph_result) >= 1:
             graph_ready = True
@@ -381,7 +386,7 @@ async def test_basic(
             print("Graph not ready yet, waiting...")
             await asyncio.sleep(1)
     graph_result = await maybe_await(
-        memory.graph(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
+        memory.graph(resource=RESOURCE_VACATION_POLICY, session_id=USER_A)
     )
     assert graph_ready, "Graph did not become ready in time."
     assert len(graph_result) >= 1, "Graph should contain at least one path."
@@ -390,14 +395,14 @@ async def test_basic(
     entries_before_forget = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
+            memory.entries(session_id=USER_A, resource=RESOURCE_VACATION_POLICY)
         )
     ]
 
     facts_before_forget = [
         f
         async for f in maybe_async_iterate(
-            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, session_id=USER_A)
         )
     ]
     assert len(entries_before_forget) >= 1, "Expected at least one resource entry."
@@ -406,34 +411,34 @@ async def test_basic(
     for entry in entries_before_forget:
         await maybe_await(
             memory.forget_entry(
-                user_id=USER_A, resource=RESOURCE_VACATION_POLICY, entry_id=entry.id
+                session_id=USER_A, resource=RESOURCE_VACATION_POLICY, entry_id=entry.id
             )
         )
 
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, session_id=USER_A)
         )
     ] == [], (
         "Forgetting resource entries should also delete corresponding resource facts."
     )
 
     await maybe_await(
-        memory.forget_entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
+        memory.forget_entries(session_id=USER_A, resource=RESOURCE_VACATION_POLICY)
     )
 
     assert [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
+            memory.entries(session_id=USER_A, resource=RESOURCE_VACATION_POLICY)
         )
-    ] == [], "All resource entries for user-a should have been deleted."
+    ] == [], "All resource entries for session-a should have been deleted."
 
     assert [
         f
         async for f in maybe_async_iterate(
-            memory.facts(resource=RESOURCE_VACATION_POLICY, user_id=USER_A)
+            memory.facts(resource=RESOURCE_VACATION_POLICY, session_id=USER_A)
         )
     ] == [], (
         "Forgetting resource entries should also delete corresponding resource facts."
@@ -441,11 +446,11 @@ async def test_basic(
 
     # No-op cleanup calls should still be safe
     await maybe_await(
-        memory.forget_facts(user_id=USER_A, resource=RESOURCE_VACATION_POLICY)
+        memory.forget_facts(session_id=USER_A, resource=RESOURCE_VACATION_POLICY)
     )
     await maybe_await(
         memory.forget_fact(
-            user_id=USER_A,
+            session_id=USER_A,
             resource=RESOURCE_VACATION_POLICY,
             fact_id=facts_before_forget[0].id,
         )
@@ -477,9 +482,9 @@ async def test_basic_nonresource(
     memory = memory_klass()
 
     async def _cleanup():
-        # Remove all global entries for both test users
-        for uid in (USER_A, USER_B):
-            await maybe_await(memory.forget_entries(user_id=uid))
+        # Remove all global entries for both test sessions
+        for session_id in (USER_A, USER_B):
+            await maybe_await(memory.forget_entries(session_id=session_id))
 
     await _cleanup()
 
@@ -488,7 +493,7 @@ async def test_basic_nonresource(
     entry_id_1 = await maybe_await(
         memory.remember(
             "I prefer concise bullet-point summaries.",
-            user_id=USER_A,
+            session_id=USER_A,
         )
     )
     assert entry_id_1, "remember() should return a non-empty entry ID."
@@ -496,7 +501,7 @@ async def test_basic_nonresource(
     entry_id_2 = await maybe_await(
         memory.remember(
             "Always respond in Spanish.",
-            user_id=USER_A,
+            session_id=USER_A,
             reasoning="User's preferred language is Spanish.",
             context=[
                 EntryContextMessage(author=USER_A, text="Hola, ¿cómo estás?"),
@@ -504,11 +509,11 @@ async def test_basic_nonresource(
         )
     )
 
-    # A different user can annotate independently
+    # A different session can annotate independently
     entry_id_3 = await maybe_await(
         memory.remember(
             "Prefers detailed explanations.",
-            user_id=USER_B,
+            session_id=USER_B,
         )
     )
 
@@ -518,83 +523,83 @@ async def test_basic_nonresource(
         await maybe_await(
             memory.remember(
                 "Duplicate.",
-                user_id=USER_A,
+                session_id=USER_A,
                 entry_id=entry_id_1,
             )
         )
 
     # ── list global entries ─────────────────────────────────────────────
 
-    user_a_entries = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
+    session_a_entries = [
+        e async for e in maybe_async_iterate(memory.entries(session_id=USER_A))
     ]
-    assert len(user_a_entries) == 2, (
-        f"Expected 2 global entries for {USER_A}, got {len(user_a_entries)}."
+    assert len(session_a_entries) == 2, (
+        f"Expected 2 global entries for {USER_A}, got {len(session_a_entries)}."
     )
     # Most-recent-first: entry_id_2 should come before entry_id_1
-    assert user_a_entries[0].id == entry_id_2
-    assert user_a_entries[1].id == entry_id_1
+    assert session_a_entries[0].id == entry_id_2
+    assert session_a_entries[1].id == entry_id_1
 
-    user_b_entries = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_B))
+    session_b_entries = [
+        e async for e in maybe_async_iterate(memory.entries(session_id=USER_B))
     ]
-    assert len(user_b_entries) == 1
-    assert user_b_entries[0].id == entry_id_3
+    assert len(session_b_entries) == 1
+    assert session_b_entries[0].id == entry_id_3
 
     # oldest-first ordering
-    user_a_oldest_first = [
+    session_a_oldest_first = [
         e
         async for e in maybe_async_iterate(
-            memory.entries(user_id=USER_A, recent_first=False)
+            memory.entries(session_id=USER_A, recent_first=False)
         )
     ]
-    assert user_a_oldest_first[0].id == entry_id_1
-    assert user_a_oldest_first[1].id == entry_id_2
+    assert session_a_oldest_first[0].id == entry_id_1
+    assert session_a_oldest_first[1].id == entry_id_2
 
     # ── entry content is preserved ────────────────────────────────────
 
-    entry = user_a_entries[0]  # entry_id_2
+    entry = session_a_entries[0]  # entry_id_2
     assert entry.content.text == "Always respond in Spanish."
     assert entry.content.reasoning == "User's preferred language is Spanish."
     assert entry.content.context is not None
     assert entry.content.context[0].author == USER_A
 
     # ── delete a single global entry ──────────────────────────────────
-    await maybe_await(memory.forget_entry(user_id=USER_A, entry_id=entry_id_1))
-    user_a_entries = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
+    await maybe_await(memory.forget_entry(session_id=USER_A, entry_id=entry_id_1))
+    session_a_entries = [
+        e async for e in maybe_async_iterate(memory.entries(session_id=USER_A))
     ]
-    assert len(user_a_entries) == 1
-    assert user_a_entries[0].id == entry_id_2
+    assert len(session_a_entries) == 1
+    assert session_a_entries[0].id == entry_id_2
 
     # Forgetting a non-existent entry should be a no-op
-    await maybe_await(memory.forget_entry(user_id=USER_A, entry_id="nonexistent-id"))
+    await maybe_await(memory.forget_entry(session_id=USER_A, entry_id="nonexistent-id"))
 
-    # ── delete all global entries for a user ────────────────────────────
+    # ── delete all global entries for a session ────────────────────────────
 
-    await maybe_await(memory.forget_entries(user_id=USER_A))
-    user_a_entries = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_A))
+    await maybe_await(memory.forget_entries(session_id=USER_A))
+    session_a_entries = [
+        e async for e in maybe_async_iterate(memory.entries(session_id=USER_A))
     ]
-    assert len(user_a_entries) == 0, (
-        "All global entries for user A should have been deleted."
+    assert len(session_a_entries) == 0, (
+        "All global entries for session A should have been deleted."
     )
 
     # User B's entries are unaffected
-    user_b_entries = [
-        e async for e in maybe_async_iterate(memory.entries(user_id=USER_B))
+    session_b_entries = [
+        e async for e in maybe_async_iterate(memory.entries(session_id=USER_B))
     ]
-    assert len(user_b_entries) == 1
+    assert len(session_b_entries) == 1
 
-    # ── list users (global, no resource) ──────────────────────────────────
+    # ── list sessions (global, no resource) ──────────────────────────────────
 
-    all_users = await maybe_await(memory.list_users())
-    assert USER_B in all_users, (
-        f"{USER_B} should appear in global user list (still has an entry)."
+    all_sessions = await maybe_await(memory.list_sessions())
+    assert USER_B in all_sessions, (
+        f"{USER_B} should appear in global session list (still has an entry)."
     )
     # USER_A's global entries were all deleted, so they should not appear
-    assert USER_A not in all_users, (
-        f"{USER_A} should not appear in global user list after all entries were deleted."
+    assert USER_A not in all_sessions, (
+        f"{USER_A} should not appear in global session list after all entries were deleted."
     )
 
     await _cleanup()
