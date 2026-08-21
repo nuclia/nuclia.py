@@ -65,7 +65,7 @@ class EntryContent(BaseModel):
 
 
 class Entry(BaseModel):
-    """A single entry message attached to an topic."""
+    """A single entry message attached to a resource."""
 
     id: str
     timestamp: datetime

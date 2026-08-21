@@ -16,6 +16,6 @@ TopicNotFoundError = ResourceNotFoundError
 
 
 class EntryAlreadyExistsError(Exception):
-    """Raised when attempting to create a new entry with an ID that already exists for the topic and user."""
+    """Raised when attempting to create a new entry with an ID that already exists for the resource and user."""
 
     pass
