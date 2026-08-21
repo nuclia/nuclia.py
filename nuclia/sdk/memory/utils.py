@@ -860,7 +860,7 @@ def _get_resource_users(
     rid: str | None,
     slug: str | None,
 ) -> list[str] | Awaitable[list[str]]:
-    """Return the list of user IDs that have entries in the given resource resource.
+    """Return the list of user IDs that have entries in the given resource.
 
     Inspects the resource's conversation fields for entries stored under the
     ``__memory__{user_id}`` naming convention.

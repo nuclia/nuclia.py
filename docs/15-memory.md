@@ -124,7 +124,7 @@ except ResourceNotFoundError:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | `str` | UUID of the resource resource. |
+| `id` | `str` | UUID of the resource. |
 | `slug` | `str` | URL-friendly identifier. |
 | `title` | `str` | Human-readable title. |
 | `summary` | `str \| None` | Short description. |
