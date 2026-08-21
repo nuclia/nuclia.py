@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.14.1 (2026-08-20)
+
+- Add list_users api to memory
+
 ## 4.14.0 (2026-07-31)
 
 - Added support for internal and on-prem Predict APIs in `NuaClient` and `AsyncNuaClient`.

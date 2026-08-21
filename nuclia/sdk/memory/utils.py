@@ -23,9 +23,13 @@ from nucliadb_models.conversation import (
     MessageFormat,
     MessageType,
 )
-from nucliadb_models.resource import Resource, ResourceField
+from nucliadb_models.resource import ConversationFieldData, Resource, ResourceField
 from nucliadb_models.search import (
     AskRequest,
+    CatalogQuery,
+    CatalogQueryField,
+    CatalogQueryMatch,
+    CatalogRequest,
     CatalogResponse,
     ChatContextMessage,
     CitationsType,
@@ -827,6 +831,216 @@ def validate_entry_id(entry_id: str) -> None:
 # ─── Pure request / response builders ────────────────────────────────────────
 
 
+# ─── User listing helpers ─────────────────────────────────────────────────────
+
+
+@overload
+def _get_topic_users(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+) -> list[str]: ...
+
+
+@overload
+def _get_topic_users(
+    ndb: AsyncNucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+) -> Awaitable[list[str]]: ...
+
+
+def _get_topic_users(
+    ndb: NucliaDBClient | AsyncNucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+) -> list[str] | Awaitable[list[str]]:
+    """Return the list of user IDs that have entries in the given topic resource.
+
+    Inspects the resource's conversation fields for entries stored under the
+    ``__memory__{user_id}`` naming convention.
+    """
+    if isinstance(ndb, AsyncNucliaDBClient):
+        return _get_topic_users_async(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
+    return _get_topic_users_sync(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
+
+
+def _get_topic_users_sync(
+    ndb: NucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+) -> list[str]:
+    get_resource_args: dict[str, Any] = {
+        "kbid": kbid,
+        "query_params": {"show": [ResourceProperties.ERRORS.value]},
+    }
+    if rid:
+        get_resource_args["rid"] = rid
+        resource: Resource = ndb.ndb.get_resource_by_id(**get_resource_args)
+    else:
+        assert slug is not None
+        get_resource_args["slug"] = slug
+        resource = ndb.ndb.get_resource_by_slug(**get_resource_args)
+    conversations: dict[str, ConversationFieldData] = (
+        (resource.data.conversations or {}) if resource.data else {}
+    )
+    return [
+        field_id[len(MEMORY_FIELD_PREFIX) :]
+        for field_id in conversations
+        if field_id.startswith(MEMORY_FIELD_PREFIX)
+    ]
+
+
+async def _get_topic_users_async(
+    ndb: AsyncNucliaDBClient,
+    kbid: str,
+    rid: str | None,
+    slug: str | None,
+) -> list[str]:
+    get_resource_args: dict[str, Any] = {
+        "kbid": kbid,
+        "query_params": {"show": [ResourceProperties.ERRORS.value]},
+    }
+    if rid:
+        get_resource_args["rid"] = rid
+        resource: Resource = await ndb.ndb.get_resource_by_id(**get_resource_args)
+    else:
+        assert slug is not None
+        get_resource_args["slug"] = slug
+        resource = await ndb.ndb.get_resource_by_slug(**get_resource_args)
+    conversations: dict[str, ConversationFieldData] = (
+        (resource.data.conversations or {}) if resource.data else {}
+    )
+    return [
+        field_id[len(MEMORY_FIELD_PREFIX) :]
+        for field_id in conversations
+        if field_id.startswith(MEMORY_FIELD_PREFIX)
+    ]
+
+
+@overload
+def _get_global_users(
+    ndb: NucliaDBClient,
+) -> list[str]: ...
+
+
+@overload
+def _get_global_users(
+    ndb: AsyncNucliaDBClient,
+) -> Awaitable[list[str]]: ...
+
+
+def _get_global_users(
+    ndb: NucliaDBClient | AsyncNucliaDBClient,
+) -> list[str] | Awaitable[list[str]]:
+    """Return the list of all user IDs that have at least one global (topic-less) entry.
+
+    Global entries live in per-user resources whose slugs start with
+    ``GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX-``. This function paginates the
+    catalog automatically so it works correctly with any number of users.
+    """
+    if isinstance(ndb, AsyncNucliaDBClient):
+        return _get_global_users_async(ndb=ndb)
+    return _get_global_users_sync(ndb=ndb)
+
+
+def _get_global_users_sync(ndb: NucliaDBClient) -> list[str]:
+    prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
+    page, user_ids = 0, []
+    while True:
+        catalog_response = ndb.ndb.catalog(
+            kbid=ndb.kbid,
+            content=CatalogRequest(
+                query=CatalogQuery(
+                    field=CatalogQueryField.Slug,
+                    match=CatalogQueryMatch.StartsWith,
+                    query=prefix,
+                ),
+                page_number=page,
+                page_size=200,
+                show=[ResourceProperties.BASIC],
+            ),
+        )
+        for resource in catalog_response.resources.values():
+            slug = resource.slug or ""
+            if slug.startswith(prefix):
+                user_ids.append(slug[len(prefix) :])
+        has_more = (
+            catalog_response.fulltext.next_page if catalog_response.fulltext else False
+        )
+        if not has_more:
+            break
+        page += 1
+    return user_ids
+
+
+async def _get_global_users_async(ndb: AsyncNucliaDBClient) -> list[str]:
+    prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
+    page, user_ids = 0, []
+    while True:
+        catalog_response = await ndb.ndb.catalog(
+            kbid=ndb.kbid,
+            content=CatalogRequest(
+                query=CatalogQuery(
+                    field=CatalogQueryField.Slug,
+                    match=CatalogQueryMatch.StartsWith,
+                    query=prefix,
+                ),
+                page_number=page,
+                page_size=200,
+                show=[ResourceProperties.BASIC],
+            ),
+        )
+        for resource in catalog_response.resources.values():
+            slug = resource.slug or ""
+            if slug.startswith(prefix):
+                user_ids.append(slug[len(prefix) :])
+        has_more = (
+            catalog_response.fulltext.next_page if catalog_response.fulltext else False
+        )
+        if not has_more:
+            break
+        page += 1
+    return user_ids
+
+
+# ─── Pure request / response builders ────────────────────────────────────────
+
+
+def _build_list_topics_catalog_request(
+    query: str | CatalogQuery,
+    page: int,
+    size: int,
+    global_users: list[str],
+) -> CatalogRequest:
+    filter_expression = None
+    if len(global_users) > 0:
+        # Exclude resources that are for global entries
+        filter_expression = filters.CatalogFilterExpression(
+            resource=filters.Not(
+                operand=filters.Or(
+                    operands=[
+                        filters.Resource(slug=_global_entries_slug(user_id))
+                        for user_id in global_users
+                    ]
+                )
+            )
+        )
+    return CatalogRequest(
+        query=query,
+        page_number=page,
+        page_size=size,
+        show=[
+            ResourceProperties.BASIC,
+        ],
+        filter_expression=filter_expression,
+    )
+
+
 def _build_entry_message(entry_id: str, entry_content: EntryContent) -> InputMessage:
     """Build the InputMessage that wraps a memory entry for storage in a conversation field."""
     return InputMessage(
@@ -958,6 +1172,10 @@ def _parse_catalog_response_to_topic_page(
                 status=_get_topic_status(resource),
             )
             for resource in catalog_response.resources.values()
+            # Do not include global entry resources in the topic listing.
+            if not (resource.slug or "").startswith(
+                GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
+            )
         ],
         total=catalog_response.fulltext.total if catalog_response.fulltext else 0,
         has_more=catalog_response.fulltext.next_page
