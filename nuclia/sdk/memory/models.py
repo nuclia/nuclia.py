@@ -7,7 +7,7 @@ from nucliadb_models.conversation import (
 from pydantic import BaseModel
 
 
-class Topic(BaseModel):
+class Resource(BaseModel):
     """A discrete unit of memory stored in the memory.
     Corresponds to a single resource in a Nuclia Knowledge Box.
     """
@@ -19,12 +19,17 @@ class Topic(BaseModel):
     status: str
 
 
-class TopicPage(BaseModel):
-    """A paginated listing of topics."""
+class ResourcePage(BaseModel):
+    """A paginated listing of resources."""
 
-    items: list[Topic]
+    items: list[Resource]
     total: int
     has_more: bool
+
+
+# Keeping the `Topic` alias for backwards compatibility, but it is now deprecated in favor of `Resource`.
+Topic = Resource
+TopicPage = ResourcePage
 
 
 class ContextBlock(BaseModel):
@@ -60,7 +65,7 @@ class EntryContent(BaseModel):
 
 
 class Entry(BaseModel):
-    """A single entry message attached to an topic."""
+    """A single entry message attached to a resource."""
 
     id: str
     timestamp: datetime
