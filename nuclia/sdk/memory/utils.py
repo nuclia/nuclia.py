@@ -23,7 +23,8 @@ from nucliadb_models.conversation import (
     MessageFormat,
     MessageType,
 )
-from nucliadb_models.resource import ConversationFieldData, Resource, ResourceField
+from nucliadb_models.resource import ConversationFieldData, ResourceField
+from nucliadb_models.resource import Resource as NDBResource
 from nucliadb_models.search import (
     AskRequest,
     CatalogQuery,
@@ -48,8 +49,8 @@ from nuclia.sdk.memory.models import (
     AskResult,
     EntryContent,
     RelevantContextBlock,
-    Topic,
-    TopicPage,
+    Resource,
+    ResourcePage,
 )
 
 logger = logging.getLogger(__name__)
@@ -225,7 +226,7 @@ def _parse_recall_result(
     ]
 
 
-def _get_resource_status(resource: Resource) -> str:
+def _get_resource_status(resource: NDBResource) -> str:
     """
     We check for title field status as a proxy for the overall resource processing
     status, since the title is a required field that is processed in the first steps
@@ -635,7 +636,7 @@ def _get_resource_basic(
     kbid: str,
     rid: str | None,
     slug: str | None,
-) -> Resource: ...
+) -> NDBResource: ...
 
 
 @overload
@@ -644,7 +645,7 @@ def _get_resource_basic(
     kbid: str,
     rid: str | None,
     slug: str | None,
-) -> Awaitable[Resource]: ...
+) -> Awaitable[NDBResource]: ...
 
 
 def _get_resource_basic(
@@ -652,7 +653,7 @@ def _get_resource_basic(
     kbid: str,
     rid: str | None,
     slug: str | None,
-) -> Resource | Awaitable[Resource]:
+) -> NDBResource | Awaitable[NDBResource]:
     get_resource_args = {
         "kbid": kbid,
         "query_params": {
@@ -882,7 +883,7 @@ def _get_resource_sessions_sync(
     }
     if rid:
         get_resource_args["rid"] = rid
-        resource: Resource = ndb.ndb.get_resource_by_id(**get_resource_args)
+        resource: NDBResource = ndb.ndb.get_resource_by_id(**get_resource_args)
     else:
         assert slug is not None
         get_resource_args["slug"] = slug
@@ -909,7 +910,7 @@ async def _get_resource_sessions_async(
     }
     if rid:
         get_resource_args["rid"] = rid
-        resource: Resource = await ndb.ndb.get_resource_by_id(**get_resource_args)
+        resource: NDBResource = await ndb.ndb.get_resource_by_id(**get_resource_args)
     else:
         assert slug is not None
         get_resource_args["slug"] = slug
@@ -1162,11 +1163,11 @@ def _build_graph_search_request(
 
 def _parse_catalog_response_to_resource_page(
     catalog_response: CatalogResponse,
-) -> TopicPage:
-    """Convert a raw catalog API response into a TopicPage model."""
-    return TopicPage(
+) -> ResourcePage:
+    """Convert a raw catalog API response into a ResourcePage model."""
+    return ResourcePage(
         items=[
-            Topic(
+            Resource(
                 id=resource.id,
                 slug=resource.slug or "",
                 title=resource.title or "",
