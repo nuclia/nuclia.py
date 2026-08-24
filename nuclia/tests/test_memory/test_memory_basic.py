@@ -377,7 +377,7 @@ async def test_basic(
     graph_ready = False
     for _ in range(60):
         graph_result = await maybe_await(
-            memory.graph(resource=RESOURCE_VACATION_POLICY, session_id="session-a")
+            memory.graph(resource=RESOURCE_VACATION_POLICY, session_id=USER_A)
         )
         if len(graph_result) >= 1:
             graph_ready = True
@@ -433,7 +433,7 @@ async def test_basic(
         async for e in maybe_async_iterate(
             memory.entries(session_id=USER_A, resource=RESOURCE_VACATION_POLICY)
         )
-    ] == [], "All resource entries for session-a should have been deleted."
+    ] == [], "All resource entries for user-a session should have been deleted."
 
     assert [
         f
