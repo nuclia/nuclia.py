@@ -63,10 +63,10 @@ from nuclia.sdk.memory.utils import (
     _ensure_global_entries_resource,
     _entries_field_id,
     _facts_field_id,
-    _get_global_users,
+    _get_global_sessions,
     _get_resource_basic,
+    _get_resource_sessions,
     _get_resource_status,
-    _get_resource_users,
     _global_entries_slug,
     _iter_conversation_messages,
     _parse_ask_result,
@@ -76,7 +76,7 @@ from nuclia.sdk.memory.utils import (
     _slugify,
     _uuid_or_slug,
     validate_entry_id,
-    validate_user_id,
+    validate_session_id,
 )
 from nuclia.sdk.task import AsyncNucliaTask, NucliaTask
 from nuclia.sdk.upload import AsyncNucliaUpload, NucliaUpload
@@ -251,9 +251,9 @@ class NucliaMemory:
             Page size.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        global_users = _get_global_users(ndb)
+        global_sessions = _get_global_sessions(ndb)
         catalog_request = _build_list_resources_catalog_request(
-            query, page, size, global_users
+            query, page, size, global_sessions
         )
         catalog_response = ndb.ndb.catalog(kbid=ndb.kbid, content=catalog_request)
         return _parse_catalog_response_to_resource_page(catalog_response)
@@ -366,7 +366,7 @@ class NucliaMemory:
             The ID or slug of the resource to delete.
         """
         # Delete entire resource
-        assert resource is not None, "Either user_id or resource must be provided."
+        assert resource is not None, "Either session_id or resource must be provided."
         ruuid, rslug = _uuid_or_slug(resource)
         if not confirm:
             raise ValueError(
@@ -479,7 +479,7 @@ class NucliaMemory:
         text: str,
         *,
         resource: str,
-        user_id: str,
+        session_id: str,
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
@@ -494,8 +494,8 @@ class NucliaMemory:
             The memory entry text.
         resource:
             Resource ID or slug to remember.
-        user_id:
-            An identifier for the user creating the memory entry.
+        session_id:
+            An identifier for the session creating the memory entry.
         context:
             Optional list of context messages to attach to the memory entry.
         reasoning:
@@ -512,7 +512,7 @@ class NucliaMemory:
         self,
         text: str,
         *,
-        user_id: str,
+        session_id: str,
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
         metadata: dict | None = None,
@@ -525,8 +525,8 @@ class NucliaMemory:
         ----------
         text:
             The memory entry text.
-        user_id:
-            An identifier for the user creating the memory entry. Each user gets their own dedicated resource for global memory entries.
+        session_id:
+            An identifier for the session creating the memory entry. Each session gets their own dedicated resource for global memory entries.
         context:
             Optional list of context messages to attach to the memory entry.
         reasoning:
@@ -543,7 +543,7 @@ class NucliaMemory:
         self,
         text: str,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
@@ -553,13 +553,13 @@ class NucliaMemory:
     ) -> str:
         entry_id = entry_id or str(uuid.uuid4())
         validate_entry_id(entry_id)
-        validate_user_id(user_id)
+        validate_session_id(session_id)
         ndb: NucliaDBClient = kwargs["ndb"]
         if resource is not None:
             ruuid, rslug = _uuid_or_slug(resource)
         else:
             ruuid = None
-            rslug = _ensure_global_entries_resource(ndb, user_id)
+            rslug = _ensure_global_entries_resource(ndb, session_id)
         entry_content = EntryContent(
             text=text,
             reasoning=reasoning,
@@ -573,7 +573,7 @@ class NucliaMemory:
                 kbid=ndb.kbid,
                 rid=ruuid,
                 slug=rslug,
-                field_id=_entries_field_id(user_id),
+                field_id=_entries_field_id(session_id),
                 message=message,
             )
         except UnprocessableEntity as e:
@@ -583,16 +583,16 @@ class NucliaMemory:
                 )
         return entry_id
 
-    # ── list users ──────────────────────────────────────────────────────────
+    # ── list sessions ──────────────────────────────────────────────────────────
 
     @overload
-    def list_users(
+    def list_sessions(
         self,
         *,
         resource: str,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given resource.
+        """Return the list of session IDs that have entries in the given resource.
 
         Parameters
         ----------
@@ -602,42 +602,42 @@ class NucliaMemory:
         ...
 
     @overload
-    def list_users(
+    def list_sessions(
         self,
         **kwargs,
     ) -> list[str]:
-        """Return the list of all user IDs that have global entries (not tied to any specific resource).
+        """Return the list of all session IDs that have global entries (not tied to any specific resource).
 
-        Global entries live in per-user resources whose slugs begin with
-        ``memory-global-entries-``. This overload lists all users that have
+        Global entries live in per-session resources whose slugs begin with
+        ``memory-global-entries-``. This overload lists all sessions that have
         created at least one global entry.
         """
         ...
 
     @kb
-    def list_users(
+    def list_sessions(
         self,
         *,
         resource: str | None = None,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given resource, or all users with global entries when no resource is given.
+        """Return the list of session IDs that have entries in the given resource, or all sessions with global entries when no resource is given.
 
         Parameters
         ----------
         resource:
             The ID or slug of the resource to inspect. When omitted, returns all
-            users with global (resource-less) entries.
+            sessions with global (resource-less) entries.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if resource is not None:
             ruuid, rslug = _uuid_or_slug(resource)
             try:
-                return _get_resource_users(ndb, ndb.kbid, ruuid, rslug)
+                return _get_resource_sessions(ndb, ndb.kbid, ruuid, rslug)
             except NotFoundError:
                 raise ResourceNotFoundError(f"resource '{resource}' not found.")
         else:
-            return _get_global_users(ndb)
+            return _get_global_sessions(ndb)
 
     # ── recall ─────────────────────────────────────────────────────────────
 
@@ -647,12 +647,12 @@ class NucliaMemory:
         question: str,
         *,
         resource: str,
-        user_id: str,
+        session_id: str,
         top_k: int = 20,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
-        Retrieve relevant context blocks from the memory for a given question, scoped to a specific resource and user.
+        Retrieve relevant context blocks from the memory for a given question, scoped to a specific resource and session.
 
         Parameters
         ----------
@@ -660,14 +660,14 @@ class NucliaMemory:
             Natural-language question to retrieve context for.
         resource:
             Scope the retrieval to a single resource (ID or slug).
-        user_id:
-            An identifier for the user asking the question. Used to personalize retrieval results by including that user's entries and facts.
+        session_id:
+            An identifier for the session asking the question. Used to personalize retrieval results by including that session's entries and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
-            self.task_ident, question, resource, user_id, top_k
+            self.task_ident, question, resource, session_id, top_k
         )
         find_response = ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         return _parse_recall_result(find_response)
@@ -680,7 +680,7 @@ class NucliaMemory:
         query: str,
         *,
         resource: str,
-        user_id: str | None = None,
+        session_id: str | None = None,
         context: list[ChatContextMessage] | None = None,
         include_global_facts: bool = False,
         extra_context: list[str] | None = None,
@@ -696,8 +696,8 @@ class NucliaMemory:
             Natural-language question.
         resource:
             Scope the answer to a single resource (ID or slug).
-        user_id:
-            An identifier for the user asking the question. Used for personalization of the answer by including that user's entries and facts as context.
+        session_id:
+            An identifier for the session asking the question. Used for personalization of the answer by including that session's entries and facts as context.
         context:
             Optional list of past messages to include as additional context for the recall. Messages should be ordered from oldest to most recent.
         """
@@ -707,21 +707,21 @@ class NucliaMemory:
         global_facts: list[str] = []
         global_facts_rid = None
         resource_facts: list[str] = []
-        if user_id:
+        if session_id:
             if include_global_facts:
-                global_facts_rid, global_facts = self._get_user_global_facts(
-                    ndb, user_id
+                global_facts_rid, global_facts = self._get_session_global_facts(
+                    ndb, session_id
                 )
             resource_facts = [
                 fact.content.text
-                for fact in self.facts(resource=resource, user_id=user_id)
+                for fact in self.facts(resource=resource, session_id=session_id)
             ]
 
         ask_request = _build_ask_request(
             self.task_ident,
             query,
             resource,
-            user_id,
+            session_id,
             include_global_facts,
             global_facts_rid,
             extra_context,
@@ -736,10 +736,10 @@ class NucliaMemory:
 
     # ── entries ─────────────────────────────────────────────────────────
 
-    def _get_user_global_facts(
-        self, ndb: NucliaDBClient, user_id: str
+    def _get_session_global_facts(
+        self, ndb: NucliaDBClient, session_id: str
     ) -> tuple[str | None, list[str]]:
-        resource_slug = _global_entries_slug(user_id)
+        resource_slug = _global_entries_slug(session_id)
         try:
             resource = _get_resource_basic(
                 ndb, kbid=ndb.kbid, rid=None, slug=resource_slug
@@ -747,7 +747,7 @@ class NucliaMemory:
             resource_id = resource.id
         except NotFoundError:
             return None, []
-        facts_field_id = _facts_field_id(user_id, self.task_ident)
+        facts_field_id = _facts_field_id(session_id, self.task_ident)
         augment_request = augment.AugmentRequest(
             resources=[
                 augment.AugmentResources(
@@ -786,17 +786,17 @@ class NucliaMemory:
     def entries(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
-        """Get all entries created by a user for a specific resource.
+        """Get all entries created by a session for a specific resource.
 
         Parameters
         ----------
-        user_id:
-            An identifier for the user whose entries to retrieve.
+        session_id:
+            An identifier for the session whose entries to retrieve.
         resource:
             Resource ID or slug to retrieve entries for.
         recent_first:
@@ -808,16 +808,16 @@ class NucliaMemory:
     def entries(
         self,
         *,
-        user_id: str,
+        session_id: str,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
-        """Get all global entries created by a user (not tied to any specific resource).
+        """Get all global entries created by a session (not tied to any specific resource).
 
         Parameters
         ----------
-        user_id:
-            An identifier for the user whose global entries to retrieve.
+        session_id:
+            An identifier for the session whose global entries to retrieve.
         recent_first:
             Whether to return the entries ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
@@ -827,19 +827,19 @@ class NucliaMemory:
     def entries(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Entry]:
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
             rid=ruuid,
             slug=rslug,
-            field_id=_entries_field_id(user_id),
+            field_id=_entries_field_id(session_id),
             recent_first=recent_first,
         ):
             yield Entry.from_conversation_message(message)
@@ -850,17 +850,17 @@ class NucliaMemory:
     def facts(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
-        """Get all extracted facts from entries of a user for a specific resource (from most recent to oldest).
+        """Get all extracted facts from entries of a session for a specific resource (from most recent to oldest).
 
         Parameters
         ----------
-        user_id:
-            An identifier for the user whose entries to retrieve.
+        session_id:
+            An identifier for the session whose entries to retrieve.
         resource:
             resource ID or slug to retrieve entries for.
         recent_first:
@@ -872,16 +872,16 @@ class NucliaMemory:
     def facts(
         self,
         *,
-        user_id: str,
+        session_id: str,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
-        """Get all extracted facts from global entries of a user (not tied to any specific resource).
+        """Get all extracted facts from global entries of a session (not tied to any specific resource).
 
         Parameters
         ----------
-        user_id:
-            An identifier for the user whose global entries to retrieve.
+        session_id:
+            An identifier for the session whose global entries to retrieve.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
@@ -891,30 +891,30 @@ class NucliaMemory:
     def facts(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> Iterator[Fact]:
-        """Get all extracted facts from entries of a user for a specific resource (from most recent to oldest).
+        """Get all extracted facts from entries of a session for a specific resource (from most recent to oldest).
 
         Parameters
         ----------
-        user_id:
-            An identifier for the user whose entries to retrieve.
+        session_id:
+            An identifier for the session whose entries to retrieve.
         resource:
             resource ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
             rid=ruuid,
             slug=rslug,
-            field_id=_facts_field_id(user_id, self.task_ident),
+            field_id=_facts_field_id(session_id, self.task_ident),
             recent_first=recent_first,
         ):
             yield Fact.from_conversation_message(message)
@@ -926,20 +926,22 @@ class NucliaMemory:
         self,
         *,
         resource: str,
-        user_id: str,
+        session_id: str,
         **kwargs,
     ) -> list[graph.responses.GraphPath]:
-        """Get the resource graph including all extracted entities and relations from the resource content and the entries of the specified user.
+        """Get the resource graph including all extracted entities and relations from the resource content and the entries of the specified session.
 
         Parameters
         ----------
         resource:
             resource ID or slug to retrieve graph for.
-        user_id:
-            An identifier for the user whose entries facts to include in the graph.
+        session_id:
+            An identifier for the session whose entries facts to include in the graph.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        graph_request = _build_graph_search_request(self.task_ident, resource, user_id)
+        graph_request = _build_graph_search_request(
+            self.task_ident, resource, session_id
+        )
         graph_response: graph.responses.GraphSearchResponse = ndb.ndb.graph_search(
             kbid=ndb.kbid,
             content=graph_request,
@@ -952,60 +954,63 @@ class NucliaMemory:
     def forget_entry(
         self,
         *,
-        user_id: str,
+        session_id: str,
         entry_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific entry from a resource or from the global entries resource created by the user.
+        Delete a specific entry from a resource or from the global entries resource created by the session.
 
         Any fact derived solely from this entry is also deleted.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
-        # Delete a specific entry for that user on that resource (or global)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
+        # Delete a specific entry for that session on that resource (or global)
         try:
             _delete_conversation_message(
                 ndb=ndb,
                 kbid=ndb.kbid,
                 rid=ruuid,
                 slug=rslug,
-                field_id=_entries_field_id(user_id),
+                field_id=_entries_field_id(session_id),
                 message_id=entry_id,
             )
         except NotFoundError:
             pass
         else:
-            for fact in self.facts(resource=resource, user_id=user_id):
+            for fact in self.facts(resource=resource, session_id=session_id):
                 if fact.content.related_entry_ids == [entry_id]:
                     self.forget_fact(
-                        user_id=user_id, fact_id=fact.id, resource=resource, **kwargs
+                        session_id=session_id,
+                        fact_id=fact.id,
+                        resource=resource,
+                        **kwargs,
                     )
 
     @kb
     def forget_entries(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all entries from a resource for the specified user or from the global entries resource created by the user.
+        Delete all entries from a resource for the specified session or from the global entries resource created by the session.
 
-        This operation also deletes the corresponding facts for that user and scope.
+        This operation also deletes the corresponding facts for that session and scope.
         """
         if resource is None:
-            # Delete all entries and facts for that user
+            # Delete all entries and facts for that session
             try:
-                self.kb.resource.delete(slug=_global_entries_slug(user_id))
+                self.kb.resource.delete(slug=_global_entries_slug(session_id))
             except NotFoundError:
                 pass
             return
 
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         try:
             _delete_resource_field(
                 ndb=ndb,
@@ -1013,34 +1018,34 @@ class NucliaMemory:
                 rid=ruuid,
                 slug=rslug,
                 field_type=FieldTypeName.CONVERSATION,
-                field_id=_entries_field_id(user_id),
+                field_id=_entries_field_id(session_id),
             )
         except NotFoundError:
             pass
         else:
-            self.forget_facts(user_id=user_id, resource=resource, **kwargs)
+            self.forget_facts(session_id=session_id, resource=resource, **kwargs)
 
     @kb
     def forget_fact(
         self,
         *,
-        user_id: str,
+        session_id: str,
         fact_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific fact from a resource for the specified user entries on a resource or from the global entries resource created by the user.
+        Delete a specific fact from a resource for the specified session entries on a resource or from the global entries resource created by the session.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         try:
             _delete_conversation_message(
                 ndb=ndb,
                 kbid=ndb.kbid,
                 rid=ruuid,
                 slug=rslug,
-                field_id=_facts_field_id(user_id, self.task_ident),
+                field_id=_facts_field_id(session_id, self.task_ident),
                 message_id=fact_id,
             )
         except NotFoundError:
@@ -1050,30 +1055,30 @@ class NucliaMemory:
     def forget_facts(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all facts from a resource for the specified user entries on a resource or from the global entries resource created by the user.
+        Delete all facts from a resource for the specified session entries on a resource or from the global entries resource created by the session.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         if resource is None:
-            # Delete all global facts for that user
+            # Delete all global facts for that session
             try:
                 _delete_resource_field(
                     ndb=ndb,
                     kbid=ndb.kbid,
                     rid=None,
-                    slug=_global_entries_slug(user_id),
+                    slug=_global_entries_slug(session_id),
                     field_type=FieldTypeName.CONVERSATION,
-                    field_id=_facts_field_id(user_id, self.task_ident),
+                    field_id=_facts_field_id(session_id, self.task_ident),
                 )
             except NotFoundError:
                 pass
             return
 
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         try:
             _delete_resource_field(
                 ndb=ndb,
@@ -1081,7 +1086,7 @@ class NucliaMemory:
                 rid=ruuid,
                 slug=rslug,
                 field_type=FieldTypeName.CONVERSATION,
-                field_id=_facts_field_id(user_id, self.task_ident),
+                field_id=_facts_field_id(session_id, self.task_ident),
             )
         except NotFoundError:
             pass
@@ -1248,9 +1253,9 @@ class AsyncNucliaMemory:
             Page size.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        global_users = await _get_global_users(ndb)
+        global_sessions = await _get_global_sessions(ndb)
         catalog_request = _build_list_resources_catalog_request(
-            query, page, size, global_users
+            query, page, size, global_sessions
         )
         catalog_response = await ndb.ndb.catalog(kbid=ndb.kbid, content=catalog_request)
         return _parse_catalog_response_to_resource_page(catalog_response)
@@ -1362,7 +1367,7 @@ class AsyncNucliaMemory:
         resource:
             The ID or slug of the resource to delete.
         """
-        assert resource is not None, "Either user_id or resource must be provided."
+        assert resource is not None, "Either session_id or resource must be provided."
         ruuid, rslug = _uuid_or_slug(resource)
         if not confirm:
             raise ValueError(
@@ -1474,7 +1479,7 @@ class AsyncNucliaMemory:
         self,
         text: str,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         context: list[EntryContextMessage] | None = None,
         reasoning: str | None = None,
@@ -1484,13 +1489,13 @@ class AsyncNucliaMemory:
     ) -> str:
         entry_id = entry_id or str(uuid.uuid4())
         validate_entry_id(entry_id)
-        validate_user_id(user_id)
+        validate_session_id(session_id)
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if resource is not None:
             ruuid, rslug = _uuid_or_slug(resource)
         else:
             ruuid = None
-            rslug = await _ensure_global_entries_resource(ndb, user_id)
+            rslug = await _ensure_global_entries_resource(ndb, session_id)
         entry_content = EntryContent(
             text=text,
             reasoning=reasoning,
@@ -1504,7 +1509,7 @@ class AsyncNucliaMemory:
                 kbid=ndb.kbid,
                 rid=ruuid,
                 slug=rslug,
-                field_id=_entries_field_id(user_id),
+                field_id=_entries_field_id(session_id),
                 message=message,
             )
         except UnprocessableEntity as e:
@@ -1514,16 +1519,16 @@ class AsyncNucliaMemory:
                 )
         return entry_id
 
-    # ── list users ──────────────────────────────────────────────────────────
+    # ── list sessions ──────────────────────────────────────────────────────────
 
     @overload
-    async def list_users(
+    async def list_sessions(
         self,
         *,
         resource: str,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given resource.
+        """Return the list of session IDs that have entries in the given resource.
 
         Parameters
         ----------
@@ -1533,42 +1538,42 @@ class AsyncNucliaMemory:
         ...
 
     @overload
-    async def list_users(
+    async def list_sessions(
         self,
         **kwargs,
     ) -> list[str]:
-        """Return the list of all user IDs that have global entries (not tied to any specific resource).
+        """Return the list of all session IDs that have global entries (not tied to any specific resource).
 
-        Global entries live in per-user resources whose slugs begin with
-        ``memory-global-entries-``. This overload lists all users that have
+        Global entries live in per-session resources whose slugs begin with
+        ``memory-global-entries-``. This overload lists all sessions that have
         created at least one global entry.
         """
         ...
 
     @kb
-    async def list_users(
+    async def list_sessions(
         self,
         *,
         resource: str | None = None,
         **kwargs,
     ) -> list[str]:
-        """Return the list of user IDs that have entries in the given resource, or all users with global entries when no resource is given.
+        """Return the list of session IDs that have entries in the given resource, or all sessions with global entries when no resource is given.
 
         Parameters
         ----------
         resource:
             The ID or slug of the resource to inspect. When omitted, returns all
-            users with global (resource-less) entries.
+            sessions with global (resource-less) entries.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if resource is not None:
             ruuid, rslug = _uuid_or_slug(resource)
             try:
-                return await _get_resource_users(ndb, ndb.kbid, ruuid, rslug)
+                return await _get_resource_sessions(ndb, ndb.kbid, ruuid, rslug)
             except NotFoundError:
                 raise ResourceNotFoundError(f"resource '{resource}' not found.")
         else:
-            return await _get_global_users(ndb)
+            return await _get_global_sessions(ndb)
 
     # ── recall ─────────────────────────────────────────────────────────────
 
@@ -1578,12 +1583,12 @@ class AsyncNucliaMemory:
         question: str,
         *,
         resource: str,
-        user_id: str,
+        session_id: str,
         top_k: int = 20,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
-        Retrieve relevant context blocks from the memory for a given question, scoped to a specific resource and user.
+        Retrieve relevant context blocks from the memory for a given question, scoped to a specific resource and session.
 
         Parameters
         ----------
@@ -1591,14 +1596,14 @@ class AsyncNucliaMemory:
             Natural-language question to retrieve context for.
         resource:
             Scope the retrieval to a single resource (ID or slug).
-        user_id:
-            An identifier for the user asking the question. Used to personalize retrieval results by including that user's entries and facts.
+        session_id:
+            An identifier for the session asking the question. Used to personalize retrieval results by including that session's entries and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
-            self.task_ident, question, resource, user_id, top_k
+            self.task_ident, question, resource, session_id, top_k
         )
         find_response = await ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         return _parse_recall_result(find_response)
@@ -1611,7 +1616,7 @@ class AsyncNucliaMemory:
         query: str,
         *,
         resource: str,
-        user_id: str | None = None,
+        session_id: str | None = None,
         context: list[ChatContextMessage] | None = None,
         include_global_facts: bool = False,
         extra_context: list[str] | None = None,
@@ -1627,8 +1632,8 @@ class AsyncNucliaMemory:
             Natural-language question.
         resource:
             Scope the answer to a single resource (ID or slug).
-        user_id:
-            An identifier for the user asking the question. Used for personalization of the answer by including that user's entries and facts as context.
+        session_id:
+            An identifier for the session asking the question. Used for personalization of the answer by including that session's entries and facts as context.
         context:
             Optional list of past messages to include as additional context for the recall. Messages should be ordered from oldest to most recent.
         """
@@ -1638,15 +1643,15 @@ class AsyncNucliaMemory:
         global_facts: list[str] = []
         global_facts_rid = None
         resource_facts: list[str] = []
-        if user_id:
+        if session_id:
             if include_global_facts:
-                global_facts_rid, global_facts = await self._get_user_global_facts(
-                    ndb, user_id
+                global_facts_rid, global_facts = await self._get_session_global_facts(
+                    ndb, session_id
                 )
             resource_facts = [
                 fact.content.text
                 async for fact in self.facts(
-                    resource=resource, user_id=user_id, **kwargs
+                    resource=resource, session_id=session_id, **kwargs
                 )
             ]
 
@@ -1654,7 +1659,7 @@ class AsyncNucliaMemory:
             self.task_ident,
             query,
             resource,
-            user_id,
+            session_id,
             include_global_facts,
             global_facts_rid,
             extra_context,
@@ -1669,10 +1674,10 @@ class AsyncNucliaMemory:
 
     # ── entries ─────────────────────────────────────────────────────────
 
-    async def _get_user_global_facts(
-        self, ndb: AsyncNucliaDBClient, user_id: str
+    async def _get_session_global_facts(
+        self, ndb: AsyncNucliaDBClient, session_id: str
     ) -> tuple[str | None, list[str]]:
-        resource_slug = _global_entries_slug(user_id)
+        resource_slug = _global_entries_slug(session_id)
         try:
             resource = await _get_resource_basic(
                 ndb, kbid=ndb.kbid, rid=None, slug=resource_slug
@@ -1680,7 +1685,7 @@ class AsyncNucliaMemory:
             resource_id = resource.id
         except NotFoundError:
             return None, []
-        facts_field_id = _facts_field_id(user_id, self.task_ident)
+        facts_field_id = _facts_field_id(session_id, self.task_ident)
         augment_request = augment.AugmentRequest(
             resources=[
                 augment.AugmentResources(
@@ -1719,19 +1724,19 @@ class AsyncNucliaMemory:
     async def entries(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> AsyncIterator[Entry]:
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         async for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
             rid=ruuid,
             slug=rslug,
-            field_id=_entries_field_id(user_id),
+            field_id=_entries_field_id(session_id),
             recent_first=recent_first,
         ):
             yield Entry.from_conversation_message(message)
@@ -1742,30 +1747,30 @@ class AsyncNucliaMemory:
     async def facts(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         recent_first: bool = True,
         **kwargs,
     ) -> AsyncIterator[Fact]:
-        """Get all extracted facts from entries of a user for a specific resource (from most recent to oldest).
+        """Get all extracted facts from entries of a session for a specific resource (from most recent to oldest).
 
         Parameters
         ----------
-        user_id:
-            An identifier for the user whose entries to retrieve.
+        session_id:
+            An identifier for the session whose entries to retrieve.
         resource:
             resource ID or slug to retrieve entries for.
         recent_first:
             Whether to return the facts ordered from most recent to oldest (True) or from oldest to most recent (False). Defaults to True.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         async for message in _iter_conversation_messages(
             ndb,
             kbid=ndb.kbid,
             rid=ruuid,
             slug=rslug,
-            field_id=_facts_field_id(user_id, self.task_ident),
+            field_id=_facts_field_id(session_id, self.task_ident),
             recent_first=recent_first,
         ):
             yield Fact.from_conversation_message(message)
@@ -1777,20 +1782,22 @@ class AsyncNucliaMemory:
         self,
         *,
         resource: str,
-        user_id: str,
+        session_id: str,
         **kwargs,
     ) -> list[graph.responses.GraphPath]:
-        """Get the resource graph including all extracted entities and relations from the resource content and the entries of the specified user.
+        """Get the resource graph including all extracted entities and relations from the resource content and the entries of the specified session.
 
         Parameters
         ----------
         resource:
             resource ID or slug to retrieve graph for.
-        user_id:
-            An identifier for the user whose entries facts to include in the graph.
+        session_id:
+            An identifier for the session whose entries facts to include in the graph.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        graph_request = _build_graph_search_request(self.task_ident, resource, user_id)
+        graph_request = _build_graph_search_request(
+            self.task_ident, resource, session_id
+        )
         graph_response: graph.responses.GraphSearchResponse = (
             await ndb.ndb.graph_search(
                 kbid=ndb.kbid,
@@ -1805,60 +1812,65 @@ class AsyncNucliaMemory:
     async def forget_entry(
         self,
         *,
-        user_id: str,
+        session_id: str,
         entry_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific entry from a resource or from the global entries resource created by the user.
+        Delete a specific entry from a resource or from the global entries resource created by the session.
 
         Any fact derived solely from this entry is also deleted.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
-        # Delete a specific entry for that user on that resource (or global)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
+        # Delete a specific entry for that session on that resource (or global)
         try:
             await _delete_conversation_message(
                 ndb=ndb,
                 kbid=ndb.kbid,
                 rid=ruuid,
                 slug=rslug,
-                field_id=_entries_field_id(user_id),
+                field_id=_entries_field_id(session_id),
                 message_id=entry_id,
             )
         except NotFoundError:
             pass
         else:
-            async for fact in self.facts(resource=resource, user_id=user_id, **kwargs):
+            async for fact in self.facts(
+                resource=resource, session_id=session_id, **kwargs
+            ):
                 if fact.content.related_entry_ids == [entry_id]:
                     await self.forget_fact(
-                        user_id=user_id, fact_id=fact.id, resource=resource, **kwargs
+                        session_id=session_id,
+                        fact_id=fact.id,
+                        resource=resource,
+                        **kwargs,
                     )
 
     @kb
     async def forget_entries(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all entries from a resource for the specified user or from the global entries resource created by the user.
+        Delete all entries from a resource for the specified session or from the global entries resource created by the session.
 
-        This operation also deletes the corresponding facts for that user and scope.
+        This operation also deletes the corresponding facts for that session and scope.
         """
         if resource is None:
-            # Delete all global entries and facts for that user
+            # Delete all global entries and facts for that session
             try:
-                await self.kb.resource.delete(slug=_global_entries_slug(user_id))
+                await self.kb.resource.delete(slug=_global_entries_slug(session_id))
             except NotFoundError:
                 pass
             return
 
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         try:
             await _delete_resource_field(
                 ndb=ndb,
@@ -1866,34 +1878,34 @@ class AsyncNucliaMemory:
                 rid=ruuid,
                 slug=rslug,
                 field_type=FieldTypeName.CONVERSATION,
-                field_id=_entries_field_id(user_id),
+                field_id=_entries_field_id(session_id),
             )
         except NotFoundError:
             pass
         else:
-            await self.forget_facts(user_id=user_id, resource=resource, **kwargs)
+            await self.forget_facts(session_id=session_id, resource=resource, **kwargs)
 
     @kb
     async def forget_fact(
         self,
         *,
-        user_id: str,
+        session_id: str,
         fact_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete a specific fact from a resource for the specified user entries on a resource or from the global entries resource created by the user.
+        Delete a specific fact from a resource for the specified session entries on a resource or from the global entries resource created by the session.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         try:
             await _delete_conversation_message(
                 ndb=ndb,
                 kbid=ndb.kbid,
                 rid=ruuid,
                 slug=rslug,
-                field_id=_facts_field_id(user_id, self.task_ident),
+                field_id=_facts_field_id(session_id, self.task_ident),
                 message_id=fact_id,
             )
         except NotFoundError:
@@ -1903,30 +1915,30 @@ class AsyncNucliaMemory:
     async def forget_facts(
         self,
         *,
-        user_id: str,
+        session_id: str,
         resource: str | None = None,
         **kwargs,
     ) -> None:
         """
-        Delete all facts from a resource for the specified user entries on a resource or from the global entries resource created by the user.
+        Delete all facts from a resource for the specified session entries on a resource or from the global entries resource created by the session.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         if resource is None:
-            # Delete all global facts for that user
+            # Delete all global facts for that session
             try:
                 await _delete_resource_field(
                     ndb=ndb,
                     kbid=ndb.kbid,
                     rid=None,
-                    slug=_global_entries_slug(user_id),
+                    slug=_global_entries_slug(session_id),
                     field_type=FieldTypeName.CONVERSATION,
-                    field_id=_facts_field_id(user_id, self.task_ident),
+                    field_id=_facts_field_id(session_id, self.task_ident),
                 )
             except NotFoundError:
                 pass
             return
 
-        ruuid, rslug = _resolve_resource_location(resource, user_id)
+        ruuid, rslug = _resolve_resource_location(resource, session_id)
         try:
             await _delete_resource_field(
                 ndb=ndb,
@@ -1934,7 +1946,7 @@ class AsyncNucliaMemory:
                 rid=ruuid,
                 slug=rslug,
                 field_type=FieldTypeName.CONVERSATION,
-                field_id=_facts_field_id(user_id, self.task_ident),
+                field_id=_facts_field_id(session_id, self.task_ident),
             )
         except NotFoundError:
             pass
