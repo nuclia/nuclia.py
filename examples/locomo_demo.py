@@ -17,7 +17,7 @@ Mapping to NucliaMemory concepts
   session → entry
       text = raw formatted turns for that session
              images represented as <img alt="{blip_caption}">
-      user_id = "{speaker_a}-{speaker_b}" (the pair is unique across all 10
+      session_id = "{speaker_a}-{speaker_b}" (the pair is unique across all 10
                 conversations; individual names can repeat, e.g. "John")
   QA question → ask()
   Category 5  → negative test (model should say it cannot find the answer)
@@ -173,7 +173,7 @@ def question_owner(
 def create_resource(memory: NucliaMemory, sample: dict) -> tuple[str, str]:
     """Create one NucliaMemory resource per conversation.
 
-    Returns (slug, user_id).
+    Returns (slug, session_id).
     Resource is intentionally empty — all memory is built from session entries,
     not from pre-populated summaries.
     """
@@ -182,7 +182,7 @@ def create_resource(memory: NucliaMemory, sample: dict) -> tuple[str, str]:
     speaker_a = conv["speaker_a"]
     speaker_b = conv["speaker_b"]
     # Pair is unique across all 10 conversations; individual names can repeat.
-    user_id = f"{speaker_a}-{speaker_b}".lower()
+    session_id = f"{speaker_a}-{speaker_b}".lower()
 
     section(f"STEP 1 — Creating resource '{slug}'  ({speaker_a} & {speaker_b})")
     try:
@@ -190,18 +190,18 @@ def create_resource(memory: NucliaMemory, sample: dict) -> tuple[str, str]:
             slug=slug,
             title=f"{speaker_a} & {speaker_b}",
         )
-        print(f"  ✓ Resource created: '{slug}'  (user_id='{user_id}')")
+        print(f"  ✓ Resource created: '{slug}'  (session_id='{session_id}')")
     except ResourceAlreadyExistsError:
         print(f"  ~ Resource already exists: '{slug}' — skipping.")
 
-    return slug, user_id
+    return slug, session_id
 
 
 # ─── Step 2: Remember sessions ───────────────────────────────────────────────
 
 
 def remember_sessions(
-    memory: NucliaMemory, sample: dict, resource: str, user_id: str
+    memory: NucliaMemory, sample: dict, resource: str, session_id: str
 ) -> None:
     """One entry per session; text = raw formatted dialogue."""
     conv = sample["conversation"]
@@ -225,7 +225,7 @@ def remember_sessions(
             memory.remember(
                 text=text,
                 resource=resource,
-                user_id=user_id,
+                session_id=session_id,
                 entry_id=entry_id,
                 metadata={"session": n, "date": date},
             )
@@ -242,7 +242,7 @@ def remember_sessions(
 
 
 def show_extracted_facts(
-    memory: NucliaMemory, sample: dict, resource: str, user_id: str
+    memory: NucliaMemory, sample: dict, resource: str, session_id: str
 ) -> None:
     """Show memory-extracted facts alongside the dataset's ground-truth observations.
 
@@ -260,7 +260,7 @@ def show_extracted_facts(
     ev_all = sample["event_summary"]
     conv = sample["conversation"]
 
-    facts = list(memory.facts(resource=resource, user_id=user_id))
+    facts = list(memory.facts(resource=resource, session_id=session_id))
     if not facts:
         print("  (no facts extracted yet — background task may still be running)")
     else:
@@ -302,7 +302,7 @@ def show_extracted_facts(
 # ─── Step 3: QA evaluation ────────────────────────────────────────────────────
 
 
-def evaluate_qa(memory: NucliaMemory, sample: dict, resource: str, user_id: str) -> None:
+def evaluate_qa(memory: NucliaMemory, sample: dict, resource: str, session_id: str) -> None:
     section(
         f"STEP 3 — QA Evaluation  "
         f"(up to {MAX_QA} questions, categories {sorted(QA_CATEGORIES)})"
@@ -335,7 +335,7 @@ def evaluate_qa(memory: NucliaMemory, sample: dict, resource: str, user_id: str)
         else:
             print(f"       Expected: {expected}")
 
-        result = memory.ask(query=question, resource=resource, user_id=user_id)
+        result = memory.ask(query=question, resource=resource, session_id=session_id)
         answer = result.answer.strip()
         indent = "                "
         wrapped = textwrap.fill(
@@ -389,12 +389,12 @@ def main() -> None:
             "Facts must be grounded in what was explicitly said; do not infer.",
         ],
     )
-    resource, user_id = create_resource(memory, sample)
-    remember_sessions(memory, sample, resource, user_id)
+    resource, session_id = create_resource(memory, sample)
+    remember_sessions(memory, sample, resource, session_id)
     pause("Sessions ingested. Fact extraction runs in the background (~1 min).")
-    show_extracted_facts(memory, sample, resource, user_id)
+    show_extracted_facts(memory, sample, resource, session_id)
     pause("Ready to run QA evaluation.")
-    evaluate_qa(memory, sample, resource, user_id)
+    evaluate_qa(memory, sample, resource, session_id)
 
     print(f"\n{SEPARATOR}")
     print("  Demo complete.")
