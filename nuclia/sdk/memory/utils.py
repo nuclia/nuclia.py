@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import inspect
 import logging
 import re
 import string
 import unicodedata
 import uuid
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Awaitable, Iterator, Union, cast, overload
+from typing import Any, AsyncGenerator, Union, cast
 
 from nucliadb_models import (
     CreateResourcePayload,
@@ -44,7 +43,7 @@ from nucliadb_models.search import (
 )
 from nucliadb_sdk.v2.exceptions import NotFoundError
 
-from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
+from nuclia.lib.kb import AsyncNucliaDBClient
 from nuclia.sdk.memory.models import (
     AskResult,
     EntryContent,
@@ -243,39 +242,15 @@ def _get_resource_status(resource: NDBResource) -> str:
     return status
 
 
-@overload
-def _delete_resource_field(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_type: FieldTypeName,
-    field_id: str,
-) -> None: ...
-
-
-@overload
-def _delete_resource_field(
+async def _delete_resource_field(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
     slug: str | None,
     field_type: FieldTypeName,
     field_id: str,
-) -> Awaitable[None]: ...
-
-
-def _delete_resource_field(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_type: FieldTypeName,
-    field_id: str,
-) -> None | Awaitable[None]:
-    """
-    Deletes a field of a resource.
-    """
+) -> None:
+    """Delete a field from a resource."""
     delete_field_args = {
         "kbid": kbid,
         "field_type": field_type.value,
@@ -283,50 +258,22 @@ def _delete_resource_field(
     }
     if rid:
         delete_field_args["rid"] = rid
-        fn = ndb.ndb.delete_field_by_id
+        await ndb.ndb.delete_field_by_id(**delete_field_args)
     else:
         assert slug is not None
         delete_field_args["slug"] = slug
-        fn = ndb.ndb.delete_field_by_slug
-    if inspect.iscoroutinefunction(fn):
-        return fn(**delete_field_args)
-    fn(**delete_field_args)
-    return None
+        await ndb.ndb.delete_field_by_slug(**delete_field_args)
 
 
-@overload
-def _delete_conversation_message(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    message_id: str,
-) -> None: ...
-
-
-@overload
-def _delete_conversation_message(
+async def _delete_conversation_message(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
     slug: str | None,
     field_id: str,
     message_id: str,
-) -> Awaitable[None]: ...
-
-
-def _delete_conversation_message(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    message_id: str,
-) -> None | Awaitable[None]:
-    """
-    Deletes a conversation message from a resource conversation field.
-    """
+) -> None:
+    """Delete a conversation message from a resource conversation field."""
     delete_conversation_message_args = {
         "kbid": kbid,
         "field_id": field_id,
@@ -334,47 +281,23 @@ def _delete_conversation_message(
     }
     if rid:
         delete_conversation_message_args["rid"] = rid
-        fn = ndb.ndb.delete_conversation_message
+        await ndb.ndb.delete_conversation_message(**delete_conversation_message_args)
     else:
         assert slug is not None
         delete_conversation_message_args["slug"] = slug
-        fn = ndb.ndb.delete_conversation_message_by_slug
-    if inspect.iscoroutinefunction(fn):
-        return fn(**delete_conversation_message_args)
-    fn(**delete_conversation_message_args)
-    return None
+        await ndb.ndb.delete_conversation_message_by_slug(
+            **delete_conversation_message_args
+        )
 
 
-@overload
-def _add_conversation_message(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    message: InputMessage,
-) -> None: ...
-
-
-@overload
-def _add_conversation_message(
+async def _add_conversation_message(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
     slug: str | None,
     field_id: str,
     message: InputMessage,
-) -> Awaitable[None]: ...
-
-
-def _add_conversation_message(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    message: InputMessage,
-) -> None | Awaitable[None]:
+) -> None:
     add_conversation_args = {
         "kbid": kbid,
         "field_id": field_id,
@@ -382,120 +305,14 @@ def _add_conversation_message(
     }
     if rid:
         add_conversation_args["rid"] = rid
-        fn = ndb.ndb.add_conversation_message
+        await ndb.ndb.add_conversation_message(**add_conversation_args)
     else:
         assert slug is not None
         add_conversation_args["slug"] = slug
-        fn = ndb.ndb.add_conversation_message_by_slug
-    if inspect.iscoroutinefunction(fn):
-        return fn(**add_conversation_args)
-    fn(**add_conversation_args)
-    return None
+        await ndb.ndb.add_conversation_message_by_slug(**add_conversation_args)
 
 
-@overload
-def _iter_conversation_messages(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    recent_first: bool = True,
-) -> Iterator[Message]: ...
-
-
-@overload
-def _iter_conversation_messages(
-    ndb: AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    recent_first: bool = True,
-) -> AsyncGenerator[Message, None]: ...
-
-
-def _iter_conversation_messages(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    recent_first: bool = True,
-) -> Iterator[Message] | AsyncGenerator[Message, None]:
-    if isinstance(ndb, AsyncNucliaDBClient):
-        return _iter_conversation_messages_async(
-            ndb=ndb,
-            kbid=kbid,
-            rid=rid,
-            slug=slug,
-            field_id=field_id,
-            recent_first=recent_first,
-        )
-    return _iter_conversation_messages_sync(
-        ndb=ndb,
-        kbid=kbid,
-        rid=rid,
-        slug=slug,
-        field_id=field_id,
-        recent_first=recent_first,
-    )
-
-
-def _iter_conversation_messages_sync(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    recent_first: bool = True,
-) -> Iterator[Message]:
-    try:
-        field = _get_resource_field(
-            ndb=ndb,
-            kbid=kbid,
-            rid=rid,
-            slug=slug,
-            field_type=FieldTypeName.CONVERSATION,
-            field_id=field_id,
-        )
-        if field.value is None:
-            return
-    except NotFoundError:
-        return
-    conv = cast(Conversation, field.value)
-
-    if recent_first:
-        current_page = conv.pages
-    else:
-        current_page = 1
-
-    while True:
-        if conv.total == 0:
-            break
-        if (recent_first and current_page <= 0) or (
-            not recent_first and current_page > conv.total
-        ):
-            break
-        page = _get_page_of_conversation_messages(
-            kbid=kbid,
-            rid=rid,
-            slug=slug,
-            field_id=field_id,
-            ndb=ndb,
-            page=str(current_page),
-        )
-        if recent_first:
-            for message in reversed(page):
-                yield message
-            current_page -= 1
-        else:
-            for message in page:
-                yield message
-            current_page += 1
-
-
-async def _iter_conversation_messages_async(
+async def _iter_conversation_messages(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -548,61 +365,7 @@ async def _iter_conversation_messages_async(
             current_page += 1
 
 
-@overload
-def _get_page_of_conversation_messages(
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    ndb: NucliaDBClient,
-    page: str,
-) -> list[Message]: ...
-
-
-@overload
-def _get_page_of_conversation_messages(
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    ndb: AsyncNucliaDBClient,
-    page: str,
-) -> Awaitable[list[Message]]: ...
-
-
-def _get_page_of_conversation_messages(
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_id: str,
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    page: str,
-) -> list[Message] | Awaitable[list[Message]]:
-    kbid = ndb.kbid
-    if isinstance(ndb, AsyncNucliaDBClient):
-        return _get_page_of_conversation_messages_async(
-            kbid=kbid, rid=rid, slug=slug, field_id=field_id, ndb=ndb, page=page
-        )
-    field: ResourceField = _get_resource_field(
-        ndb=ndb,
-        kbid=kbid,
-        rid=rid,
-        slug=slug,
-        field_type=FieldTypeName.CONVERSATION,
-        field_id=field_id,
-        page=page,
-    )
-    if field.value is None:
-        return []
-    conversation = cast(Conversation, field.value)
-    return [
-        message
-        for message in conversation.messages or []
-        if message.content.text  # Skip deleted messages
-    ]
-
-
-async def _get_page_of_conversation_messages_async(
+async def _get_page_of_conversation_messages(
     kbid: str,
     rid: str | None,
     slug: str | None,
@@ -630,30 +393,12 @@ async def _get_page_of_conversation_messages_async(
     ]
 
 
-@overload
-def _get_resource_basic(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-) -> NDBResource: ...
-
-
-@overload
-def _get_resource_basic(
+async def _get_resource_basic(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
     slug: str | None,
-) -> Awaitable[NDBResource]: ...
-
-
-def _get_resource_basic(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-) -> NDBResource | Awaitable[NDBResource]:
+) -> NDBResource:
     get_resource_args = {
         "kbid": kbid,
         "query_params": {
@@ -665,30 +410,14 @@ def _get_resource_basic(
     }
     if rid:
         get_resource_args["rid"] = rid
-        fn = ndb.ndb.get_resource_by_id
+        return await ndb.ndb.get_resource_by_id(**get_resource_args)
     else:
         assert slug is not None
         get_resource_args["slug"] = slug
-        fn = ndb.ndb.get_resource_by_slug
-    if inspect.iscoroutinefunction(fn):
-        return fn(**get_resource_args)
-    return fn(**get_resource_args)
+        return await ndb.ndb.get_resource_by_slug(**get_resource_args)
 
 
-@overload
-def _get_resource_field(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_type: FieldTypeName,
-    field_id: str,
-    page: str | None = None,
-) -> ResourceField: ...
-
-
-@overload
-def _get_resource_field(
+async def _get_resource_field(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
@@ -696,18 +425,7 @@ def _get_resource_field(
     field_type: FieldTypeName,
     field_id: str,
     page: str | None = None,
-) -> Awaitable[ResourceField]: ...
-
-
-def _get_resource_field(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-    field_type: FieldTypeName,
-    field_id: str,
-    page: str | None = None,
-) -> ResourceField | Awaitable[ResourceField]:
+) -> ResourceField:
     get_field_args: dict[str, Any] = {
         "kbid": kbid,
         "field_type": field_type.value,
@@ -717,14 +435,11 @@ def _get_resource_field(
         get_field_args["query_params"] = {"page": page}
     if rid:
         get_field_args["rid"] = rid
-        fn = ndb.ndb.get_resource_field
+        return await ndb.ndb.get_resource_field(**get_field_args)
     else:
         assert slug is not None
         get_field_args["slug"] = slug
-        fn = ndb.ndb.get_resource_field_by_slug
-    if inspect.iscoroutinefunction(fn):
-        return fn(**get_field_args)
-    return fn(**get_field_args)
+        return await ndb.ndb.get_resource_field_by_slug(**get_field_args)
 
 
 def _entries_field_id(session_id: str) -> str:
@@ -752,43 +467,13 @@ def _resolve_resource_location(
     return None, _global_entries_slug(session_id)
 
 
-@overload
-def _ensure_global_entries_resource(ndb: NucliaDBClient, session_id: str) -> str: ...
-
-
-@overload
-def _ensure_global_entries_resource(
+async def _ensure_global_entries_resource(
     ndb: AsyncNucliaDBClient, session_id: str
-) -> Awaitable[str]: ...
-
-
-def _ensure_global_entries_resource(
-    ndb: NucliaDBClient | AsyncNucliaDBClient, session_id: str
-) -> str | Awaitable[str]:
+) -> str:
     """
     Ensure the per-session global-entries resource exists, creating it if necessary.
     Returns the resource slug.
     """
-    if isinstance(ndb, AsyncNucliaDBClient):
-        return _ensure_global_entries_resource_async(ndb, session_id)
-    return _ensure_global_entries_resource_sync(ndb, session_id)
-
-
-def _ensure_global_entries_resource_sync(ndb: NucliaDBClient, session_id: str) -> str:
-    slug = _global_entries_slug(session_id)
-    if not ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
-        ndb.ndb.create_resource(
-            kbid=ndb.kbid,
-            content=CreateResourcePayload(
-                title=f"Memory global entries - {session_id}", slug=slug
-            ),
-        )
-    return slug
-
-
-async def _ensure_global_entries_resource_async(
-    ndb: AsyncNucliaDBClient, session_id: str
-) -> str:
     slug = _global_entries_slug(session_id)
     if not await ndb.ndb.exists_resource_by_slug(kbid=ndb.kbid, slug=slug):
         await ndb.ndb.create_resource(
@@ -837,73 +522,17 @@ def validate_entry_id(entry_id: str) -> None:
 # ─── Session listing helpers ─────────────────────────────────────────────────────
 
 
-@overload
-def _get_resource_sessions(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-) -> list[str]: ...
-
-
-@overload
-def _get_resource_sessions(
+async def _get_resource_sessions(
     ndb: AsyncNucliaDBClient,
     kbid: str,
     rid: str | None,
     slug: str | None,
-) -> Awaitable[list[str]]: ...
-
-
-def _get_resource_sessions(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-) -> list[str] | Awaitable[list[str]]:
+) -> list[str]:
     """Return the list of session IDs that have entries in the given resource.
 
     Inspects the resource's conversation fields for entries stored under the
     ``__memory__{session_id}`` naming convention.
     """
-    if isinstance(ndb, AsyncNucliaDBClient):
-        return _get_resource_sessions_async(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
-    return _get_resource_sessions_sync(ndb=ndb, kbid=kbid, rid=rid, slug=slug)
-
-
-def _get_resource_sessions_sync(
-    ndb: NucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-) -> list[str]:
-    get_resource_args: dict[str, Any] = {
-        "kbid": kbid,
-        "query_params": {"show": [ResourceProperties.ERRORS.value]},
-    }
-    if rid:
-        get_resource_args["rid"] = rid
-        resource: NDBResource = ndb.ndb.get_resource_by_id(**get_resource_args)
-    else:
-        assert slug is not None
-        get_resource_args["slug"] = slug
-        resource = ndb.ndb.get_resource_by_slug(**get_resource_args)
-    conversations: dict[str, ConversationFieldData] = (
-        (resource.data.conversations or {}) if resource.data else {}
-    )
-    return [
-        field_id[len(MEMORY_FIELD_PREFIX) :]
-        for field_id in conversations
-        if field_id.startswith(MEMORY_FIELD_PREFIX)
-    ]
-
-
-async def _get_resource_sessions_async(
-    ndb: AsyncNucliaDBClient,
-    kbid: str,
-    rid: str | None,
-    slug: str | None,
-) -> list[str]:
     get_resource_args: dict[str, Any] = {
         "kbid": kbid,
         "query_params": {"show": [ResourceProperties.ERRORS.value]},
@@ -925,63 +554,15 @@ async def _get_resource_sessions_async(
     ]
 
 
-@overload
-def _get_global_sessions(
-    ndb: NucliaDBClient,
-) -> list[str]: ...
-
-
-@overload
-def _get_global_sessions(
+async def _get_global_sessions(
     ndb: AsyncNucliaDBClient,
-) -> Awaitable[list[str]]: ...
-
-
-def _get_global_sessions(
-    ndb: NucliaDBClient | AsyncNucliaDBClient,
-) -> list[str] | Awaitable[list[str]]:
+) -> list[str]:
     """Return the list of all session IDs that have at least one global (resource-less) entry.
 
     Global entries live in per-session resources whose slugs start with
     ``GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX-``. This function paginates the
     catalog automatically so it works correctly with any number of sessions.
     """
-    if isinstance(ndb, AsyncNucliaDBClient):
-        return _get_global_sessions_async(ndb=ndb)
-    return _get_global_sessions_sync(ndb=ndb)
-
-
-def _get_global_sessions_sync(ndb: NucliaDBClient) -> list[str]:
-    prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
-    page, session_ids = 0, []
-    while True:
-        catalog_response = ndb.ndb.catalog(
-            kbid=ndb.kbid,
-            content=CatalogRequest(
-                query=CatalogQuery(
-                    field=CatalogQueryField.Slug,
-                    match=CatalogQueryMatch.StartsWith,
-                    query=prefix,
-                ),
-                page_number=page,
-                page_size=200,
-                show=[ResourceProperties.BASIC],
-            ),
-        )
-        for resource in catalog_response.resources.values():
-            slug = resource.slug or ""
-            if slug.startswith(prefix):
-                session_ids.append(slug[len(prefix) :])
-        has_more = (
-            catalog_response.fulltext.next_page if catalog_response.fulltext else False
-        )
-        if not has_more:
-            break
-        page += 1
-    return session_ids
-
-
-async def _get_global_sessions_async(ndb: AsyncNucliaDBClient) -> list[str]:
     prefix = GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX + "-"
     page, session_ids = 0, []
     while True:
