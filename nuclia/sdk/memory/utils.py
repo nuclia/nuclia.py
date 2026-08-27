@@ -14,6 +14,7 @@ from nucliadb_models import (
     filters,
     graph,
 )
+from nucliadb_models.augment import AugmentFields, AugmentRequest, AugmentResponse
 from nucliadb_models.common import FieldTypeName
 from nucliadb_models.conversation import (
     Conversation,
@@ -36,6 +37,7 @@ from nucliadb_models.search import (
     CitationsType,
     CustomPrompt,
     FindOptions,
+    FindParagraph,
     FindRequest,
     KnowledgeboxFindResults,
     PredictReranker,
@@ -206,24 +208,75 @@ def _parse_ask_result(
     return AskResult(answer=answer_text, citations=citations)
 
 
+def _get_find_paragraph(
+    find_response: KnowledgeboxFindResults, paragraph_id: str
+) -> FindParagraph | None:
+    parts = paragraph_id.split("/")
+    resource_id = parts[0]
+    field_type = parts[1]
+    field_key = parts[2]
+    field_id = f"{field_type}/{field_key}"
+    return find_response.resources.get(resource_id, {}).fields.get(field_id, {}).paragraphs.get(paragraph_id)
+
+
 def _parse_recall_result(
+    ndb: NucliaDBClient,
+    kbid: str,
     find_response: KnowledgeboxFindResults,
 ) -> list[RelevantContextBlock]:
-    relevant_paragraphs = {
-        pid: paragraph
-        for resource in find_response.resources.values()
-        for field in resource.fields.values()
-        for pid, paragraph in field.paragraphs.items()
+    best_matches = find_response.best_matches
+
+    def _get_message_split_id(pid: str) -> str:
+        """
+        A conversation message ID is of the form:
+        {resource_id}/{field_type}/{field_key}/{message_id}
+        """
+        return "/".join(pid.split("/")[:3])
+
+    fact_matches = {
+        pid for pid in best_matches if FACTS_FIELD_PREFIX in pid
     }
-    return [
-        RelevantContextBlock(
+    fact_splits = {
+        pid: _get_message_split_id(pid)
+        for pid in fact_matches
+    }
+    entry_matches = {
+        pid for pid in best_matches if MEMORY_FIELD_PREFIX in pid and pid not in fact_matches
+    }
+    entry_splits = {
+        pid: _get_message_split_id(pid)
+        for pid in entry_matches
+    }
+
+    relevant_context_blocks = {
+        pid: RelevantContextBlock(
             id=pid,
             text=par.text,
             score=par.score,
         )
-        for pid in find_response.best_matches
-        if (par := relevant_paragraphs.get(pid)) is not None
-    ]
+        for pid in best_matches
+        if (par := _get_find_paragraph(find_response, pid)) is not None
+    }
+
+    to_augment = set(fact_splits.values()).union(set(entry_splits.values()))
+
+    # Augment entries and facts with their actual content
+    augment_resp: AugmentResponse = ndb.ndb.augment(
+        kbid=kbid,
+        content=AugmentRequest(
+            fields=[
+                AugmentFields(
+                    given=list(to_augment),
+                    conversation_message_content_text=True,
+                )
+            ]
+        )
+    )
+
+
+    return list(relevant_context_blocks.values())
+
+
 
 
 def _get_resource_status(resource: NDBResource) -> str:

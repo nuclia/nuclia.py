@@ -32,20 +32,7 @@ Topic = Resource
 TopicPage = ResourcePage
 
 
-class ContextBlock(BaseModel):
-    id: str
-    text: str
 
-
-class RelevantContextBlock(ContextBlock):
-    score: float
-
-
-class AskResult(BaseModel):
-    """Result of a generative `recall()` call."""
-
-    answer: str
-    citations: dict[str, RelevantContextBlock]
 
 
 class EntryContextMessage(BaseModel):
@@ -111,3 +98,21 @@ class Fact(BaseModel):
             timestamp=message.timestamp,
             content=content,
         )
+
+
+class ContextBlock(BaseModel):
+    id: str
+    text: str
+    entry: Entry | None = None
+    fact: Fact | None = None
+
+
+class RelevantContextBlock(ContextBlock):
+    score: float
+
+
+class AskResult(BaseModel):
+    """Result of a generative `recall()` call."""
+
+    answer: str
+    citations: dict[str, RelevantContextBlock]
