@@ -178,6 +178,75 @@ async def test_legacy_generate_stream_returns_async_iterator():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("client", "expected_url"),
+    [
+        (
+            AsyncNuaClient("http://predict", account=""),
+            "http://predict/api/v1/predict/compat/chat/completions",
+        ),
+        (
+            AsyncNuaClient.internal("http://predict"),
+            "http://predict/api/internal/predict/compat/chat/completions",
+        ),
+    ],
+)
+async def test_chat_completions_stream_parses_sse(client, expected_url):
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == expected_url
+        assert request.headers["accept"] == "text/event-stream"
+        assert json.loads(request.content) == {
+            "messages": [{"role": "user", "content": "hello"}],
+            "stream": True,
+        }
+        return httpx.Response(
+            200,
+            content=(
+                ": keep-alive\n\n"
+                "event: message\n"
+                'data: {"id": "chunk-1"}\n\n'
+                "data: [DONE]\n\n"
+            ),
+        )
+
+    await client.stream_client.aclose()
+    client.stream_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        chunks = [
+            chunk
+            async for chunk in client.chat_completions_stream(
+                {
+                    "messages": [{"role": "user", "content": "hello"}],
+                    "stream": False,
+                }
+            )
+        ]
+    finally:
+        await client.aclose()
+
+    assert chunks == [{"id": "chunk-1"}]
+
+
+@pytest.mark.asyncio
+async def test_chat_completions_stream_raises_http_status_error_with_detail():
+    client = AsyncNuaClient.internal("http://predict")
+    await client.stream_client.aclose()
+    client.stream_client = httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(503, content=b"provider unavailable")
+        )
+    )
+    try:
+        with pytest.raises(httpx.HTTPStatusError, match="503 - provider unavailable"):
+            _ = [
+                chunk
+                async for chunk in client.chat_completions_stream({"messages": []})
+            ]
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_onprem_generate_stream_returns_headers_and_chunks():
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "http://predict/api/v1/predict/chat/kb-1"
