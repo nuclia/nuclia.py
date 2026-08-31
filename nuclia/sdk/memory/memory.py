@@ -68,6 +68,8 @@ from nuclia.sdk.memory.utils import (
     _get_resource_sessions,
     _get_resource_status,
     _global_entries_slug,
+    _hydrate_with_facts_and_entries,
+    _hydrate_with_facts_and_entries_async,
     _iter_conversation_messages,
     _parse_ask_result,
     _parse_catalog_response_to_resource_page,
@@ -649,6 +651,7 @@ class NucliaMemory:
         resource: str,
         session_id: str,
         top_k: int = 20,
+        find_request_overrides: dict[str, Any] | None = None,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -664,13 +667,22 @@ class NucliaMemory:
             An identifier for the session asking the question. Used to personalize retrieval results by including that session's entries and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
+        find_request_overrides:
+            Optional dictionary of field overrides applied to the internal ``FindRequest`` before sending it.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
-            self.task_ident, question, resource, session_id, top_k
+            self.task_ident,
+            question,
+            resource,
+            session_id,
+            top_k,
+            find_request_overrides,
         )
         find_response = ndb.ndb.find(kbid=ndb.kbid, content=find_request)
-        return _parse_recall_result(find_response)
+        recall_results = _parse_recall_result(find_response)
+        _hydrate_with_facts_and_entries(ndb, ndb.kbid, recall_results)
+        return recall_results
 
     # ── ask ───────────────────────────────────────────────────────────────
 
@@ -1585,6 +1597,7 @@ class AsyncNucliaMemory:
         resource: str,
         session_id: str,
         top_k: int = 20,
+        find_request_overrides: dict[str, Any] | None = None,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -1600,13 +1613,22 @@ class AsyncNucliaMemory:
             An identifier for the session asking the question. Used to personalize retrieval results by including that session's entries and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
+        find_request_overrides:
+            Optional dictionary of field overrides applied to the internal ``FindRequest`` before sending it.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
-            self.task_ident, question, resource, session_id, top_k
+            self.task_ident,
+            question,
+            resource,
+            session_id,
+            top_k,
+            find_request_overrides,
         )
         find_response = await ndb.ndb.find(kbid=ndb.kbid, content=find_request)
-        return _parse_recall_result(find_response)
+        recall_results = _parse_recall_result(find_response)
+        await _hydrate_with_facts_and_entries_async(ndb, ndb.kbid, recall_results)
+        return recall_results
 
     # ── ask ───────────────────────────────────────────────────────────────
 

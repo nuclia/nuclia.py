@@ -14,7 +14,12 @@ from nucliadb_models import (
     filters,
     graph,
 )
-from nucliadb_models.augment import AugmentFields, AugmentRequest, AugmentResponse
+from nucliadb_models.augment import (
+    AugmentedConversationField,
+    AugmentFields,
+    AugmentRequest,
+    AugmentResponse,
+)
 from nucliadb_models.common import FieldTypeName
 from nucliadb_models.conversation import (
     Conversation,
@@ -41,15 +46,20 @@ from nucliadb_models.search import (
     FindRequest,
     KnowledgeboxFindResults,
     PredictReranker,
+    RerankerName,
     ResourceProperties,
     SyncAskResponse,
 )
 from nucliadb_sdk.v2.exceptions import NotFoundError
+from pydantic import ValidationError
 
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.memory.models import (
     AskResult,
+    Entry,
     EntryContent,
+    Fact,
+    FactContent,
     RelevantContextBlock,
     Resource,
     ResourcePage,
@@ -216,67 +226,139 @@ def _get_find_paragraph(
     field_type = parts[1]
     field_key = parts[2]
     field_id = f"{field_type}/{field_key}"
-    return find_response.resources.get(resource_id, {}).fields.get(field_id, {}).paragraphs.get(paragraph_id)
+    if resource_id not in find_response.resources:
+        return None
+    if field_id not in find_response.resources[resource_id].fields:
+        return None
+    return (
+        find_response.resources[resource_id]
+        .fields[field_id]
+        .paragraphs.get(paragraph_id)
+    )
 
 
 def _parse_recall_result(
-    ndb: NucliaDBClient,
-    kbid: str,
     find_response: KnowledgeboxFindResults,
 ) -> list[RelevantContextBlock]:
-    best_matches = find_response.best_matches
-
-    def _get_message_split_id(pid: str) -> str:
-        """
-        A conversation message ID is of the form:
-        {resource_id}/{field_type}/{field_key}/{message_id}
-        """
-        return "/".join(pid.split("/")[:3])
-
-    fact_matches = {
-        pid for pid in best_matches if FACTS_FIELD_PREFIX in pid
+    relevant_paragraphs = {
+        pid: paragraph
+        for resource in find_response.resources.values()
+        for field in resource.fields.values()
+        for pid, paragraph in field.paragraphs.items()
     }
-    fact_splits = {
-        pid: _get_message_split_id(pid)
-        for pid in fact_matches
-    }
-    entry_matches = {
-        pid for pid in best_matches if MEMORY_FIELD_PREFIX in pid and pid not in fact_matches
-    }
-    entry_splits = {
-        pid: _get_message_split_id(pid)
-        for pid in entry_matches
-    }
-
-    relevant_context_blocks = {
-        pid: RelevantContextBlock(
+    return [
+        RelevantContextBlock(
             id=pid,
             text=par.text,
             score=par.score,
         )
-        for pid in best_matches
-        if (par := _get_find_paragraph(find_response, pid)) is not None
+        for pid in find_response.best_matches
+        if (par := relevant_paragraphs.get(pid)) is not None
+    ]
+
+
+def _hydrate_recall_results(
+    recall_results: list[RelevantContextBlock],
+    augment_response: AugmentResponse,
+) -> None:
+    for field_id, field_augmentations in augment_response.fields.items():
+        for recall_result in recall_results:
+            if recall_result.id.startswith(field_id):
+                field_augmentations = cast(
+                    AugmentedConversationField, field_augmentations
+                )
+                for message in field_augmentations.messages or []:
+                    if (
+                        message.ident == recall_result.id
+                        and message.format == MessageFormat.JSON
+                        and message.text is not None
+                    ):
+                        if FACTS_FIELD_PREFIX in recall_result.id:
+                            try:
+                                recall_result.fact = Fact(
+                                    id=message.ident,
+                                    timestamp=datetime.now(),
+                                    content=FactContent.model_validate_json(
+                                        message.text
+                                    ),
+                                )
+                            except ValidationError as e:
+                                logger.warning(
+                                    f"Failed to parse fact content for message {message.ident}: {e}"
+                                )
+                        elif MEMORY_FIELD_PREFIX in recall_result.id:
+                            try:
+                                recall_result.entry = Entry(
+                                    id=message.ident,
+                                    timestamp=datetime.now(),
+                                    content=EntryContent.model_validate_json(
+                                        message.text
+                                    ),
+                                )
+                            except ValidationError as e:
+                                logger.warning(
+                                    f"Failed to parse entry content for message {message.ident}: {e}"
+                                )
+
+
+def _hydrate_with_facts_and_entries(
+    ndb: NucliaDBClient,
+    kbid: str,
+    recall_results: list[RelevantContextBlock],
+) -> None:
+    to_augment = _get_message_ids_to_augment(recall_results)
+    if to_augment:
+        augment_resp: AugmentResponse = ndb.ndb.augment(
+            kbid=kbid,
+            content=AugmentRequest(
+                fields=[
+                    AugmentFields(
+                        given=to_augment,
+                        conversation_message_content_text=True,
+                    )
+                ]
+            ),
+        )
+        _hydrate_recall_results(recall_results, augment_resp)
+
+
+def _get_message_ids_to_augment(
+    recall_results: list[RelevantContextBlock],
+) -> list[str]:
+    fact_matches = {rcb.id for rcb in recall_results if FACTS_FIELD_PREFIX in rcb.id}
+    entry_matches = {
+        rcb.id
+        for rcb in recall_results
+        if MEMORY_FIELD_PREFIX in rcb.id and rcb.id not in fact_matches
     }
 
-    to_augment = set(fact_splits.values()).union(set(entry_splits.values()))
+    def _get_message_split_id(pid: str) -> str:
+        return "/".join(pid.split("/")[:4])
 
-    # Augment entries and facts with their actual content
-    augment_resp: AugmentResponse = ndb.ndb.augment(
-        kbid=kbid,
-        content=AugmentRequest(
-            fields=[
-                AugmentFields(
-                    given=list(to_augment),
-                    conversation_message_content_text=True,
-                )
-            ]
+    fact_splits = {pid: _get_message_split_id(pid) for pid in fact_matches}
+    entry_splits = {pid: _get_message_split_id(pid) for pid in entry_matches}
+    return list(set(fact_splits.values()).union(set(entry_splits.values())))
+
+
+async def _hydrate_with_facts_and_entries_async(
+    ndb: AsyncNucliaDBClient,
+    kbid: str,
+    recall_results: list[RelevantContextBlock],
+) -> None:
+    to_augment = _get_message_ids_to_augment(recall_results)
+    if to_augment:
+        augment_resp: AugmentResponse = await ndb.ndb.augment(
+            kbid=kbid,
+            content=AugmentRequest(
+                fields=[
+                    AugmentFields(
+                        given=list(to_augment),
+                        conversation_message_content_text=True,
+                    )
+                ]
+            ),
         )
-    )
-
-
-    return list(relevant_context_blocks.values())
-
-
+        _hydrate_recall_results(recall_results, augment_resp)
 
 
 def _get_resource_status(resource: NDBResource) -> str:
@@ -1118,20 +1200,31 @@ def _build_recall_find_request(
     resource: str,
     session_id: str,
     top_k: int,
+    find_request_overrides: dict[str, Any] | None = None,
 ) -> FindRequest:
-    """Build the FindRequest used by recall."""
-    return FindRequest(
+    """Build and return the FindRequest, applying any caller-supplied field overrides."""
+    find_request = FindRequest(
         query=question,
         features=[FindOptions.SEMANTIC, FindOptions.KEYWORD],
         filter_expression=filters.FilterExpression(
             field=_build_field_filter_expression(
-                task_ident, resource=resource, session_id=session_id
+                task_ident,
+                resource=resource,
+                session_id=session_id,
+                include_content=False,
             )
         ),
         top_k=top_k,
-        rephrase=True,
-        reranker=PredictReranker(window=min(top_k * 5, 200)),
+        rephrase=False,
+        reranker=RerankerName.NOOP,
     )
+    if find_request_overrides:
+        for key, value in find_request_overrides.items():
+            if hasattr(find_request, key):
+                setattr(find_request, key, value)
+            else:
+                logger.warning(f"Unknown FindRequest field: {key}")
+    return find_request
 
 
 def _build_ask_request(

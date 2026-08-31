@@ -359,6 +359,36 @@ async def test_basic(
         f"{USER_A} should be listed as a session in 'vacation-policy' resource."
     )
 
+    # Make sure that entries and facts are searchable
+    assert (
+        await find_message(
+            memory, message_text=entries[0].content.text, message_id=entries[0].id
+        )
+        is True
+    )
+
+    assert (
+        await find_message(
+            memory, message_text=facts[0].content.text, message_id=facts[0].id
+        )
+        is True
+    )
+
+    # Recall tests
+    recall_blocks = await maybe_await(
+        memory.recall(
+            question=facts[0].content.text,
+            resource=RESOURCE_VACATION_POLICY,
+            session_id=USER_A,
+            top_k=20,
+            find_request_overrides={"min_score": 0},
+        )
+    )
+    assert len(recall_blocks) >= 1, "Recall did not return any context blocks."
+    assert any(block.text for block in recall_blocks), (
+        "Recall returned empty context blocks."
+    )
+
     # Listing sessions for a non-existent resource should raise ResourceNotFoundError
     with pytest.raises(ResourceNotFoundError):
         await maybe_await(memory.list_sessions(resource="non-existent-resource"))
@@ -462,6 +492,18 @@ async def test_basic(
         await maybe_await(memory.delete_resource(resource=RESOURCE_VACATION_POLICY))
 
     await _cleanup()
+
+
+async def find_message(
+    memory: NucliaMemory | AsyncNucliaMemory, message_text: str, message_id: str
+) -> bool:
+    find_results = await maybe_await(
+        memory.kb.search.find(
+            query=message_text,
+            top_k=1,
+        )
+    )
+    return any(best_match.startswith(message_id) for best_match in find_results)
 
 
 @pytest.mark.parametrize(

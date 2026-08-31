@@ -32,9 +32,6 @@ Topic = Resource
 TopicPage = ResourcePage
 
 
-
-
-
 class EntryContextMessage(BaseModel):
     """A context message attached to an entry."""
 
