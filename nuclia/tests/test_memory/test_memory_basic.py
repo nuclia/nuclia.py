@@ -1,8 +1,10 @@
 import asyncio
+import random
 import tempfile
 from typing import Type, Union
 
 import pytest
+from nucliadb_models.search import FindOptions, RerankerName
 
 from nuclia.sdk.memory import (
     AsyncNucliaMemory,
@@ -367,12 +369,19 @@ async def test_basic(
         is True
     )
 
-    assert (
-        await find_message(
+    # Wait a bit to make sure that the facts have been generated and processed before searching for them
+    fact_searchable = False
+    for i in range(20):
+        if await find_message(
             memory, message_text=facts[0].content.text, message_id=facts[0].id
-        )
-        is True
-    )
+        ):
+            fact_searchable = True
+            break
+        print(f"Fact not searchable yet, waiting... (attempt {i + 1}/20)")
+        # Wait a bit before retrying
+        wait_time = random.uniform(1, min(max(2, i), 10))
+        await asyncio.sleep(wait_time)
+    assert fact_searchable, "Fact was not searchable within the expected time."
 
     # Recall tests
     recall_blocks = await maybe_await(
@@ -501,8 +510,12 @@ async def find_message(
         memory.kb.search.find(
             query=message_text,
             top_k=1,
+            features=[FindOptions.KEYWORD],
+            reranker=RerankerName.NOOP,
+            rephrase=False,
         )
     )
+    # Find returns paragraphs, so the message ID must be in the paragraph id of the best match
     return any(message_id in best_match for best_match in find_results.best_matches)
 
 
