@@ -503,7 +503,7 @@ async def find_message(
             top_k=1,
         )
     )
-    return any(best_match.startswith(message_id) for best_match in find_results)
+    return any(message_id in best_match for best_match in find_results.best_matches)
 
 
 @pytest.mark.parametrize(

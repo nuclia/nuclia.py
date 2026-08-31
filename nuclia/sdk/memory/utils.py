@@ -161,10 +161,10 @@ def _build_field_filter_expression(
 def _uuid_or_slug(
     resource_uuid_or_slug: str,
 ) -> Union[tuple[str, None], tuple[None, str]]:
-    """Helper to determine if resource identifier is a UUID or slug."""
+    """Helper to determine if resource identifier is a UUID's hex or slug."""
     try:
         # If this succeeds, resource is a uuid
-        return str(uuid.UUID(resource_uuid_or_slug)), None
+        return uuid.UUID(resource_uuid_or_slug).hex, None
     except ValueError:
         # Otherwise, treat it as a slug
         return None, resource_uuid_or_slug
@@ -1211,7 +1211,6 @@ def _build_recall_find_request(
                 task_ident,
                 resource=resource,
                 session_id=session_id,
-                include_content=False,
             )
         ),
         top_k=top_k,
