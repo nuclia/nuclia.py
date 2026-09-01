@@ -43,7 +43,6 @@ from nucliadb_models.search import (
     CitationsType,
     CustomPrompt,
     FindOptions,
-    FindParagraph,
     FindRequest,
     KnowledgeboxFindResults,
     PredictReranker,
@@ -217,25 +216,6 @@ def _parse_ask_result(
                     score=retrieved_paragraphs[chunk_id].score,
                 )
     return AskResult(answer=answer_text, citations=citations)
-
-
-def _get_find_paragraph(
-    find_response: KnowledgeboxFindResults, paragraph_id: str
-) -> FindParagraph | None:
-    parts = paragraph_id.split("/")
-    resource_id = parts[0]
-    field_type = parts[1]
-    field_key = parts[2]
-    field_id = f"{field_type}/{field_key}"
-    if resource_id not in find_response.resources:
-        return None
-    if field_id not in find_response.resources[resource_id].fields:
-        return None
-    return (
-        find_response.resources[resource_id]
-        .fields[field_id]
-        .paragraphs.get(paragraph_id)
-    )
 
 
 def _parse_recall_result(
