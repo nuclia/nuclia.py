@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import json
 import os
 from dataclasses import dataclass
 from enum import Enum
@@ -25,7 +26,7 @@ from urllib.parse import urlencode
 import aiofiles
 import backoff
 from deprecated import deprecated
-from httpx import ConnectError, ConnectTimeout, Response, Timeout
+from httpx import ConnectError, ConnectTimeout, HTTPStatusError, Response, Timeout
 from nuclia_models.common.consumption import Consumption, ConsumptionGenerative
 from nuclia_models.predict.generative_responses import (
     CitationsGenerativeResponse,
@@ -102,6 +103,8 @@ CONFIG = "/api/v1/config"
 RERANK = "/api/v1/predict/rerank"
 INTERNAL_PREDICT = "/api/internal/predict"
 PUBLIC_PREDICT = "/api/v1/predict"
+INTERNAL_CHAT_COMPLETIONS = "/api/internal/predict/compat/chat/completions"
+PUBLIC_CHAT_COMPLETIONS = "/api/v1/predict/compat/chat/completions"
 LEARNING_ID_HEADER = "nuclia-learning-id"
 LEARNING_MODEL_HEADER = "nuclia-learning-model"
 LEARNING_TRACE_HEADER = "nuclia-learning-trace-id"
@@ -1258,6 +1261,40 @@ class AsyncNuaClient:
                 yield chunk
             except ValidationError as e:
                 raise RuntimeError(f"Invalid stream chunk: {json_body}") from e
+
+    async def chat_completions_stream(
+        self, payload: dict[str, Any], *, timeout: float = 5 * 60
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Stream responses from Predict's OpenAI-compatible chat endpoint."""
+
+        path = (
+            INTERNAL_CHAT_COMPLETIONS
+            if self.endpoint == NuaEndpoint.INTERNAL
+            else PUBLIC_CHAT_COMPLETIONS
+        )
+        async with self.stream_client.stream(
+            "POST",
+            f"{self.url}{path}",
+            json={**payload, "stream": True},
+            headers={"accept": "text/event-stream"},
+            timeout=timeout,
+        ) as response:
+            if response.status_code != 200:
+                detail = (await response.aread()).decode(errors="replace")
+                raise HTTPStatusError(
+                    f"Nuclia chat completions API error: {response.status_code} - {detail}",
+                    request=response.request,
+                    response=response,
+                )
+            async for line in response.aiter_lines():
+                line = line.strip()
+                if not line or line.startswith(":") or line.startswith("event:"):
+                    continue
+                if line == "data: [DONE]":
+                    return
+                if line.startswith("data:"):
+                    line = line[5:].lstrip()
+                yield json.loads(line)
 
     @backoff.on_exception(
         backoff.expo,
