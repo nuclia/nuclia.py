@@ -273,7 +273,6 @@ def _hydrate_recall_results(
                 message_lookup[key] = (field_id, message)
 
     # Hydrate each recall result with a single lookup
-    timestamp = datetime.now()  # TODO: Use the actual timestamp of the message if available
     for recall_result in recall_results:
         # Find matching message by checking which lookup key is a prefix
         for msg_key, (field_id, message) in message_lookup.items():
@@ -284,7 +283,7 @@ def _hydrate_recall_results(
                 try:
                     recall_result.fact = Fact(
                         id=message.ident,
-                        timestamp=timestamp,
+                        timestamp=message.timestamp or datetime.now(timezone.utc),
                         content=FactContent.model_validate_json(message.text),
                     )
                     break
@@ -296,7 +295,7 @@ def _hydrate_recall_results(
                 try:
                     recall_result.entry = Entry(
                         id=message.ident,
-                        timestamp=timestamp,
+                        timestamp=message.timestamp or datetime.now(timezone.utc),
                         content=EntryContent.model_validate_json(message.text),
                     )
                     break
