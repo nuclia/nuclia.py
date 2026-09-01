@@ -16,6 +16,7 @@ from nucliadb_models import (
 )
 from nucliadb_models.augment import (
     AugmentedConversationField,
+    AugmentedConversationMessage,
     AugmentFields,
     AugmentRequest,
     AugmentResponse,
@@ -261,44 +262,48 @@ def _hydrate_recall_results(
     recall_results: list[RelevantContextBlock],
     augment_response: AugmentResponse,
 ) -> None:
+    # Build a lookup map: message_id_prefix -> (field_id, message)
+    message_lookup: dict[str, tuple[str, AugmentedConversationMessage]] = {}
     for field_id, field_augmentations in augment_response.fields.items():
-        for recall_result in recall_results:
-            if recall_result.id.startswith(field_id):
-                field_augmentations = cast(
-                    AugmentedConversationField, field_augmentations
-                )
-                for message in field_augmentations.messages or []:
-                    if (
-                        message.ident == recall_result.id
-                        and message.format == MessageFormat.JSON
-                        and message.text is not None
-                    ):
-                        if FACTS_FIELD_PREFIX in recall_result.id:
-                            try:
-                                recall_result.fact = Fact(
-                                    id=message.ident,
-                                    timestamp=datetime.now(),
-                                    content=FactContent.model_validate_json(
-                                        message.text
-                                    ),
-                                )
-                            except ValidationError as e:
-                                logger.warning(
-                                    f"Failed to parse fact content for message {message.ident}: {e}"
-                                )
-                        elif MEMORY_FIELD_PREFIX in recall_result.id:
-                            try:
-                                recall_result.entry = Entry(
-                                    id=message.ident,
-                                    timestamp=datetime.now(),
-                                    content=EntryContent.model_validate_json(
-                                        message.text
-                                    ),
-                                )
-                            except ValidationError as e:
-                                logger.warning(
-                                    f"Failed to parse entry content for message {message.ident}: {e}"
-                                )
+        field_aug = cast(AugmentedConversationField, field_augmentations)
+        for message in field_aug.messages or []:
+            if message.format == MessageFormat.JSON and message.text is not None:
+                # Store by the prefix that would appear in recall_result.id
+                key = f"{field_id}/{message.ident}"
+                message_lookup[key] = (field_id, message)
+
+    # Hydrate each recall result with a single lookup
+    timestamp = datetime.now()  # TODO: Use the actual timestamp of the message if available
+    for recall_result in recall_results:
+        # Find matching message by checking which lookup key is a prefix
+        for msg_key, (field_id, message) in message_lookup.items():
+            if not recall_result.id.startswith(msg_key) or not message.text:
+                continue
+            # Determine if this is a fact or entry based on the recall_result.id
+            if FACTS_FIELD_PREFIX in recall_result.id:
+                try:
+                    recall_result.fact = Fact(
+                        id=message.ident,
+                        timestamp=timestamp,
+                        content=FactContent.model_validate_json(message.text),
+                    )
+                    break
+                except ValidationError as e:
+                    logger.warning(
+                        f"Failed to parse fact content for message {message.ident}: {e}"
+                    )
+            elif MEMORY_FIELD_PREFIX in recall_result.id:
+                try:
+                    recall_result.entry = Entry(
+                        id=message.ident,
+                        timestamp=timestamp,
+                        content=EntryContent.model_validate_json(message.text),
+                    )
+                    break
+                except ValidationError as e:
+                    logger.warning(
+                        f"Failed to parse entry content for message {message.ident}: {e}"
+                    )
 
 
 def _hydrate_with_facts_and_entries(
