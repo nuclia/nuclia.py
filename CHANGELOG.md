@@ -2,7 +2,10 @@
 
 ## 4.14.1 (2026-08-20)
 
-- Add list_users api to memory
+- [Memory] Add list_users api to memory
+- [Memory] Rename users to sessions
+- [Memory] Rename topic to resource
+- [Memory] Augment recall results to return the actual facts in structured format 
 
 ## 4.14.0 (2026-07-31)
 
