@@ -238,30 +238,35 @@ def _parse_recall_result(
     ]
 
 
-def _hydrate_recall_results(
-    recall_results: list[RelevantContextBlock],
+def _hydrate_context_blocks(
+    context_blocks: list[RelevantContextBlock],
     augment_response: AugmentResponse,
 ) -> None:
-    # Build a lookup map: message_id_prefix -> (field_id, message)
-    message_lookup: dict[str, tuple[str, AugmentedConversationMessage]] = {}
+    """
+    Hydrate context blocks with facts and entries from augment response.
+    Works with both recall results and ask result citations.
+    """
+    # Build a lookup map: message_id_prefix -> Message
+    message_lookup: dict[str, AugmentedConversationMessage] = {}
     for field_id, field_augmentations in augment_response.fields.items():
         field_aug = cast(AugmentedConversationField, field_augmentations)
         for message in field_aug.messages or []:
             if message.format == MessageFormat.JSON and message.text is not None:
-                # Store by the prefix that would appear in recall_result.id
+                # Store by the prefix that would appear in context_block.id
                 key = f"{field_id}/{message.ident}"
-                message_lookup[key] = (field_id, message)
+                message_lookup[key] = message
 
-    # Hydrate each recall result with a single lookup
-    for recall_result in recall_results:
+    # Hydrate each context block with a single lookup
+    for context_block in context_blocks:
         # Find matching message by checking which lookup key is a prefix
-        for msg_key, (field_id, message) in message_lookup.items():
-            if not recall_result.id.startswith(msg_key) or not message.text:
+        for msg_key, message in message_lookup.items():
+            if not context_block.id.startswith(msg_key) or not message.text:
                 continue
-            # Determine if this is a fact or entry based on the recall_result.id
-            if FACTS_FIELD_PREFIX in recall_result.id:
+
+            # Determine if this is a fact or entry based on the context_block.id
+            if FACTS_FIELD_PREFIX in context_block.id:
                 try:
-                    recall_result.fact = Fact(
+                    context_block.fact = Fact(
                         id=message.ident,
                         timestamp=message.timestamp or datetime.now(timezone.utc),
                         content=FactContent.model_validate_json(message.text),
@@ -271,9 +276,9 @@ def _hydrate_recall_results(
                     logger.warning(
                         f"Failed to parse fact content for message {message.ident}: {e}"
                     )
-            elif MEMORY_FIELD_PREFIX in recall_result.id:
+            elif MEMORY_FIELD_PREFIX in context_block.id:
                 try:
-                    recall_result.entry = Entry(
+                    context_block.entry = Entry(
                         id=message.ident,
                         timestamp=message.timestamp or datetime.now(timezone.utc),
                         content=EntryContent.model_validate_json(message.text),
@@ -288,9 +293,10 @@ def _hydrate_recall_results(
 def _hydrate_with_facts_and_entries(
     ndb: NucliaDBClient,
     kbid: str,
-    recall_results: list[RelevantContextBlock],
+    context_blocks: list[RelevantContextBlock],
 ) -> None:
-    to_augment = _get_message_ids_to_augment(recall_results)
+    """Hydrate context blocks (recall results or citations) with facts and entries."""
+    to_augment = _get_message_ids_to_augment(context_blocks)
     if to_augment:
         augment_resp: AugmentResponse = ndb.ndb.augment(
             kbid=kbid,
@@ -303,17 +309,18 @@ def _hydrate_with_facts_and_entries(
                 ]
             ),
         )
-        _hydrate_recall_results(recall_results, augment_resp)
+        _hydrate_context_blocks(context_blocks, augment_resp)
 
 
 def _get_message_ids_to_augment(
-    recall_results: list[RelevantContextBlock],
+    context_blocks: list[RelevantContextBlock],
 ) -> list[str]:
-    fact_matches = {rcb.id for rcb in recall_results if FACTS_FIELD_PREFIX in rcb.id}
+    """Extract message IDs that need augmentation from context blocks (facts/entries only)."""
+    fact_matches = {cb.id for cb in context_blocks if FACTS_FIELD_PREFIX in cb.id}
     entry_matches = {
-        rcb.id
-        for rcb in recall_results
-        if MEMORY_FIELD_PREFIX in rcb.id and rcb.id not in fact_matches
+        cb.id
+        for cb in context_blocks
+        if MEMORY_FIELD_PREFIX in cb.id and cb.id not in fact_matches
     }
 
     def _get_message_split_id(pid: str) -> str:
@@ -327,9 +334,10 @@ def _get_message_ids_to_augment(
 async def _hydrate_with_facts_and_entries_async(
     ndb: AsyncNucliaDBClient,
     kbid: str,
-    recall_results: list[RelevantContextBlock],
+    context_blocks: list[RelevantContextBlock],
 ) -> None:
-    to_augment = _get_message_ids_to_augment(recall_results)
+    """Async version: hydrate context blocks (recall results or citations) with facts and entries."""
+    to_augment = _get_message_ids_to_augment(context_blocks)
     if to_augment:
         augment_resp: AugmentResponse = await ndb.ndb.augment(
             kbid=kbid,
@@ -342,7 +350,7 @@ async def _hydrate_with_facts_and_entries_async(
                 ]
             ),
         )
-        _hydrate_recall_results(recall_results, augment_resp)
+        _hydrate_context_blocks(context_blocks, augment_resp)
 
 
 def _get_resource_status(resource: NDBResource) -> str:
