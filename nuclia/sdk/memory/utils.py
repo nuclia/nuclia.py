@@ -1190,6 +1190,7 @@ def _build_recall_find_request(
     resource: str,
     session_id: str,
     top_k: int,
+    min_score: int | None = None,
 ) -> FindRequest:
     """Build and return the FindRequest, applying any caller-supplied field overrides."""
     find_request = FindRequest(
@@ -1205,6 +1206,7 @@ def _build_recall_find_request(
         top_k=top_k,
         rephrase=False,
         reranker=RerankerName.NOOP,
+        min_score=min_score,
     )
     return find_request
 

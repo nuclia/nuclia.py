@@ -651,6 +651,7 @@ class NucliaMemory:
         resource: str,
         session_id: str,
         top_k: int = 20,
+        min_score: int | None = None,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -674,6 +675,7 @@ class NucliaMemory:
             resource,
             session_id,
             top_k,
+            min_score,
         )
         find_response = ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         recall_results = _parse_recall_result(find_response)
@@ -1598,6 +1600,7 @@ class AsyncNucliaMemory:
         resource: str,
         session_id: str,
         top_k: int = 20,
+        min_score: int | None = None,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -1621,6 +1624,7 @@ class AsyncNucliaMemory:
             resource,
             session_id,
             top_k,
+            min_score,
         )
         find_response = await ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         recall_results = _parse_recall_result(find_response)
