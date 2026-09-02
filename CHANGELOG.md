@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.14.2 (2026-09-03)
+## 4.14.2 (2026-09-02)
 
 - [Memory] Augment recall results to return the actual facts in structured format
 
