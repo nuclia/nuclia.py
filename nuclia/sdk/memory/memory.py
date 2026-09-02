@@ -741,7 +741,6 @@ class NucliaMemory:
         )
         ask_response = ndb.ndb.ask(kbid=kbid, content=ask_request)
         result = _parse_ask_result(ask_response)
-        # Hydrate citations with facts and entries
         if result.citations:
             _hydrate_with_facts_and_entries(
                 ndb, ndb.kbid, list(result.citations.values())
@@ -1691,7 +1690,6 @@ class AsyncNucliaMemory:
         )
         ask_response = await ndb.ndb.ask(kbid=kbid, content=ask_request)
         result = _parse_ask_result(ask_response)
-        # Hydrate citations with facts and entries
         if result.citations:
             await _hydrate_with_facts_and_entries_async(
                 ndb, ndb.kbid, list(result.citations.values())
