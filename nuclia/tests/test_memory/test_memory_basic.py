@@ -390,7 +390,6 @@ async def test_basic(
             resource=RESOURCE_VACATION_POLICY,
             session_id=USER_A,
             top_k=10,
-            find_request_overrides={"min_score": 0},
         )
     )
     assert len(recall_blocks) >= 1, "Recall did not return any context blocks."

@@ -1190,7 +1190,6 @@ def _build_recall_find_request(
     resource: str,
     session_id: str,
     top_k: int,
-    find_request_overrides: dict[str, Any] | None = None,
 ) -> FindRequest:
     """Build and return the FindRequest, applying any caller-supplied field overrides."""
     find_request = FindRequest(
@@ -1207,12 +1206,6 @@ def _build_recall_find_request(
         rephrase=False,
         reranker=RerankerName.NOOP,
     )
-    if find_request_overrides:
-        for key, value in find_request_overrides.items():
-            if hasattr(find_request, key):
-                setattr(find_request, key, value)
-            else:
-                logger.warning(f"Unknown FindRequest field: {key}")
     return find_request
 
 

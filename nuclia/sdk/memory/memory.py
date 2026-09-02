@@ -651,7 +651,6 @@ class NucliaMemory:
         resource: str,
         session_id: str,
         top_k: int = 20,
-        find_request_overrides: dict[str, Any] | None = None,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -667,8 +666,6 @@ class NucliaMemory:
             An identifier for the session asking the question. Used to personalize retrieval results by including that session's entries and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
-        find_request_overrides:
-            Optional dictionary of field overrides applied to the internal ``FindRequest`` before sending it.
         """
         ndb: NucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
@@ -677,7 +674,6 @@ class NucliaMemory:
             resource,
             session_id,
             top_k,
-            find_request_overrides,
         )
         find_response = ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         recall_results = _parse_recall_result(find_response)
@@ -1603,7 +1599,6 @@ class AsyncNucliaMemory:
         resource: str,
         session_id: str,
         top_k: int = 20,
-        find_request_overrides: dict[str, Any] | None = None,
         **kwargs,
     ) -> list[RelevantContextBlock]:
         """
@@ -1619,8 +1614,6 @@ class AsyncNucliaMemory:
             An identifier for the session asking the question. Used to personalize retrieval results by including that session's entries and facts.
         top_k:
             Maximum number of relevant context blocks to retrieve.
-        find_request_overrides:
-            Optional dictionary of field overrides applied to the internal ``FindRequest`` before sending it.
         """
         ndb: AsyncNucliaDBClient = kwargs["ndb"]
         find_request = _build_recall_find_request(
@@ -1629,7 +1622,6 @@ class AsyncNucliaMemory:
             resource,
             session_id,
             top_k,
-            find_request_overrides,
         )
         find_response = await ndb.ndb.find(kbid=ndb.kbid, content=find_request)
         recall_results = _parse_recall_result(find_response)
