@@ -316,19 +316,17 @@ def _get_message_ids_to_augment(
     context_blocks: list[RelevantContextBlock],
 ) -> list[str]:
     """Extract message IDs that need augmentation from context blocks (facts/entries only)."""
-    fact_matches = {cb.id for cb in context_blocks if FACTS_FIELD_PREFIX in cb.id}
-    entry_matches = {
-        cb.id
-        for cb in context_blocks
-        if MEMORY_FIELD_PREFIX in cb.id and cb.id not in fact_matches
-    }
 
     def _get_message_split_id(pid: str) -> str:
         return "/".join(pid.split("/")[:4])
 
-    fact_splits = {pid: _get_message_split_id(pid) for pid in fact_matches}
-    entry_splits = {pid: _get_message_split_id(pid) for pid in entry_matches}
-    return list(set(fact_splits.values()).union(set(entry_splits.values())))
+    return list(
+        {
+            _get_message_split_id(cb.id)
+            for cb in context_blocks
+            if FACTS_FIELD_PREFIX in cb.id or MEMORY_FIELD_PREFIX in cb.id
+        }
+    )
 
 
 async def _hydrate_with_facts_and_entries_async(
