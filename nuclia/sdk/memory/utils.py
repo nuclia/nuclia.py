@@ -14,6 +14,13 @@ from nucliadb_models import (
     filters,
     graph,
 )
+from nucliadb_models.augment import (
+    AugmentedConversationField,
+    AugmentedConversationMessage,
+    AugmentFields,
+    AugmentRequest,
+    AugmentResponse,
+)
 from nucliadb_models.common import FieldTypeName
 from nucliadb_models.conversation import (
     Conversation,
@@ -39,15 +46,20 @@ from nucliadb_models.search import (
     FindRequest,
     KnowledgeboxFindResults,
     PredictReranker,
+    RerankerName,
     ResourceProperties,
     SyncAskResponse,
 )
 from nucliadb_sdk.v2.exceptions import NotFoundError
+from pydantic import ValidationError
 
 from nuclia.lib.kb import AsyncNucliaDBClient, NucliaDBClient
 from nuclia.sdk.memory.models import (
     AskResult,
+    Entry,
     EntryContent,
+    Fact,
+    FactContent,
     RelevantContextBlock,
     Resource,
     ResourcePage,
@@ -149,10 +161,10 @@ def _build_field_filter_expression(
 def _uuid_or_slug(
     resource_uuid_or_slug: str,
 ) -> Union[tuple[str, None], tuple[None, str]]:
-    """Helper to determine if resource identifier is a UUID or slug."""
+    """Helper to determine if resource identifier is a UUID's hex or slug."""
     try:
         # If this succeeds, resource is a uuid
-        return str(uuid.UUID(resource_uuid_or_slug)), None
+        return uuid.UUID(resource_uuid_or_slug).hex, None
     except ValueError:
         # Otherwise, treat it as a slug
         return None, resource_uuid_or_slug
@@ -224,6 +236,119 @@ def _parse_recall_result(
         for pid in find_response.best_matches
         if (par := relevant_paragraphs.get(pid)) is not None
     ]
+
+
+def _hydrate_context_blocks(
+    context_blocks: list[RelevantContextBlock],
+    augment_response: AugmentResponse,
+) -> None:
+    """
+    Hydrate context blocks with facts and entries from augment response.
+    Works with both recall results and ask result citations.
+    """
+    # Build a lookup map: message_id_prefix -> Message
+    message_lookup: dict[str, AugmentedConversationMessage] = {}
+    for field_id, field_augmentations in augment_response.fields.items():
+        field_aug = cast(AugmentedConversationField, field_augmentations)
+        for message in field_aug.messages or []:
+            if message.format == MessageFormat.JSON and message.text is not None:
+                # Store by the prefix that would appear in context_block.id
+                key = f"{field_id}/{message.ident}"
+                message_lookup[key] = message
+
+    # Hydrate each context block with a single lookup
+    for context_block in context_blocks:
+        # Find matching message by checking which lookup key is a prefix
+        for msg_key, message in message_lookup.items():
+            if not context_block.id.startswith(msg_key) or not message.text:
+                continue
+
+            # Determine if this is a fact or entry based on the context_block.id
+            if FACTS_FIELD_PREFIX in context_block.id:
+                try:
+                    context_block.fact = Fact(
+                        id=message.ident,
+                        timestamp=message.timestamp or datetime.now(timezone.utc),
+                        content=FactContent.model_validate_json(message.text),
+                    )
+                    break
+                except ValidationError as e:
+                    logger.warning(
+                        f"Failed to parse fact content for message {message.ident}: {e}"
+                    )
+            elif MEMORY_FIELD_PREFIX in context_block.id:
+                try:
+                    context_block.entry = Entry(
+                        id=message.ident,
+                        timestamp=message.timestamp or datetime.now(timezone.utc),
+                        content=EntryContent.model_validate_json(message.text),
+                    )
+                    break
+                except ValidationError as e:
+                    logger.warning(
+                        f"Failed to parse entry content for message {message.ident}: {e}"
+                    )
+
+
+def _hydrate_with_facts_and_entries(
+    ndb: NucliaDBClient,
+    kbid: str,
+    context_blocks: list[RelevantContextBlock],
+) -> None:
+    """Hydrate context blocks (recall results or citations) with facts and entries."""
+    to_augment = _get_message_ids_to_augment(context_blocks)
+    if to_augment:
+        augment_resp: AugmentResponse = ndb.ndb.augment(
+            kbid=kbid,
+            content=AugmentRequest(
+                fields=[
+                    AugmentFields(
+                        given=to_augment,
+                        conversation_message_content_text=True,
+                    )
+                ]
+            ),
+        )
+        _hydrate_context_blocks(context_blocks, augment_resp)
+
+
+def _get_message_ids_to_augment(
+    context_blocks: list[RelevantContextBlock],
+) -> list[str]:
+    """Extract message IDs that need augmentation from context blocks (facts/entries only)."""
+
+    def _get_message_split_id(pid: str) -> str:
+        return "/".join(pid.split("/")[:4])
+
+    return list(
+        {
+            _get_message_split_id(cb.id)
+            for cb in context_blocks
+            if FACTS_FIELD_PREFIX in cb.id or MEMORY_FIELD_PREFIX in cb.id
+        }
+    )
+
+
+async def _hydrate_with_facts_and_entries_async(
+    ndb: AsyncNucliaDBClient,
+    kbid: str,
+    context_blocks: list[RelevantContextBlock],
+) -> None:
+    """Async version: hydrate context blocks (recall results or citations) with facts and entries."""
+    to_augment = _get_message_ids_to_augment(context_blocks)
+    if to_augment:
+        augment_resp: AugmentResponse = await ndb.ndb.augment(
+            kbid=kbid,
+            content=AugmentRequest(
+                fields=[
+                    AugmentFields(
+                        given=list(to_augment),
+                        conversation_message_content_text=True,
+                    )
+                ]
+            ),
+        )
+        _hydrate_context_blocks(context_blocks, augment_resp)
 
 
 def _get_resource_status(resource: NDBResource) -> str:
@@ -1065,20 +1190,25 @@ def _build_recall_find_request(
     resource: str,
     session_id: str,
     top_k: int,
+    min_score: int | None = None,
 ) -> FindRequest:
-    """Build the FindRequest used by recall."""
-    return FindRequest(
+    """Build and return the FindRequest, applying any caller-supplied field overrides."""
+    find_request = FindRequest(
         query=question,
         features=[FindOptions.SEMANTIC, FindOptions.KEYWORD],
         filter_expression=filters.FilterExpression(
             field=_build_field_filter_expression(
-                task_ident, resource=resource, session_id=session_id
+                task_ident,
+                resource=resource,
+                session_id=session_id,
             )
         ),
         top_k=top_k,
-        rephrase=True,
-        reranker=PredictReranker(window=min(top_k * 5, 200)),
+        rephrase=False,
+        reranker=RerankerName.NOOP,
+        min_score=min_score,
     )
+    return find_request
 
 
 def _build_ask_request(
