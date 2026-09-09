@@ -70,16 +70,17 @@ async def _wait_until_resource_ready_for_search(
     return False
 
 
-@pytest.mark.parametrize(
-    "memory_klass",
-    [NucliaMemory, AsyncNucliaMemory],
-)
 async def test_basic(
     testing_config,
+) -> None:
+    await _test_memory_basic(NucliaMemory)
+    await _test_memory_basic(AsyncNucliaMemory)
+
+
+async def _test_memory_basic(
     memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
 ) -> None:
-
-    USER_A = "user-a"
+    USER_A = f"user-{random.randint(0, 9999)}"
 
     memory = memory_klass()
     await maybe_await(
@@ -362,26 +363,12 @@ async def test_basic(
     )
 
     # Make sure that entries and facts are searchable
-    assert (
-        await find_message(
-            memory, message_text=entries[0].content.text, message_id=entries[0].id
-        )
-        is True
-    )
-
-    # Wait a bit to make sure that the facts have been generated and processed before searching for them
-    fact_searchable = False
-    for i in range(20):
-        if await find_message(
-            memory, message_text=facts[0].content.text, message_id=facts[0].id
-        ):
-            fact_searchable = True
-            break
-        print(f"Fact not searchable yet, waiting... (attempt {i + 1}/20)")
-        # Wait a bit before retrying
-        wait_time = random.uniform(1, min(max(2, i), 10))
-        await asyncio.sleep(wait_time)
-    assert fact_searchable, "Fact was not searchable within the expected time."
+    assert await wait_until_message_searchable(
+        memory, message_text=entries[0].content.text, message_id=entries[0].id
+    ), "Entry was not searchable within the expected time."
+    assert await wait_until_message_searchable(
+        memory, message_text=facts[0].content.text, message_id=facts[0].id
+    ), "Fact was not searchable within the expected time."
 
     # Recall tests
     recall_blocks = await maybe_await(
@@ -520,20 +507,42 @@ async def find_message(
     return any(message_id in best_match for best_match in find_results.best_matches)
 
 
-@pytest.mark.parametrize(
-    "memory_klass",
-    [NucliaMemory, AsyncNucliaMemory],
-)
+async def wait_until_message_searchable(
+    memory: NucliaMemory | AsyncNucliaMemory,
+    message_text: str,
+    message_id: str,
+    max_attempts: int = 20,
+) -> bool:
+    # Due to the asynchronous nature of indexing, we may need to wait for a message to become searchable.
+    for attempt in range(max_attempts):
+        if await find_message(memory, message_text=message_text, message_id=message_id):
+            return True
+        print(
+            f"Message not searchable yet, waiting... "
+            f"(attempt {attempt + 1}/{max_attempts})"
+        )
+        wait_time = random.uniform(1, min(max(2, attempt), 10))
+        await asyncio.sleep(wait_time)
+    return False
+
+
 async def test_basic_nonresource(
     testing_config,
+) -> None:
+    await _test_memory_basic_nonresource(NucliaMemory)
+    await _test_memory_basic_nonresource(AsyncNucliaMemory)
+
+
+async def _test_memory_basic_nonresource(
     memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
 ) -> None:
     """Test the memory API without attaching any content to a resource.
 
     Covers global entries: remember, listing, deduplication, and deletion.
     """
-    USER_A = "user-axx"
-    USER_B = "user-bxx"
+    nonce = random.randint(0, 9999)
+    USER_A = f"user-{nonce}"
+    USER_B = f"user-{nonce + 1}"
 
     memory = memory_klass()
 
