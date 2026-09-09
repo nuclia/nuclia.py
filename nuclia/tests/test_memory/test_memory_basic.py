@@ -1,8 +1,10 @@
 import asyncio
+import random
 import tempfile
 from typing import Type, Union
 
 import pytest
+from nucliadb_models.search import FindOptions, RerankerName
 
 from nuclia.sdk.memory import (
     AsyncNucliaMemory,
@@ -68,16 +70,17 @@ async def _wait_until_resource_ready_for_search(
     return False
 
 
-@pytest.mark.parametrize(
-    "memory_klass",
-    [NucliaMemory, AsyncNucliaMemory],
-)
 async def test_basic(
     testing_config,
+) -> None:
+    await _test_memory_basic(NucliaMemory)
+    await _test_memory_basic(AsyncNucliaMemory)
+
+
+async def _test_memory_basic(
     memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
 ) -> None:
-
-    USER_A = "user-a"
+    USER_A = f"user-{random.randint(0, 9999)}"
 
     memory = memory_klass()
     await maybe_await(
@@ -359,6 +362,30 @@ async def test_basic(
         f"{USER_A} should be listed as a session in 'vacation-policy' resource."
     )
 
+    # Make sure that entries and facts are searchable
+    assert await wait_until_message_searchable(
+        memory, message_text=entries[0].content.text, message_id=entries[0].id
+    ), "Entry was not searchable within the expected time."
+    assert await wait_until_message_searchable(
+        memory, message_text=facts[0].content.text, message_id=facts[0].id
+    ), "Fact was not searchable within the expected time."
+
+    # Recall tests
+    recall_blocks = await maybe_await(
+        memory.recall(
+            question=facts[0].content.text,
+            resource=RESOURCE_VACATION_POLICY,
+            session_id=USER_A,
+            top_k=10,
+            min_score=0,
+        )
+    )
+    assert len(recall_blocks) >= 1, "Recall did not return any context blocks."
+    # Check that recall blocks that come from facts are augmented properly with their content and metadata
+    assert any(block.fact is not None for block in recall_blocks), (
+        "Recall did not return any blocks from facts."
+    )
+
     # Listing sessions for a non-existent resource should raise ResourceNotFoundError
     with pytest.raises(ResourceNotFoundError):
         await maybe_await(memory.list_sessions(resource="non-existent-resource"))
@@ -464,20 +491,58 @@ async def test_basic(
     await _cleanup()
 
 
-@pytest.mark.parametrize(
-    "memory_klass",
-    [NucliaMemory, AsyncNucliaMemory],
-)
+async def find_message(
+    memory: NucliaMemory | AsyncNucliaMemory, message_text: str, message_id: str
+) -> bool:
+    find_results = await maybe_await(
+        memory.kb.search.find(
+            query=message_text,
+            top_k=1,
+            features=[FindOptions.KEYWORD],
+            reranker=RerankerName.NOOP,
+            rephrase=False,
+        )
+    )
+    # Find returns paragraphs, so the message ID must be in the paragraph id of the best match
+    return any(message_id in best_match for best_match in find_results.best_matches)
+
+
+async def wait_until_message_searchable(
+    memory: NucliaMemory | AsyncNucliaMemory,
+    message_text: str,
+    message_id: str,
+    max_attempts: int = 20,
+) -> bool:
+    # Due to the asynchronous nature of indexing, we may need to wait for a message to become searchable.
+    for attempt in range(max_attempts):
+        if await find_message(memory, message_text=message_text, message_id=message_id):
+            return True
+        print(
+            f"Message not searchable yet, waiting... "
+            f"(attempt {attempt + 1}/{max_attempts})"
+        )
+        wait_time = random.uniform(1, min(max(2, attempt), 10))
+        await asyncio.sleep(wait_time)
+    return False
+
+
 async def test_basic_nonresource(
     testing_config,
+) -> None:
+    await _test_memory_basic_nonresource(NucliaMemory)
+    await _test_memory_basic_nonresource(AsyncNucliaMemory)
+
+
+async def _test_memory_basic_nonresource(
     memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
 ) -> None:
     """Test the memory API without attaching any content to a resource.
 
     Covers global entries: remember, listing, deduplication, and deletion.
     """
-    USER_A = "user-axx"
-    USER_B = "user-bxx"
+    nonce = random.randint(0, 9999)
+    USER_A = f"user-{nonce}"
+    USER_B = f"user-{nonce + 1}"
 
     memory = memory_klass()
 
