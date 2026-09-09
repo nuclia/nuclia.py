@@ -1,8 +1,13 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+from nucliadb_models.metadata import UserClassification, UserMetadata
 
 from nuclia.sdk.memory.utils import (
+    _has_memory_conversation_fields,
+    _memory_resource_usermetadata,
     _parse_ask_result,
     _slugify,
+    _update_memory_resource_label,
 )
 
 # ─── _slugify ─────────────────────────────────────────────────────────────────
@@ -39,6 +44,89 @@ class Test_slugify:
     def test_hyphens_stripped(self):
         # Hyphens not in allowed_characters
         assert _slugify("my-slug") == "my-slug"
+
+
+class TestMemoryResourceClassification:
+    def test_adds_classification_once_and_preserves_metadata(self):
+        metadata = UserMetadata(
+            classifications=[UserClassification(labelset="department", label="legal")]
+        )
+
+        updated = _memory_resource_usermetadata(metadata)
+        updated = _memory_resource_usermetadata(updated)
+
+        assert updated == UserMetadata(
+            classifications=[
+                UserClassification(labelset="department", label="legal"),
+                UserClassification(labelset="memory", label="resource"),
+            ]
+        )
+
+    def test_removes_only_memory_classification(self):
+        metadata = UserMetadata(
+            classifications=[
+                UserClassification(labelset="memory", label="resource"),
+                UserClassification(labelset="department", label="legal"),
+            ]
+        )
+
+        assert _memory_resource_usermetadata(metadata, remove=True) == UserMetadata(
+            classifications=[
+                UserClassification(labelset="department", label="legal"),
+            ]
+        )
+
+    def test_detects_entry_and_fact_fields(self):
+        entry_resource = MagicMock()
+        entry_resource.data.conversations = {"__memory__user": MagicMock()}
+        fact_resource = MagicMock()
+        fact_resource.data.conversations = {
+            "da-facts-memory-c-__memory__user": MagicMock()
+        }
+        plain_resource = MagicMock()
+        plain_resource.data.conversations = {"chat": MagicMock()}
+
+        assert _has_memory_conversation_fields(entry_resource)
+        assert _has_memory_conversation_fields(fact_resource)
+        assert not _has_memory_conversation_fields(plain_resource)
+
+    def test_cleanup_keeps_classification_while_memory_fields_remain(self):
+        ndb = MagicMock(kbid="kb")
+        resource = MagicMock()
+        resource.data.conversations = {"__memory__user": MagicMock()}
+
+        with patch(
+            "nuclia.sdk.memory.utils._get_resource_basic", return_value=resource
+        ):
+            _update_memory_resource_label(ndb, rid=None, slug="topic", cleanup=True)
+
+        ndb.ndb.update_resource_by_slug.assert_not_called()
+
+    def test_cleanup_removes_classification_after_last_memory_field(self):
+        ndb = MagicMock(kbid="kb")
+        resource = MagicMock()
+        resource.data.conversations = {"chat": MagicMock()}
+        resource.usermetadata = UserMetadata(
+            classifications=[
+                UserClassification(labelset="memory", label="resource"),
+                UserClassification(labelset="department", label="legal"),
+            ]
+        )
+
+        with patch(
+            "nuclia.sdk.memory.utils._get_resource_basic", return_value=resource
+        ):
+            _update_memory_resource_label(ndb, rid=None, slug="topic", cleanup=True)
+
+        ndb.ndb.update_resource_by_slug.assert_called_once_with(
+            kbid="kb",
+            rslug="topic",
+            usermetadata=UserMetadata(
+                classifications=[
+                    UserClassification(labelset="department", label="legal"),
+                ]
+            ),
+        )
 
 
 # ─── _parse_ask_result ─────────────────────────────────────────────────────

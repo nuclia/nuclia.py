@@ -4,7 +4,9 @@ import tempfile
 from typing import Type, Union
 
 import pytest
+from nucliadb_models.metadata import UserClassification, UserMetadata
 from nucliadb_models.search import FindOptions, RerankerName
+from nucliadb_models.text import TextField, TextFormat
 
 from nuclia.sdk.memory import (
     AsyncNucliaMemory,
@@ -19,6 +21,116 @@ from nuclia.tests.utils import maybe_async_iterate, maybe_await
 RESOURCE_VACATION_POLICY = "vacation-policy"
 RESOURCE_VACATION_POLICY_LINK = "vacation-policy-link"
 RESOURCE_VACATION_POLICY_FILE = "vacation-policy-file"
+RESOURCE_MEMORY_LABEL = "memory-resource-label"
+RESOURCE_CONTENT_MEMORY_LABEL = "content-resource-memory-label"
+MEMORY_CLASSIFICATION = ("__memory__", "resource")
+EXISTING_CLASSIFICATION = ("department", "legal")
+
+
+def _resource_classifications(resource) -> set[tuple[str, str]]:
+    assert resource.usermetadata is not None
+    return {
+        (classification.labelset, classification.label)
+        for classification in resource.usermetadata.classifications
+    }
+
+
+async def test_memory_resource_classification(
+    testing_config,
+) -> None:
+    await _test_memory_resource_classification(NucliaMemory)
+    await _test_memory_resource_classification(AsyncNucliaMemory)
+
+
+async def _test_memory_resource_classification(
+    memory_klass: Union[Type[NucliaMemory], Type[AsyncNucliaMemory]],
+) -> None:
+    memory = memory_klass()
+
+    async def cleanup() -> None:
+        for slug in (RESOURCE_MEMORY_LABEL, RESOURCE_CONTENT_MEMORY_LABEL):
+            try:
+                await maybe_await(memory.delete_resource(resource=slug, confirm=True))
+            except ResourceNotFoundError:
+                pass
+
+    await cleanup()
+
+    await maybe_await(
+        memory.create_resource(
+            title="Memory resource label test",
+            slug=RESOURCE_MEMORY_LABEL,
+        )
+    )
+    memory_resource = await maybe_await(
+        memory.kb.resource.get(slug=RESOURCE_MEMORY_LABEL)
+    )
+    assert _resource_classifications(memory_resource) == {MEMORY_CLASSIFICATION}
+
+    await maybe_await(
+        memory.kb.resource.create(
+            title="Existing content resource label test",
+            slug=RESOURCE_CONTENT_MEMORY_LABEL,
+            texts={
+                "content": TextField(
+                    body="This resource existed before memory entries were added.",
+                    format=TextFormat.PLAIN,
+                )
+            },
+            usermetadata=UserMetadata(
+                classifications=[
+                    UserClassification(
+                        labelset=EXISTING_CLASSIFICATION[0],
+                        label=EXISTING_CLASSIFICATION[1],
+                    )
+                ]
+            ),
+        )
+    )
+
+    for session_id in ("memory-label-session-a", "memory-label-session-b"):
+        await maybe_await(
+            memory.remember(
+                f"Memory entry for {session_id}",
+                resource=RESOURCE_CONTENT_MEMORY_LABEL,
+                session_id=session_id,
+            )
+        )
+
+    content_resource = await maybe_await(
+        memory.kb.resource.get(slug=RESOURCE_CONTENT_MEMORY_LABEL)
+    )
+    assert _resource_classifications(content_resource) == {
+        EXISTING_CLASSIFICATION,
+        MEMORY_CLASSIFICATION,
+    }
+
+    await maybe_await(
+        memory.forget_entries(
+            resource=RESOURCE_CONTENT_MEMORY_LABEL,
+            session_id="memory-label-session-a",
+        )
+    )
+    content_resource = await maybe_await(
+        memory.kb.resource.get(slug=RESOURCE_CONTENT_MEMORY_LABEL)
+    )
+    assert _resource_classifications(content_resource) == {
+        EXISTING_CLASSIFICATION,
+        MEMORY_CLASSIFICATION,
+    }
+
+    await maybe_await(
+        memory.forget_entries(
+            resource=RESOURCE_CONTENT_MEMORY_LABEL,
+            session_id="memory-label-session-b",
+        )
+    )
+    content_resource = await maybe_await(
+        memory.kb.resource.get(slug=RESOURCE_CONTENT_MEMORY_LABEL)
+    )
+    assert _resource_classifications(content_resource) == {EXISTING_CLASSIFICATION}
+
+    await cleanup()
 
 
 async def _wait_until_resource_ready_for_search(

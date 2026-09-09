@@ -30,6 +30,7 @@ from nucliadb_models.conversation import (
     MessageFormat,
     MessageType,
 )
+from nucliadb_models.metadata import UserClassification, UserMetadata
 from nucliadb_models.resource import ConversationFieldData, ResourceField
 from nucliadb_models.resource import Resource as NDBResource
 from nucliadb_models.search import (
@@ -69,8 +70,170 @@ logger = logging.getLogger(__name__)
 
 MEMORY_FIELD_PREFIX = "__memory__"
 FACTS_FIELD_PREFIX = "da-facts-"
+MEMORY_FACTS_FIELD_PREFIX = f"{FACTS_FIELD_PREFIX}memory-c-{MEMORY_FIELD_PREFIX}"
 GLOBAL_ANNOTATIONS_RESOURCE_SLUG_PREFIX = "memory-global-entries"
 GRAPH_EXTRACTION_TEMPLATE = "memory-graph-{task_ident}"
+MEMORY_RESOURCE_LABELSET = "__memory__"
+MEMORY_RESOURCE_LABEL = "resource"
+
+
+def _memory_resource_usermetadata(
+    usermetadata: UserMetadata | None = None,
+    *,
+    remove: bool = False,
+) -> UserMetadata:
+    usermetadata = (usermetadata or UserMetadata()).model_copy(deep=True)
+    memory_classification = UserClassification(
+        labelset=MEMORY_RESOURCE_LABELSET,
+        label=MEMORY_RESOURCE_LABEL,
+    )
+    usermetadata.classifications = [
+        classification
+        for classification in usermetadata.classifications
+        if classification != memory_classification
+    ]
+    if not remove:
+        usermetadata.classifications.append(memory_classification)
+    return usermetadata
+
+
+def _has_memory_conversation_fields(resource: NDBResource) -> bool:
+    conversations: dict[str, ConversationFieldData] = (
+        (resource.data.conversations or {}) if resource.data else {}
+    )
+    return any(
+        field_id.startswith((MEMORY_FIELD_PREFIX, MEMORY_FACTS_FIELD_PREFIX))
+        for field_id in conversations
+    )
+
+
+def _delete_empty_conversation_field_sync(
+    ndb: NucliaDBClient,
+    *,
+    rid: str | None,
+    slug: str | None,
+    field_id: str,
+) -> None:
+    messages = _iter_conversation_messages(
+        ndb, ndb.kbid, rid, slug, field_id, recent_first=True
+    )
+    if next(messages, None) is None:
+        try:
+            _delete_resource_field(
+                ndb,
+                ndb.kbid,
+                rid,
+                slug,
+                FieldTypeName.CONVERSATION,
+                field_id,
+            )
+        except NotFoundError:
+            pass
+
+
+async def _delete_empty_conversation_field_async(
+    ndb: AsyncNucliaDBClient,
+    *,
+    rid: str | None,
+    slug: str | None,
+    field_id: str,
+) -> None:
+    messages = _iter_conversation_messages(
+        ndb, ndb.kbid, rid, slug, field_id, recent_first=True
+    )
+    try:
+        await messages.__anext__()
+    except StopAsyncIteration:
+        try:
+            await _delete_resource_field(
+                ndb,
+                ndb.kbid,
+                rid,
+                slug,
+                FieldTypeName.CONVERSATION,
+                field_id,
+            )
+        except NotFoundError:
+            pass
+
+
+def _resource_usermetadata(resource: NDBResource) -> UserMetadata:
+    return resource.usermetadata or UserMetadata()
+
+
+@overload
+def _update_memory_resource_label(
+    ndb: NucliaDBClient,
+    *,
+    rid: str | None,
+    slug: str | None,
+    cleanup: bool = False,
+) -> None: ...
+
+
+@overload
+def _update_memory_resource_label(
+    ndb: AsyncNucliaDBClient,
+    *,
+    rid: str | None,
+    slug: str | None,
+    cleanup: bool = False,
+) -> Awaitable[None]: ...
+
+
+def _update_memory_resource_label(
+    ndb: NucliaDBClient | AsyncNucliaDBClient,
+    *,
+    rid: str | None,
+    slug: str | None,
+    cleanup: bool = False,
+) -> None | Awaitable[None]:
+    def update_resource(resource: NDBResource) -> None | Awaitable[None]:
+        if cleanup and _has_memory_conversation_fields(resource):
+            return None
+        current_metadata = _resource_usermetadata(resource)
+        updated_metadata = _memory_resource_usermetadata(
+            current_metadata, remove=cleanup
+        )
+        if updated_metadata == current_metadata:
+            return None
+        if rid:
+            fn = ndb.ndb.update_resource
+            update_args = {
+                "kbid": ndb.kbid,
+                "rid": rid,
+                "usermetadata": updated_metadata,
+            }
+        else:
+            assert slug is not None
+            fn = ndb.ndb.update_resource_by_slug
+            update_args = {
+                "kbid": ndb.kbid,
+                "rslug": slug,
+                "usermetadata": updated_metadata,
+            }
+        if inspect.iscoroutinefunction(fn):
+            return fn(**update_args)
+        fn(**update_args)
+        return None
+
+    try:
+        resource = _get_resource_basic(ndb, ndb.kbid, rid, slug)
+    except NotFoundError:
+        return None
+    if inspect.isawaitable(resource):
+
+        async def update_async() -> None:
+            try:
+                resolved_resource = await resource
+            except NotFoundError:
+                return
+            update_result = update_resource(resolved_resource)
+            if inspect.isawaitable(update_result):
+                await update_result
+
+        return update_async()
+    return update_resource(resource)
 
 
 def _build_field_filter_expression(
@@ -905,7 +1068,9 @@ def _ensure_global_entries_resource_sync(ndb: NucliaDBClient, session_id: str) -
         ndb.ndb.create_resource(
             kbid=ndb.kbid,
             content=CreateResourcePayload(
-                title=f"Memory global entries - {session_id}", slug=slug
+                title=f"Memory global entries - {session_id}",
+                slug=slug,
+                usermetadata=_memory_resource_usermetadata(),
             ),
         )
     return slug
@@ -919,7 +1084,9 @@ async def _ensure_global_entries_resource_async(
         await ndb.ndb.create_resource(
             kbid=ndb.kbid,
             content=CreateResourcePayload(
-                title=f"Memory global entries - {session_id}", slug=slug
+                title=f"Memory global entries - {session_id}",
+                slug=slug,
+                usermetadata=_memory_resource_usermetadata(),
             ),
         )
     return slug

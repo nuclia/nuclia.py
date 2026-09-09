@@ -59,6 +59,8 @@ from nuclia.sdk.memory.utils import (
     _build_list_resources_catalog_request,
     _build_recall_find_request,
     _delete_conversation_message,
+    _delete_empty_conversation_field_async,
+    _delete_empty_conversation_field_sync,
     _delete_resource_field,
     _ensure_global_entries_resource,
     _entries_field_id,
@@ -71,11 +73,13 @@ from nuclia.sdk.memory.utils import (
     _hydrate_with_facts_and_entries,
     _hydrate_with_facts_and_entries_async,
     _iter_conversation_messages,
+    _memory_resource_usermetadata,
     _parse_ask_result,
     _parse_catalog_response_to_resource_page,
     _parse_recall_result,
     _resolve_resource_location,
     _slugify,
+    _update_memory_resource_label,
     _uuid_or_slug,
     validate_entry_id,
     validate_session_id,
@@ -445,6 +449,7 @@ class NucliaMemory:
         create_args: dict[str, Any] = {
             "title": title,
             "slug": slug,
+            "usermetadata": _memory_resource_usermetadata(),
         }
         if summary is not None:
             create_args["summary"] = summary
@@ -583,6 +588,7 @@ class NucliaMemory:
                 raise EntryAlreadyExistsError(
                     f"Entry with ID '{entry_id}' already exists."
                 )
+        _update_memory_resource_label(ndb, rid=ruuid, slug=rslug)
         return entry_id
 
     # ── list sessions ──────────────────────────────────────────────────────────
@@ -994,6 +1000,12 @@ class NucliaMemory:
         except NotFoundError:
             pass
         else:
+            _delete_empty_conversation_field_sync(
+                ndb,
+                rid=ruuid,
+                slug=rslug,
+                field_id=_entries_field_id(session_id),
+            )
             for fact in self.facts(resource=resource, session_id=session_id):
                 if fact.content.related_entry_ids == [entry_id]:
                     self.forget_fact(
@@ -1002,6 +1014,7 @@ class NucliaMemory:
                         resource=resource,
                         **kwargs,
                     )
+        _update_memory_resource_label(ndb, rid=ruuid, slug=rslug, cleanup=True)
 
     @kb
     def forget_entries(
@@ -1039,6 +1052,12 @@ class NucliaMemory:
             pass
         else:
             self.forget_facts(session_id=session_id, resource=resource, **kwargs)
+        _update_memory_resource_label(
+            ndb,
+            rid=ruuid,
+            slug=rslug,
+            cleanup=True,
+        )
 
     @kb
     def forget_fact(
@@ -1065,6 +1084,14 @@ class NucliaMemory:
             )
         except NotFoundError:
             pass
+        else:
+            _delete_empty_conversation_field_sync(
+                ndb,
+                rid=ruuid,
+                slug=rslug,
+                field_id=_facts_field_id(session_id, self.task_ident),
+            )
+        _update_memory_resource_label(ndb, rid=ruuid, slug=rslug, cleanup=True)
 
     @kb
     def forget_facts(
@@ -1091,6 +1118,12 @@ class NucliaMemory:
                 )
             except NotFoundError:
                 pass
+            _update_memory_resource_label(
+                ndb,
+                rid=None,
+                slug=_global_entries_slug(session_id),
+                cleanup=True,
+            )
             return
 
         ruuid, rslug = _resolve_resource_location(resource, session_id)
@@ -1105,6 +1138,12 @@ class NucliaMemory:
             )
         except NotFoundError:
             pass
+        _update_memory_resource_label(
+            ndb,
+            rid=ruuid,
+            slug=rslug,
+            cleanup=True,
+        )
 
 
 # ─── Async Memory ─────────────────────────────────────────────────────────────
@@ -1459,6 +1498,7 @@ class AsyncNucliaMemory:
         create_args: dict[str, Any] = {
             "title": title,
             "slug": slug,
+            "usermetadata": _memory_resource_usermetadata(),
         }
         if summary is not None:
             create_args["summary"] = summary
@@ -1532,6 +1572,7 @@ class AsyncNucliaMemory:
                 raise EntryAlreadyExistsError(
                     f"Entry with ID '{entry_id}' already exists."
                 )
+        await _update_memory_resource_label(ndb, rid=ruuid, slug=rslug)
         return entry_id
 
     # ── list sessions ──────────────────────────────────────────────────────────
@@ -1865,6 +1906,12 @@ class AsyncNucliaMemory:
         except NotFoundError:
             pass
         else:
+            await _delete_empty_conversation_field_async(
+                ndb,
+                rid=ruuid,
+                slug=rslug,
+                field_id=_entries_field_id(session_id),
+            )
             async for fact in self.facts(
                 resource=resource, session_id=session_id, **kwargs
             ):
@@ -1875,6 +1922,7 @@ class AsyncNucliaMemory:
                         resource=resource,
                         **kwargs,
                     )
+        await _update_memory_resource_label(ndb, rid=ruuid, slug=rslug, cleanup=True)
 
     @kb
     async def forget_entries(
@@ -1912,6 +1960,12 @@ class AsyncNucliaMemory:
             pass
         else:
             await self.forget_facts(session_id=session_id, resource=resource, **kwargs)
+        await _update_memory_resource_label(
+            ndb,
+            rid=ruuid,
+            slug=rslug,
+            cleanup=True,
+        )
 
     @kb
     async def forget_fact(
@@ -1938,6 +1992,14 @@ class AsyncNucliaMemory:
             )
         except NotFoundError:
             pass
+        else:
+            await _delete_empty_conversation_field_async(
+                ndb,
+                rid=ruuid,
+                slug=rslug,
+                field_id=_facts_field_id(session_id, self.task_ident),
+            )
+        await _update_memory_resource_label(ndb, rid=ruuid, slug=rslug, cleanup=True)
 
     @kb
     async def forget_facts(
@@ -1964,6 +2026,12 @@ class AsyncNucliaMemory:
                 )
             except NotFoundError:
                 pass
+            await _update_memory_resource_label(
+                ndb,
+                rid=None,
+                slug=_global_entries_slug(session_id),
+                cleanup=True,
+            )
             return
 
         ruuid, rslug = _resolve_resource_location(resource, session_id)
@@ -1978,3 +2046,9 @@ class AsyncNucliaMemory:
             )
         except NotFoundError:
             pass
+        await _update_memory_resource_label(
+            ndb,
+            rid=ruuid,
+            slug=rslug,
+            cleanup=True,
+        )
