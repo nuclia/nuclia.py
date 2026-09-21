@@ -9,6 +9,7 @@ from nuclia.exceptions import (
     PredictLimitsExceededError,
     RetriablePredictAPIException,
 )
+from nuclia.lib.guardrails import GuardrailRequest, InlineGuardrailPolicy
 from nuclia.lib.nua import (
     AsyncNuaClient,
     NuaKeyMissingError,
@@ -137,6 +138,49 @@ async def test_sentence_predict_url_encodes_query_parameters():
         await client.sentence_predict("hello world&", "model/1")
     finally:
         await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_guardrail_evaluates_inline_policy():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/guardrail"
+        assert request.method == "POST"
+        assert json.loads(request.content) == {
+            "content": "content to evaluate",
+            "policy": {
+                "instruction": "Flag unsafe content.",
+                "query": "Is this unsafe?",
+                "target": "QUERY",
+            },
+        }
+        return httpx.Response(
+            200,
+            json={
+                "flagged": False,
+                "score": 0.1,
+                "threshold": 0.5,
+                "policy_id": None,
+            },
+        )
+
+    client = AsyncNuaClient("http://predict", account="account-1")
+    client.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        result = await client.guardrail(
+            GuardrailRequest(
+                content="content to evaluate",
+                policy=InlineGuardrailPolicy(
+                    instruction="Flag unsafe content.",
+                    query="Is this unsafe?",
+                ),
+            )
+        )
+    finally:
+        await client.aclose()
+
+    assert result.flagged is False
+    assert result.score == 0.1
+    assert result.policy_id is None
 
 
 @pytest.mark.asyncio
