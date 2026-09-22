@@ -40,6 +40,7 @@ def policy_response(**overrides):
 
 def test_guardrail_policy_crud(monkeypatch):
     auth = Mock()
+    auth.accounts = Mock()
     auth.resolve_zone_endpoint.return_value = (ZONE, None)
     auth._request.side_effect = [
         policy_response(),
@@ -77,6 +78,7 @@ def test_guardrail_policy_crud(monkeypatch):
     assert policies[0].id == POLICY_ID
     assert fetched.id == POLICY_ID
     assert updated.description is None
+    assert auth.accounts.call_count == 5
     assert auth._request.call_args_list == [
         call(
             "POST",
@@ -106,6 +108,7 @@ def test_guardrail_policy_crud(monkeypatch):
 @pytest.mark.asyncio
 async def test_async_guardrail_policy_crud(monkeypatch):
     auth = Mock()
+    auth.accounts = AsyncMock()
     auth.resolve_zone_endpoint.return_value = (ZONE, None)
     auth._request = AsyncMock(
         side_effect=[
@@ -141,6 +144,7 @@ async def test_async_guardrail_policy_crud(monkeypatch):
 
     assert policies[0].id == POLICY_ID
     assert updated.enabled is False
+    assert auth.accounts.await_count == 5
     assert auth._request.await_args_list[-2:] == [
         call(
             "PATCH",

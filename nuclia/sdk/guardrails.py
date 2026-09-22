@@ -10,7 +10,7 @@ from pydantic import TypeAdapter
 
 from nuclia import get_regional_url
 from nuclia.data import get_async_auth, get_auth
-from nuclia.decorators import account, zone
+from nuclia.decorators import account, accounts, zone
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 GUARDRAIL_POLICIES_ENDPOINT = "/api/v1/account/{account_id}/guardrail_policies"
@@ -42,6 +42,7 @@ class NucliaGuardrails:
     def _auth(self) -> NucliaAuth:
         return get_auth()
 
+    @accounts
     @account
     @zone
     def create(
@@ -63,6 +64,7 @@ class NucliaGuardrails:
         )
         return GuardrailPolicy.model_validate(data)
 
+    @accounts
     @account
     @zone
     def list(
@@ -81,6 +83,7 @@ class NucliaGuardrails:
         )
         return TypeAdapter(list[GuardrailPolicy]).validate_python(data)
 
+    @accounts
     @account
     @zone
     def get(
@@ -100,6 +103,7 @@ class NucliaGuardrails:
         )
         return GuardrailPolicy.model_validate(data)
 
+    @accounts
     @account
     @zone
     def update(
@@ -123,6 +127,7 @@ class NucliaGuardrails:
         )
         return GuardrailPolicy.model_validate(data)
 
+    @accounts
     @account
     @zone
     def delete(
@@ -147,6 +152,7 @@ class AsyncNucliaGuardrails:
     def _auth(self) -> AsyncNucliaAuth:
         return get_async_auth()
 
+    @accounts
     @account
     @zone
     async def create(
@@ -168,6 +174,7 @@ class AsyncNucliaGuardrails:
         )
         return GuardrailPolicy.model_validate(data)
 
+    @accounts
     @account
     @zone
     async def list(
@@ -186,6 +193,7 @@ class AsyncNucliaGuardrails:
         )
         return TypeAdapter(list[GuardrailPolicy]).validate_python(data)
 
+    @accounts
     @account
     @zone
     async def get(
@@ -205,6 +213,7 @@ class AsyncNucliaGuardrails:
         )
         return GuardrailPolicy.model_validate(data)
 
+    @accounts
     @account
     @zone
     async def update(
@@ -228,6 +237,7 @@ class AsyncNucliaGuardrails:
         )
         return GuardrailPolicy.model_validate(data)
 
+    @accounts
     @account
     @zone
     async def delete(
