@@ -8,13 +8,15 @@ from nuclia_models.accounts.guardrails import (
     PatchGuardrailPolicy,
 )
 
+from nuclia import get_regional_url
 from nuclia.sdk.guardrails import AsyncNucliaGuardrails, NucliaGuardrails
 
 ACCOUNT_ID = "11111111-1111-1111-1111-111111111111"
 POLICY_ID = UUID("22222222-2222-2222-2222-222222222222")
 ZONE = "europe-1"
-POLICIES_URL = (
-    f"https://{ZONE}.dp.progress.cloud/api/v1/account/{ACCOUNT_ID}/guardrail_policies"
+POLICIES_URL = get_regional_url(
+    ZONE,
+    f"/api/v1/account/{ACCOUNT_ID}/guardrail_policies",
 )
 POLICY_URL = f"{POLICIES_URL}/{POLICY_ID}"
 
