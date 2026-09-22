@@ -3,9 +3,9 @@ import json
 import httpx
 import pytest
 from nuclia_models.predict.generative_responses import TextGenerativeResponse
+from nuclia_models.predict.guardrails import GuardrailRequest
 
 from nuclia.exceptions import PredictAPIException, PredictLimitsExceededError
-from nuclia.lib.guardrails import GuardrailRequest
 from nuclia.lib.nua import (
     NuaClient,
     NuaKeyMissingError,

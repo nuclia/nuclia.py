@@ -40,7 +40,7 @@ Account guardrail policies can be managed with the synchronous or asynchronous
 SDK:
 
 ```python
-from nuclia.lib.guardrails import CreateGuardrailPolicy
+from nuclia_models.accounts.guardrails import CreateGuardrailPolicy
 from nuclia.sdk import NucliaGuardrails
 
 guardrails = NucliaGuardrails()
@@ -60,7 +60,7 @@ Enabled account policies are evaluated automatically for Predict chat requests.
 Content can also be evaluated directly against a configured or inline policy:
 
 ```python
-from nuclia.lib.guardrails import GuardrailRequest
+from nuclia_models.predict.guardrails import GuardrailRequest
 from nuclia.sdk import NucliaPredict
 
 result = NucliaPredict().guardrail(

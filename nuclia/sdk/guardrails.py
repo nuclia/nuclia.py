@@ -1,16 +1,16 @@
 from typing import Optional, Union
 from uuid import UUID
 
+from nuclia_models.accounts.guardrails import (
+    CreateGuardrailPolicy,
+    GuardrailPolicy,
+    PatchGuardrailPolicy,
+)
 from pydantic import TypeAdapter
 
 from nuclia import get_regional_url
 from nuclia.data import get_async_auth, get_auth
 from nuclia.decorators import account, zone
-from nuclia.lib.guardrails import (
-    CreateGuardrailPolicy,
-    GuardrailPolicy,
-    PatchGuardrailPolicy,
-)
 from nuclia.sdk.auth import AsyncNucliaAuth, NucliaAuth
 
 GUARDRAIL_POLICIES_ENDPOINT = "/api/v1/account/{account_id}/guardrail_policies"

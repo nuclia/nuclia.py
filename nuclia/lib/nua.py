@@ -40,6 +40,7 @@ from nuclia_models.predict.generative_responses import (
     TextGenerativeResponse,
     ToolsGenerativeResponse,
 )
+from nuclia_models.predict.guardrails import GuardrailRequest, GuardrailResponse
 from nuclia_models.predict.remi import RemiRequest, RemiResponse
 from nucliadb_models.search import Image
 from pydantic import BaseModel, Field, ValidationError
@@ -52,7 +53,6 @@ from nuclia.exceptions import (
     PredictLimitsExceededError,
     RetriablePredictAPIException,
 )
-from nuclia.lib.guardrails import GuardrailRequest, GuardrailResponse
 from nuclia.lib.nua_responses import (
     ChatModel,
     ChatResponse,

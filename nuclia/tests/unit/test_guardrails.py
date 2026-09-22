@@ -3,14 +3,11 @@ from unittest.mock import AsyncMock, Mock, call
 from uuid import UUID
 
 import pytest
-from pydantic import ValidationError
-
-from nuclia.lib.guardrails import (
+from nuclia_models.accounts.guardrails import (
     CreateGuardrailPolicy,
-    GuardrailRequest,
-    InlineGuardrailPolicy,
     PatchGuardrailPolicy,
 )
+
 from nuclia.sdk.guardrails import AsyncNucliaGuardrails, NucliaGuardrails
 
 ACCOUNT_ID = "11111111-1111-1111-1111-111111111111"
@@ -39,29 +36,6 @@ def policy_response(**overrides):
     }
     response.update(overrides)
     return response
-
-
-def test_guardrail_request_requires_exactly_one_policy_source():
-    with pytest.raises(ValidationError, match="Exactly one"):
-        GuardrailRequest(content="content")
-
-    with pytest.raises(ValidationError, match="Exactly one"):
-        GuardrailRequest(
-            content="content",
-            policy_id=str(POLICY_ID),
-            policy=InlineGuardrailPolicy(
-                instruction="Flag unsafe content.",
-                query="Is this unsafe?",
-            ),
-        )
-
-
-def test_patch_guardrail_policy_allows_clearing_description_only():
-    patch = PatchGuardrailPolicy(description=None)
-
-    assert patch.model_dump(exclude_unset=True) == {"description": None}
-    with pytest.raises(ValidationError, match="enabled cannot be null"):
-        PatchGuardrailPolicy(enabled=None)
 
 
 def test_guardrail_policy_crud(monkeypatch):
