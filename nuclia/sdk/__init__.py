@@ -3,6 +3,7 @@ from .agent import NucliaAgent
 from .auth import AsyncNucliaAuth, NucliaAuth
 from .backup import AsyncNucliaBackup, NucliaBackup
 from .export_import import AsyncNucliaExports, NucliaExports, NucliaImports
+from .guardrails import AsyncNucliaGuardrails, NucliaGuardrails
 from .kb import AsyncNucliaKB, NucliaKB
 from .kbs import AsyncNucliaKBS, NucliaKBS
 from .kv_schemas import AsyncNucliaKVSchemas, NucliaKVSchemas
@@ -23,6 +24,8 @@ __all__ = [
     "AsyncNucliaExports",
     "NucliaExports",
     "NucliaImports",
+    "AsyncNucliaGuardrails",
+    "NucliaGuardrails",
     "AsyncNucliaKB",
     "NucliaKB",
     "AsyncNucliaKVSchemas",

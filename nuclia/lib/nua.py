@@ -40,6 +40,7 @@ from nuclia_models.predict.generative_responses import (
     TextGenerativeResponse,
     ToolsGenerativeResponse,
 )
+from nuclia_models.predict.guardrails import GuardrailRequest, GuardrailResponse
 from nuclia_models.predict.remi import RemiRequest, RemiResponse
 from nucliadb_models.search import Image
 from pydantic import BaseModel, Field, ValidationError
@@ -94,6 +95,7 @@ REPHRASE_PREDICT = "/api/v1/predict/rephrase"
 TOKENS_PREDICT = "/api/v1/predict/tokens"
 QUERY_PREDICT = "/api/v1/predict/query"
 REMI_PREDICT = "/api/v1/predict/remi"
+GUARDRAIL_PREDICT = "/api/v1/predict/guardrail"
 UPLOAD_PROCESS = "/api/v1/processing/upload"
 STATUS_PROCESS = "/api/v2/processing/status"
 PUSH_PROCESS = "/api/v2/processing/push"
@@ -915,6 +917,20 @@ class NuaClient:
             timeout=timeout,
         )
 
+    def guardrail(
+        self,
+        request: GuardrailRequest,
+        timeout: int = 60,
+    ) -> GuardrailResponse:
+        return self._request(
+            "POST",
+            f"{self.url}{GUARDRAIL_PREDICT}",
+            payload=request.model_dump(mode="json", exclude_none=True),
+            output=GuardrailResponse,
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+
     def generate_retrieval(
         self,
         question: str,
@@ -1728,6 +1744,20 @@ class AsyncNuaClient:
             output=RemiResponse,
             extra_headers=extra_headers,
             timeout=timeout,
+        )
+
+    async def guardrail(
+        self,
+        request: GuardrailRequest,
+        timeout: int = 60,
+    ) -> GuardrailResponse:
+        return await self._request(
+            "POST",
+            f"{self.url}{GUARDRAIL_PREDICT}",
+            payload=request.model_dump(mode="json", exclude_none=True),
+            output=GuardrailResponse,
+            timeout=timeout,
+            error_type=PredictAPIException,
         )
 
     async def generate_retrieval(

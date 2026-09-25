@@ -12,6 +12,7 @@ from nuclia.sdk.accounts import NucliaAccounts
 from nuclia.sdk.agent import NucliaAgent
 from nuclia.sdk.agents import NucliaAgents
 from nuclia.sdk.backup import NucliaBackup
+from nuclia.sdk.guardrails import NucliaGuardrails
 from nuclia.sdk.kb import NucliaKB
 from nuclia.sdk.kbs import NucliaKBS
 from nuclia.sdk.logger import logger
@@ -32,6 +33,7 @@ class NucliaCLI(object):
         self.agent = NucliaAgent()
         self.nua = NucliaNUA()
         self.backup = NucliaBackup()
+        self.guardrails = NucliaGuardrails()
 
     def version(self):
         """Print the version of the CLI"""
