@@ -3,6 +3,7 @@ import json
 import httpx
 import pytest
 from nuclia_models.predict.generative_responses import TextGenerativeResponse
+from nuclia_models.predict.guardrails import GuardrailRequest
 
 from nuclia.exceptions import PredictAPIException, PredictLimitsExceededError
 from nuclia.lib.nua import (
@@ -133,6 +134,41 @@ def test_sentence_predict_url_encodes_query_parameters():
         client.sentence_predict("hello world&", "model/1")
     finally:
         close_client(client)
+
+
+def test_guardrail_evaluates_configured_policy():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/guardrail"
+        assert request.method == "POST"
+        assert json.loads(request.content) == {
+            "content": "content to evaluate",
+            "policy_id": "policy-1",
+        }
+        return httpx.Response(
+            200,
+            json={
+                "flagged": True,
+                "score": 0.95,
+                "threshold": 0.5,
+                "policy_id": "policy-1",
+            },
+        )
+
+    client = NuaClient("http://predict", account="account-1")
+    client.client = httpx.Client(transport=httpx.MockTransport(handler))
+    try:
+        result = client.guardrail(
+            GuardrailRequest(
+                content="content to evaluate",
+                policy_id="policy-1",
+            )
+        )
+    finally:
+        close_client(client)
+
+    assert result.flagged is True
+    assert result.score == 0.95
+    assert result.policy_id == "policy-1"
 
 
 def test_legacy_rephrase_uses_root_response_model():

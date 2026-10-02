@@ -4,6 +4,7 @@ from nuclia_models.predict.generative_responses import (
     GenerativeChunk,
     GenerativeFullResponse,
 )
+from nuclia_models.predict.guardrails import GuardrailRequest, GuardrailResponse
 from nuclia_models.predict.remi import RemiRequest, RemiResponse
 
 from nuclia.data import get_auth
@@ -263,6 +264,11 @@ class NucliaPredict:
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
 
+    @nua
+    def guardrail(self, request: GuardrailRequest, **kwargs) -> GuardrailResponse:
+        nc: NuaClient = kwargs["nc"]
+        return nc.guardrail(request)
+
 
 class AsyncNucliaPredict:
     @property
@@ -479,3 +485,8 @@ class AsyncNucliaPredict:
             request,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
         )
+
+    @nua
+    async def guardrail(self, request: GuardrailRequest, **kwargs) -> GuardrailResponse:
+        nc: AsyncNuaClient = kwargs["nc"]
+        return await nc.guardrail(request)
