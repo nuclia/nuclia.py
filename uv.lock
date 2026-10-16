@@ -1580,7 +1580,7 @@ requires-dist = [
     { name = "httpcore", specifier = ">=1.0.0" },
     { name = "httpx" },
     { name = "litellm", marker = "extra == 'litellm'" },
-    { name = "nuclia-models", specifier = ">=0.63.0" },
+    { name = "nuclia-models", specifier = ">=0.66.0" },
     { name = "nucliadb-models", specifier = ">=7.1.0.post7089,<8" },
     { name = "nucliadb-protos", marker = "extra == 'protos'", specifier = ">=6.4,<7" },
     { name = "nucliadb-sdk", specifier = ">=7.1.0.post7089,<8" },
@@ -1616,14 +1616,14 @@ dev = [
 
 [[package]]
 name = "nuclia-models"
-version = "0.63.0"
+version = "0.66.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", extra = ["email"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/9e/06f1be1b0796dcd1e8f20e947c9a812a0e3412169c778c70548088066e13/nuclia_models-0.63.0.tar.gz", hash = "sha256:60feaf4fcd5248118aaee35829c076f89df6c28ed108f347beefb292379a24da", size = 29659, upload-time = "2026-09-22T09:55:04.18Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/11/c95063f492ea3a04288b332ef95bf6db72490b38a2fb2345535dd33e22c3/nuclia_models-0.66.0.tar.gz", hash = "sha256:e78e727209c54f77a972318971bb23fd8ed9e5a07030dbaeaf4de2d8ba3eee29", size = 31374, upload-time = "2026-10-16T09:44:22.31Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/62/cb/ae6694f217b45d4fec6387650702ac3c67b4bcdcf1f37ea6c15d59010de8/nuclia_models-0.63.0-py3-none-any.whl", hash = "sha256:411b10710ee330c30e964025ba2a8cd1cdd54a47e834fa981332a2052f17cf17", size = 35620, upload-time = "2026-09-22T09:55:03.126Z" },
+    { url = "https://files.pythonhosted.org/packages/27/6b/55cb35cc1cbce29bbf9594dfa3932186cae7981a5b1ba88c6e9d2d3be346/nuclia_models-0.66.0-py3-none-any.whl", hash = "sha256:ce7ee81c9392d62921c2c5716bdb471d220103b75d1f00639bc2eb1746a7dc45", size = 38508, upload-time = "2026-10-16T09:44:21.131Z" },
 ]
 
 [[package]]

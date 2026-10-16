@@ -28,6 +28,12 @@ import backoff
 from deprecated import deprecated
 from httpx import ConnectError, ConnectTimeout, HTTPStatusError, Response, Timeout
 from nuclia_models.common.consumption import Consumption, ConsumptionGenerative
+from nuclia_models.predict.decisions import (
+    DecisionPredictResponse,
+    DecisionRequest,
+    OpenAIDecisionRequest,
+    OpenAIDecisionResponse,
+)
 from nuclia_models.predict.generative_responses import (
     CitationsGenerativeResponse,
     FootnoteCitationsGenerativeResponse,
@@ -931,6 +937,62 @@ class NuaClient:
             error_type=PredictAPIException,
         )
 
+    def decision(
+        self,
+        request: OpenAIDecisionRequest,
+        extra_headers: Optional[dict[str, str]] = None,
+        *,
+        kbid: str | None = None,
+        timeout: int = 120,
+    ) -> OpenAIDecisionResponse:
+        """Evaluate evidence using the OpenAI-compatible Decisions contract."""
+
+        if self.endpoint is NuaEndpoint.INTERNAL:
+            raise ValueError(
+                "OpenAI-compatible Decisions are not available on internal Predict clients"
+            )
+        self._validate_predict_request(kbid)
+        operation = (
+            f"decisions/{kbid}"
+            if self.endpoint is NuaEndpoint.PUBLIC and kbid
+            else "decisions"
+        )
+        return self._request(
+            "POST",
+            self._predict_endpoint(operation, kbid),
+            payload=request.model_dump(mode="json", exclude_none=True),
+            output=OpenAIDecisionResponse,
+            extra_headers=self._headers_for(kbid, extra_headers),
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+
+    def decision_system_one(
+        self,
+        request: DecisionRequest,
+        extra_headers: Optional[dict[str, str]] = None,
+        *,
+        kbid: str | None = None,
+        timeout: int = 120,
+    ) -> DecisionPredictResponse:
+        """Evaluate state using the System One Decisions contract."""
+
+        self._validate_predict_request(kbid)
+        operation = (
+            f"decisions/systemone/{kbid}"
+            if self.endpoint is NuaEndpoint.PUBLIC and kbid
+            else "decisions/systemone"
+        )
+        return self._request(
+            "POST",
+            self._predict_endpoint(operation, kbid),
+            payload=request.model_dump(mode="json", exclude_none=True),
+            output=DecisionPredictResponse,
+            extra_headers=self._headers_for(kbid, extra_headers),
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+
     def generate_retrieval(
         self,
         question: str,
@@ -1756,6 +1818,62 @@ class AsyncNuaClient:
             f"{self.url}{GUARDRAIL_PREDICT}",
             payload=request.model_dump(mode="json", exclude_none=True),
             output=GuardrailResponse,
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+
+    async def decision(
+        self,
+        request: OpenAIDecisionRequest,
+        extra_headers: Optional[dict[str, str]] = None,
+        *,
+        kbid: str | None = None,
+        timeout: int = 120,
+    ) -> OpenAIDecisionResponse:
+        """Evaluate evidence using the OpenAI-compatible Decisions contract."""
+
+        if self.endpoint is NuaEndpoint.INTERNAL:
+            raise ValueError(
+                "OpenAI-compatible Decisions are not available on internal Predict clients"
+            )
+        self._validate_predict_request(kbid)
+        operation = (
+            f"decisions/{kbid}"
+            if self.endpoint is NuaEndpoint.PUBLIC and kbid
+            else "decisions"
+        )
+        return await self._request(
+            "POST",
+            self._predict_endpoint(operation, kbid),
+            payload=request.model_dump(mode="json", exclude_none=True),
+            output=OpenAIDecisionResponse,
+            extra_headers=self._headers_for(kbid, extra_headers),
+            timeout=timeout,
+            error_type=PredictAPIException,
+        )
+
+    async def decision_system_one(
+        self,
+        request: DecisionRequest,
+        extra_headers: Optional[dict[str, str]] = None,
+        *,
+        kbid: str | None = None,
+        timeout: int = 120,
+    ) -> DecisionPredictResponse:
+        """Evaluate state using the System One Decisions contract."""
+
+        self._validate_predict_request(kbid)
+        operation = (
+            f"decisions/systemone/{kbid}"
+            if self.endpoint is NuaEndpoint.PUBLIC and kbid
+            else "decisions/systemone"
+        )
+        return await self._request(
+            "POST",
+            self._predict_endpoint(operation, kbid),
+            payload=request.model_dump(mode="json", exclude_none=True),
+            output=DecisionPredictResponse,
+            extra_headers=self._headers_for(kbid, extra_headers),
             timeout=timeout,
             error_type=PredictAPIException,
         )

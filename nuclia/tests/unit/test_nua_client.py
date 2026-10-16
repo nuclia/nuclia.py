@@ -2,6 +2,13 @@ import json
 
 import httpx
 import pytest
+from nuclia_models.predict.decisions import (
+    DecisionPredictResponse,
+    DecisionRequest,
+    OpenAIDecisionRequest,
+    OpenAIDecisionResponse,
+    OpenAIPredicateAnswer,
+)
 from nuclia_models.predict.generative_responses import TextGenerativeResponse
 from nuclia_models.predict.guardrails import GuardrailRequest
 
@@ -373,3 +380,134 @@ def test_predict_errors_are_typed_and_include_plain_text_detail():
 
     assert error.value.code == 400
     assert error.value.detail == "invalid query"
+
+
+def test_decision_posts_openai_contract_with_headers_timeout_and_typed_response():
+    request_model = OpenAIDecisionRequest.model_validate(
+        {
+            "input": "Checkout is unavailable",
+            "model": "decision-model",
+            "questions": [
+                {
+                    "type": "predicate",
+                    "name": "outage",
+                    "instructions": "Is there an outage?",
+                }
+            ],
+        }
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/decisions"
+        assert request.method == "POST"
+        assert request.headers["x-show-consumption"] == "true"
+        assert request.extensions["timeout"]["read"] == 17.0
+        assert json.loads(request.content) == request_model.model_dump(
+            mode="json", exclude_none=True
+        )
+        return httpx.Response(
+            200,
+            json={
+                "answers": [
+                    {
+                        "type": "predicate",
+                        "name": "outage",
+                        "probability": 0.97,
+                    }
+                ],
+                "model": "decision-model",
+                "usage": {
+                    "input_tokens": 20,
+                    "input_tokens_details": {
+                        "cache_write_tokens": 0,
+                        "cached_tokens": 0,
+                    },
+                    "output_tokens": 1,
+                    "output_tokens_details": {"reasoning_tokens": 0},
+                    "total_tokens": 21,
+                },
+            },
+        )
+
+    client = NuaClient("http://predict", account="")
+    client.client = httpx.Client(transport=httpx.MockTransport(handler))
+    try:
+        result = client.decision(
+            request_model,
+            extra_headers={"X-Show-Consumption": "true"},
+            timeout=17,
+        )
+    finally:
+        close_client(client)
+
+    assert isinstance(result, OpenAIDecisionResponse)
+    assert isinstance(result.answers[0], OpenAIPredicateAnswer)
+    assert result.answers[0].probability == 0.97
+
+
+def test_internal_client_rejects_openai_decision_contract():
+    client = NuaClient.internal("http://predict", kbid="kb-1")
+    try:
+        with pytest.raises(
+            ValueError,
+            match="OpenAI-compatible Decisions are not available on internal Predict clients",
+        ):
+            client.decision(
+                OpenAIDecisionRequest.model_validate(
+                    {
+                        "input": "Checkout is unavailable",
+                        "model": "decision-model",
+                        "questions": [
+                            {
+                                "type": "predicate",
+                                "instructions": "Is there an outage?",
+                            }
+                        ],
+                    }
+                )
+            )
+    finally:
+        close_client(client)
+
+
+def test_decision_system_one_routes_id_and_parses_response():
+    request_model = DecisionRequest.model_validate(
+        {
+            "state": "Checkout is unavailable",
+            "model": "jev-1.13.0",
+            "questions": {
+                "outage": {
+                    "type": "noul",
+                    "instructions": "Is there an outage?",
+                }
+            },
+        }
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "http://predict/api/v1/predict/decisions/systemone/case-1"
+        assert json.loads(request.content) == request_model.model_dump(
+            mode="json", exclude_none=True
+        )
+        return httpx.Response(
+            200,
+            json={
+                "model": request_model.model,
+                "answers": {"outage": {"type": "noul", "noul": 0.97}},
+                "usage": {
+                    "input_tokens": 20,
+                    "output_tokens": 1,
+                    "total_tokens": 21,
+                },
+            },
+        )
+
+    client = NuaClient("http://predict", account="")
+    client.client = httpx.Client(transport=httpx.MockTransport(handler))
+    try:
+        result = client.decision_system_one(request_model, kbid="case-1")
+    finally:
+        close_client(client)
+
+    assert isinstance(result, DecisionPredictResponse)
+    assert result.answers["outage"].noul == 0.97

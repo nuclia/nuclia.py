@@ -1,5 +1,11 @@
 from typing import AsyncIterator, Iterator, Optional, Union
 
+from nuclia_models.predict.decisions import (
+    DecisionPredictResponse,
+    DecisionRequest,
+    OpenAIDecisionRequest,
+    OpenAIDecisionResponse,
+)
 from nuclia_models.predict.generative_responses import (
     GenerativeChunk,
     GenerativeFullResponse,
@@ -265,6 +271,40 @@ class NucliaPredict:
         )
 
     @nua
+    def decision(
+        self,
+        request: OpenAIDecisionRequest,
+        kbid: Optional[str] = None,
+        show_consumption: bool = False,
+        timeout: int = 120,
+        **kwargs,
+    ) -> OpenAIDecisionResponse:
+        nc: NuaClient = kwargs["nc"]
+        return nc.decision(
+            request,
+            kbid=kbid,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+            timeout=timeout,
+        )
+
+    @nua
+    def decision_system_one(
+        self,
+        request: DecisionRequest,
+        kbid: Optional[str] = None,
+        show_consumption: bool = False,
+        timeout: int = 120,
+        **kwargs,
+    ) -> DecisionPredictResponse:
+        nc: NuaClient = kwargs["nc"]
+        return nc.decision_system_one(
+            request,
+            kbid=kbid,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+            timeout=timeout,
+        )
+
+    @nua
     def guardrail(self, request: GuardrailRequest, **kwargs) -> GuardrailResponse:
         nc: NuaClient = kwargs["nc"]
         return nc.guardrail(request)
@@ -484,6 +524,40 @@ class AsyncNucliaPredict:
         return await nc.rerank(
             request,
             extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+        )
+
+    @nua
+    async def decision(
+        self,
+        request: OpenAIDecisionRequest,
+        kbid: Optional[str] = None,
+        show_consumption: bool = False,
+        timeout: int = 120,
+        **kwargs,
+    ) -> OpenAIDecisionResponse:
+        nc: AsyncNuaClient = kwargs["nc"]
+        return await nc.decision(
+            request,
+            kbid=kbid,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+            timeout=timeout,
+        )
+
+    @nua
+    async def decision_system_one(
+        self,
+        request: DecisionRequest,
+        kbid: Optional[str] = None,
+        show_consumption: bool = False,
+        timeout: int = 120,
+        **kwargs,
+    ) -> DecisionPredictResponse:
+        nc: AsyncNuaClient = kwargs["nc"]
+        return await nc.decision_system_one(
+            request,
+            kbid=kbid,
+            extra_headers={"X-Show-Consumption": str(show_consumption).lower()},
+            timeout=timeout,
         )
 
     @nua
