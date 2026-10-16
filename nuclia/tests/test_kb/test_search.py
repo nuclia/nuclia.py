@@ -148,7 +148,7 @@ async def test_ask_with_custom_prompt(testing_config):
             system="Answer the question. If you don't know the anwser, write 'I don't know' and a list of bullet points with the reasons why you don't know the answer.",
             user="Based on this context {context}, answer the question {question}",
         ),
-        generative_model="chatgpt-azure-4o",
+        generative_model="chatgpt-azure-5.6-terra",
     )
     results = search.ask(query=ask)
     async_results = await async_search.ask(query=ask)
@@ -347,7 +347,7 @@ async def test_search_query_validation_errors(
                 " Allied naval communications and torpedo guidance? Support your reasoning with historical and technological context."
             ),
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
-            generative_model="chatgpt-azure-o3-mini",
+            generative_model="chatgpt-azure-5.6-luna",
             max_tokens=5000,
         ),
     ],
@@ -372,7 +372,7 @@ def ask_example_with_citations() -> AskRequest:
     return AskRequest(
         query="Who is hedy Lamarr?",
         citations=CitationsType.LLM_FOOTNOTES,
-        generative_model="chatgpt-azure-4o-mini",
+        generative_model="chatgpt-azure-5.6-luna",
         max_tokens=1500,
     )
 

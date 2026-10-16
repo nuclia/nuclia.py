@@ -198,6 +198,98 @@ It can also evaluate a RAG Experience using our REMi model, which will compute t
     )
     ```
 
+It can evaluate evidence with the OpenAI-compatible Decisions API:
+
+```python
+from nuclia import sdk
+from nuclia_models.predict.decisions import OpenAIDecisionRequest
+
+predict = sdk.NucliaPredict()
+result = predict.decision(
+    OpenAIDecisionRequest(
+        input=(
+            "A customer wants a strong, dairy-free coffee with little sugar. "
+            "The menu offers an espresso, an oat milk latte, and a caramel frappe."
+        ),
+        model="progress-decision-1.0",
+        questions=[
+            {
+                "type": "predicate",
+                "name": "can_recommend",
+                "instructions": "Can the menu satisfy the customer's preferences?",
+            },
+            {
+                "type": "choice",
+                "name": "drink",
+                "instructions": "Which drink is the best match?",
+                "choices": [
+                    {"value": "espresso", "description": "Strong and sugar-free"},
+                    {"value": "oat_latte", "description": "Dairy-free and smooth"},
+                    {"value": "caramel_frappe", "description": "Sweet blended coffee"},
+                ],
+            },
+            {
+                "type": "score",
+                "name": "fit",
+                "instructions": "How well does the recommended drink fit?",
+                "levels": [
+                    {"label": "poor"},
+                    {"label": "acceptable"},
+                    {"label": "excellent"},
+                ],
+            },
+        ],
+    ),
+    show_consumption=True,
+)
+print(result.answers)
+```
+
+The System One Decisions contract is also available:
+
+```python
+from nuclia_models.predict.decisions import DecisionRequest
+
+result = predict.decision_system_one(
+    DecisionRequest(
+        model="progress-decision-1.0",
+        state={
+            "customer_preferences": ["strong", "dairy-free", "low sugar"],
+            "menu": {
+                "espresso": "Strong and sugar-free",
+                "oat_latte": "Dairy-free and smooth",
+                "caramel_frappe": "Sweet blended coffee",
+            },
+        },
+        questions={
+            "can_recommend": {
+                "type": "noul",
+                "instructions": "Can the menu satisfy the customer's preferences?",
+            },
+            "drink": {
+                "type": "choice",
+                "instructions": "Which drink is the best match?",
+                "criteria": {
+                    "espresso": "Strong and sugar-free",
+                    "oat_latte": "Dairy-free and smooth",
+                    "caramel_frappe": "Sweet blended coffee",
+                },
+            },
+            "fit": {
+                "type": "score",
+                "instructions": "How well does the recommended drink fit?",
+                "criteria": ["Poor match", "Acceptable match", "Excellent match"],
+            },
+        },
+    )
+)
+print(result.answers["drink"])
+```
+
+Both methods are also available on `sdk.AsyncNucliaPredict`; await them in async
+code. The optional `kbid` selects the Knowledge Box-scoped Decisions route and
+must contain an actual Knowledge Box ID.
+
 ### Agent
 
 `agent` allows to generate LLM agents from an initial prompt:

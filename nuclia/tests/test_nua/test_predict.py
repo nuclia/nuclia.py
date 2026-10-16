@@ -32,7 +32,7 @@ def test_predict_query(testing_config):
         text="Ramon, this is my text",
         semantic_model="multilingual-2024-05-06",
         token_model="multilingual",
-        generative_model="chatgpt-azure-4o-mini",
+        generative_model="chatgpt-azure-5.6-luna",
         show_consumption=True,
     )
     assert query.language == "en"
@@ -51,7 +51,7 @@ def test_rag(testing_config):
             "Nuclia CTO is Ramon Navarro",
             "Eudald Camprubí is CEO at the same company as Ramon Navarro",
         ],
-        model="chatgpt-azure-4o-mini",
+        model="chatgpt-azure-5.6-luna",
         show_consumption=True,
     )
     assert "Eudald" in generated.answer
@@ -60,7 +60,7 @@ def test_rag(testing_config):
 
 def test_generative(testing_config):
     np = NucliaPredict()
-    generated = np.generate(text="How much is 2 + 2?", model="chatgpt-azure-4o-mini")
+    generated = np.generate(text="How much is 2 + 2?", model="chatgpt-azure-5.6-luna")
     assert "4" in generated.answer
     assert generated.consumption is None
 
@@ -69,14 +69,14 @@ def test_generative(testing_config):
 async def test_generative_with_consumption(testing_config):
     np = NucliaPredict()
     generated = np.generate(
-        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini", show_consumption=True
+        text="How much is 2 + 2?", model="chatgpt-azure-5.6-luna", show_consumption=True
     )
     assert "4" in generated.answer
     assert generated.consumption is not None
 
     anp = AsyncNucliaPredict()
     async_generated = await anp.generate(
-        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini", show_consumption=True
+        text="How much is 2 + 2?", model="chatgpt-azure-5.6-luna", show_consumption=True
     )
     assert "4" in async_generated.answer
     assert async_generated.consumption is not None
@@ -86,7 +86,7 @@ async def test_generative_with_consumption(testing_config):
 async def test_async_generative(testing_config):
     np = AsyncNucliaPredict()
     generated = await np.generate(
-        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini"
+        text="How much is 2 + 2?", model="chatgpt-azure-5.6-luna"
     )
     assert "4" in generated.answer
 
@@ -95,7 +95,7 @@ def test_stream_generative(testing_config):
     np = NucliaPredict()
     found = False
     for stream in np.generate_stream(
-        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini"
+        text="How much is 2 + 2?", model="chatgpt-azure-5.6-luna"
     ):
         if isinstance(stream.chunk, TextGenerativeResponse) and stream.chunk.text:
             if "4" in stream.chunk.text:
@@ -109,7 +109,7 @@ async def test_async_stream_generative(testing_config):
     consumption_found = False
     found = False
     async for stream in np.generate_stream(
-        text="How much is 2 + 2?", model="chatgpt-azure-4o-mini", show_consumption=True
+        text="How much is 2 + 2?", model="chatgpt-azure-5.6-luna", show_consumption=True
     ):
         if isinstance(stream.chunk, TextGenerativeResponse) and stream.chunk.text:
             if "4" in stream.chunk.text:
@@ -279,7 +279,7 @@ async def test_generative_with_reasoning(testing_config):
             ),
             retrieval=False,
             user_id="Nuclia PY CLI",
-            generative_model="chatgpt-azure-o3-mini",
+            generative_model="chatgpt-azure-5.6-luna",
             max_tokens=4000,
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
             user_prompt=UserPrompt(prompt="{question}"),
@@ -299,7 +299,7 @@ async def test_generative_with_reasoning(testing_config):
             ),
             retrieval=False,
             user_id="Nuclia PY CLI",
-            generative_model="chatgpt-azure-o3-mini",
+            generative_model="chatgpt-azure-5.6-luna",
             max_tokens=4000,
             reasoning=Reasoning(display=True, effort="high", budget_tokens=1024),
             user_prompt=UserPrompt(prompt="{question}"),
@@ -328,7 +328,7 @@ def test_citation_footnote_to_context(testing_config, chat_example_md_citations)
     np = NucliaPredict()
     footnote_found = False
     for stream in np.generate_stream(
-        chat_example_md_citations, model="chatgpt-azure-4o-mini"
+        chat_example_md_citations, model="chatgpt-azure-5.6-luna"
     ):
         if isinstance(stream.chunk, FootnoteCitationsGenerativeResponse):
             # Verify that footnote_to_context mapping exists
@@ -350,7 +350,7 @@ async def test_async_citation_footnote_to_context(
     np = AsyncNucliaPredict()
     footnote_found = False
     async for stream in np.generate_stream(
-        chat_example_md_citations, model="chatgpt-azure-4o-mini"
+        chat_example_md_citations, model="chatgpt-azure-5.6-luna"
     ):
         if isinstance(stream.chunk, FootnoteCitationsGenerativeResponse):
             # Verify that footnote_to_context mapping exists
