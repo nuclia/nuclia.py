@@ -211,7 +211,7 @@ result = predict.decision(
             "A customer wants a strong, dairy-free coffee with little sugar. "
             "The menu offers an espresso, an oat milk latte, and a caramel frappe."
         ),
-        model="clef",
+        model="progress-decision-1.0",
         questions=[
             {
                 "type": "predicate",
@@ -252,7 +252,7 @@ from nuclia_models.predict.decisions import DecisionRequest
 
 result = predict.decision_system_one(
     DecisionRequest(
-        model="clef",
+        model="progress-decision-1.0",
         state={
             "customer_preferences": ["strong", "dairy-free", "low sugar"],
             "menu": {
