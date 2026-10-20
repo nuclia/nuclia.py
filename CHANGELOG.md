@@ -1,6 +1,8 @@
 # Changelog
 
 ## 4.15.0 (2026-10-20)
+- Adds support for guardrail policies in the SDK
+- Adds support for new decisions endpoint
 
 ## 4.14.2 (2026-09-02)
 
