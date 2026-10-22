@@ -167,7 +167,7 @@ class ChatModel(BaseModel):
 
     question: str = Field(description="Question to ask the generative model")
     retrieval: bool = True
-    user_id: str = "system"
+    user_id: str = "USER"
     system: Optional[str] = Field(
         default=None,
         title="System prompt",

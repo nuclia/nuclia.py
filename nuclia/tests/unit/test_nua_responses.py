@@ -3,6 +3,13 @@ import pytest
 from nuclia.lib.nua_responses import ChatModel, PushPayload, Reasoning
 
 
+def test_chat_model_defaults_user_id():
+    chat = ChatModel(question="q")
+
+    assert chat.user_id == "USER"
+    assert "user_id" not in ChatModel.model_json_schema()["required"]
+
+
 def test_uuid_validation():
     PushPayload()
     with pytest.raises(ValueError):
