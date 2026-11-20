@@ -16,6 +16,8 @@ from nuclia.exceptions import PredictAPIException, PredictLimitsExceededError
 from nuclia.lib.nua import (
     NuaClient,
     NuaKeyMissingError,
+    PredictRephraseError,
+    PredictRephraseMissingContextError,
     QueryRequest,
     RephraseRequest,
 )
@@ -245,7 +247,15 @@ def test_onprem_generate_stream_returns_headers_and_chunks():
     assert chunks[0].chunk.text == "hello"
 
 
-def test_onprem_rephrase_parses_headers():
+@pytest.mark.parametrize(
+    "content,expected",
+    [
+        ("new query0", "new query"),
+        ("year 20200", "year 2020"),
+        ("new query", "new query"),
+    ],
+)
+def test_onprem_rephrase_parses_headers(content, expected):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "http://predict/api/v1/predict/rephrase/kb-1"
         return httpx.Response(
@@ -255,7 +265,7 @@ def test_onprem_rephrase_parses_headers():
                 "nuclia-learning-model": "model-2",
                 "nuclia-learning-chat-history": "false",
             },
-            json="new query",
+            json=content,
         )
 
     client = NuaClient.onprem(
@@ -267,10 +277,32 @@ def test_onprem_rephrase_parses_headers():
     finally:
         close_client(client)
 
-    assert result.rephrased_query == "new query"
+    assert result.rephrased_query == expected
     assert result.use_chat_history is False
     assert result.learning_id == "learning-2"
     assert result.model == "model-2"
+
+
+@pytest.mark.parametrize(
+    "content,error",
+    [
+        ("rephrase failed-1", PredictRephraseError),
+        ("missing context-2", PredictRephraseMissingContextError),
+    ],
+)
+def test_internal_rephrase_raises_status_error(content, error):
+    client = NuaClient.internal("http://predict", kbid="kb-1")
+    client.client = httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json=content))
+    )
+    try:
+        with pytest.raises(error) as exc:
+            client.rephrase(RephraseRequest(question="old"))
+    finally:
+        close_client(client)
+
+    assert type(exc.value) is error
+    assert str(exc.value) == content[:-2]
 
 
 def test_onprem_rephrase_without_kbid_uses_base_endpoint():

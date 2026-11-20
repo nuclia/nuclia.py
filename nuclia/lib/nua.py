@@ -226,6 +226,16 @@ class NuaKeyMissingError(Exception):
     """An on-prem Predict request requires a service account or local Predict."""
 
 
+def _parse_rephrase_content(content: str) -> str:
+    if content.endswith("0"):
+        return content[:-1]
+    if content.endswith("-1"):
+        raise PredictRephraseError(content[:-2])
+    if content.endswith("-2"):
+        raise PredictRephraseMissingContextError(content[:-2])
+    return content
+
+
 def _resolve_url(region: str) -> str:
     return (
         region.strip("/")
@@ -856,7 +866,7 @@ class NuaClient:
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 120,
     ) -> RephraseModel:
-        """Call Predict's rephrase endpoint."""
+        """Call Predict's rephrase endpoint and parse status suffixes for RephraseRequest."""
 
         if isinstance(question, str):
             endpoint = self._predict_endpoint("rephrase")
@@ -896,6 +906,7 @@ class NuaClient:
             response.close()
         if not isinstance(content, str):
             raise PredictRephraseError("Predict returned an invalid rephrase response")
+        content = _parse_rephrase_content(content)
         return RephraseModel(
             rephrased_query=content,
             use_chat_history=(
@@ -1741,7 +1752,7 @@ class AsyncNuaClient:
         extra_headers: Optional[dict[str, str]] = None,
         timeout: int = 120,
     ) -> RephraseModel:
-        """Call Predict's rephrase endpoint."""
+        """Call Predict's rephrase endpoint and parse status suffixes for RephraseRequest."""
 
         if isinstance(question, str):
             endpoint = self._predict_endpoint("rephrase")
@@ -1781,6 +1792,7 @@ class AsyncNuaClient:
             await response.aclose()
         if not isinstance(content, str):
             raise PredictRephraseError("Predict returned an invalid rephrase response")
+        content = _parse_rephrase_content(content)
         return RephraseModel(
             rephrased_query=content,
             use_chat_history=(

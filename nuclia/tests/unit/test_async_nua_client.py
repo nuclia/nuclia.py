@@ -20,6 +20,8 @@ from nuclia.exceptions import (
 from nuclia.lib.nua import (
     AsyncNuaClient,
     NuaKeyMissingError,
+    PredictRephraseError,
+    PredictRephraseMissingContextError,
     QueryRequest,
     RephraseRequest,
 )
@@ -333,7 +335,15 @@ async def test_onprem_generate_stream_returns_headers_and_chunks():
 
 
 @pytest.mark.asyncio
-async def test_onprem_rephrase_parses_headers():
+@pytest.mark.parametrize(
+    "content,expected",
+    [
+        ("new query0", "new query"),
+        ("year 20200", "year 2020"),
+        ("new query", "new query"),
+    ],
+)
+async def test_onprem_rephrase_parses_headers(content, expected):
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url == "http://predict/api/v1/predict/rephrase/kb-1"
         return httpx.Response(
@@ -343,7 +353,7 @@ async def test_onprem_rephrase_parses_headers():
                 "nuclia-learning-model": "model-2",
                 "nuclia-learning-chat-history": "false",
             },
-            json="new query",
+            json=content,
         )
 
     client = AsyncNuaClient.onprem(
@@ -355,10 +365,33 @@ async def test_onprem_rephrase_parses_headers():
     finally:
         await client.aclose()
 
-    assert result.rephrased_query == "new query"
+    assert result.rephrased_query == expected
     assert result.use_chat_history is False
     assert result.learning_id == "learning-2"
     assert result.model == "model-2"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "content,error",
+    [
+        ("rephrase failed-1", PredictRephraseError),
+        ("missing context-2", PredictRephraseMissingContextError),
+    ],
+)
+async def test_internal_rephrase_raises_status_error(content, error):
+    client = AsyncNuaClient.internal("http://predict", kbid="kb-1")
+    client.client = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json=content))
+    )
+    try:
+        with pytest.raises(error) as exc:
+            await client.rephrase(RephraseRequest(question="old"))
+    finally:
+        await client.aclose()
+
+    assert type(exc.value) is error
+    assert str(exc.value) == content[:-2]
 
 
 @pytest.mark.asyncio
