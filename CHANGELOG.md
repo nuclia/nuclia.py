@@ -6,6 +6,7 @@
 
 - update aiohttp security patches
 - parse Predict rephrase status suffixes in sync and async NUA clients (#295)
+- retry publishing 4.15.1 to PyPI (previous publish attempt failed)
 
 ## 4.15.0 (2026-10-20)
 - Adds support for guardrail policies in the SDK
