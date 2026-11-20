@@ -1522,7 +1522,7 @@ wheels = [
 
 [[package]]
 name = "nuclia"
-version = "4.14.2"
+version = "4.15.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -1541,6 +1541,7 @@ dependencies = [
     { name = "rich" },
     { name = "tabulate" },
     { name = "tqdm" },
+    { name = "typing-extensions" },
     { name = "websockets" },
 ]
 
@@ -1591,6 +1592,7 @@ requires-dist = [
     { name = "rich" },
     { name = "tabulate" },
     { name = "tqdm" },
+    { name = "typing-extensions", specifier = ">=4.0.0" },
     { name = "websockets" },
 ]
 provides-extras = ["litellm", "protos"]
