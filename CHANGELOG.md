@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.15.1 (2026-11-20)
+
+### Bug Fixes
+
+- update aiohttp security patches
+- parse Predict rephrase status suffixes in sync and async NUA clients (#295)
+
 ## 4.15.0 (2026-10-20)
 - Adds support for guardrail policies in the SDK
 - Adds support for new decisions endpoint
