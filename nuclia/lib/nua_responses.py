@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum, IntEnum
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union, cast
+from typing import Annotated, Any, Dict, List, Literal, Optional, Self, Union, cast
 
 import pydantic
 from nuclia_models.common.consumption import Consumption
@@ -11,7 +11,6 @@ from pydantic import (
     Field,
     field_serializer,
 )
-from typing_extensions import Self
 
 
 class GenerativeOption(BaseModel):
