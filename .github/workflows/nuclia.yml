@@ -12,7 +12,8 @@
 #        The bot runs commitizen, commits the version bump + updated CHANGELOG.md
 #        to your branch, then automatically adds the `release` label.
 #     2. Review the changelog, get the PR approved, merge.
-#        publish-pypi tags the merge commit and uploads to PyPI.
+#        The push to main re-runs the tests on the merged commit, then
+#        publish-pypi tags that commit and uploads to PyPI.
 #        publish-docs syncs the docs to S3 afterwards.
 #
 #   Retry path (publish failed, fix in a new PR):
@@ -25,13 +26,20 @@
 #     branch with the bump committed, opens a PR already labeled `release`,
 #     ready to review and merge.
 #
-# Job dependency graph (PR tests):
+# Job dependency graph:
 #
-#   check-changes ─── skip-gate ─┬─ test-stage ──┐
-#                                 ├─ test-prod  ──┼── publish-pypi ── publish-docs
-#                                 └─ test-windows─┘
-#   check-pr-tests ───────────────────────────────────────────────────────────┘
+#   pull_request:  check-changes ─── skip-gate ─┬─ test-stage
+#                                               ├─ test-prod
+#                                               └─ test-windows
 #
+#   push to main:  release-info ─┬─ skip-gate ─┬─ test-stage ──┐
+#   (release PRs)                │             ├─ test-prod  ──┼── publish-pypi ── publish-docs
+#                                │             └─ test-windows─┘
+#                                └───────────────────────────────┘
+#
+# Publishing runs on the push to main (not on the PR `closed` event) so the
+# `pypi` environment sees a protected-branch ref instead of refs/pull/N/merge,
+# and so tests run against the exact commit that gets published.
 # Test jobs ALWAYS run — they always produce a check run so branch protection
 # stays satisfied. skip-gate decides whether pytest actually executes inside
 # the reusable workflow (skip=true → job exits immediately with success):
@@ -45,10 +53,12 @@ name: Nuclia
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
 
-# All test jobs: run on open/sync/reopen AND on merge, but NOT on close-without-merge.
-# Condition used: github.event.action != 'closed' || github.event.pull_request.merged == true
+# Test jobs: run on every PR update, and on pushes to main only when the merged PR
+# carried the `release` label (see release-info).
 #
 # NOTE: `labeled` is intentionally excluded from the triggers. The bump-version job
 # lives in bump.yml (labeled-only trigger) so that label events never create skipped
@@ -57,7 +67,7 @@ on:
 jobs:
   check-changes:
     name: Check changed files
-    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
@@ -71,65 +81,33 @@ jobs:
               - 'nuclia/**'
               - '.github/workflows/**'
 
-  check-pr-tests:
-    name: Check PR test results
-    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release')
+  release-info:
+    # On a push to main, finds the merged PR that produced the commit and reports
+    # whether it carried the `release` / `breaking-glass` labels.
+    name: Resolve release PR
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-      checks: read
+      contents: read
+      pull-requests: read
     outputs:
-      tests_already_passed: ${{ steps.check.outputs.tests_already_passed }}
+      is_release: ${{ steps.info.outputs.is_release }}
+      breaking_glass: ${{ steps.info.outputs.breaking_glass }}
     steps:
-      - name: Check last test run results on PR head SHA
-        id: check
+      - id: info
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
-            const sha = context.payload.pull_request.head.sha;
-            const requiredJobs = [
-              'Test (stage) / Test (stage)',
-              'Test (prod) / Test (prod)',
-              'Test (windows) / Test (windows)',
-            ];
-
-            let checkRuns;
-            try {
-              const { data } = await github.rest.checks.listForRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: sha,
-                per_page: 100,
-              });
-              checkRuns = data.check_runs;
-            } catch (err) {
-              core.warning(`Failed to fetch check runs: ${err.message}. Falling back to re-running tests.`);
-              core.setOutput('tests_already_passed', 'false');
-              return;
-            }
-
-            for (const jobName of requiredJobs) {
-              const runs = checkRuns
-                .filter(r => r.name === jobName && r.status === 'completed')
-                .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
-
-              if (runs.length === 0) {
-                core.info(`No completed check run found for: ${jobName}`);
-                core.setOutput('tests_already_passed', 'false');
-                return;
-              }
-
-              const latest = runs[0];
-              core.info(`Latest run for "${jobName}": ${latest.conclusion} (completed ${latest.completed_at})`);
-
-              if (latest.conclusion !== 'success') {
-                core.info(`Last run for "${jobName}" did not succeed; tests must re-run.`);
-                core.setOutput('tests_already_passed', 'false');
-                return;
-              }
-            }
-
-            core.info('All required test jobs passed on PR head SHA; skipping re-run on merge.');
-            core.setOutput('tests_already_passed', 'true');
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            const pr = prs.find(p => p.merged_at && p.base.ref === 'main');
+            const labels = pr ? pr.labels.map(l => l.name) : [];
+            core.info(`PR: ${pr ? '#' + pr.number : 'none'}; labels: ${labels.join(', ') || '(none)'}`);
+            core.setOutput('is_release', String(labels.includes('release')));
+            core.setOutput('breaking_glass', String(labels.includes('breaking-glass')));
 
   skip-gate:
     # Determines whether pytest should be skipped INSIDE the test jobs.
@@ -147,8 +125,8 @@ jobs:
     # SECURITY NOTE: the bump-only skip is only safe when branch protection
     # "Require branches to be up to date" is enabled on main.
     name: Decide whether to skip pytest
-    needs: [check-changes]
-    if: always()
+    needs: [check-changes, release-info]
+    if: always() && (github.event_name == 'pull_request' || needs.release-info.outputs.is_release == 'true')
     runs-on: ubuntu-latest
     permissions:
       checks: read
@@ -214,12 +192,16 @@ jobs:
 
       - id: decide
         env:
+          EVENT_NAME: ${{ github.event_name }}
           CHANGES_RESULT: ${{ needs.check-changes.result }}
           RELEVANT: ${{ needs.check-changes.outputs.relevant }}
           BUMP_ONLY: ${{ steps.bump-check.outputs.bump_only }}
           PARENT_PASSED: ${{ steps.parent-check.outputs.parent_passed }}
         run: |
-          if [[ "$CHANGES_RESULT" != "success" || "$RELEVANT" != "true" ]]; then
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            # Release commits on main are always tested for real before publishing.
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$CHANGES_RESULT" != "success" || "$RELEVANT" != "true" ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           elif [[ "$BUMP_ONLY" == "true" && "$PARENT_PASSED" == "true" ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -229,8 +211,8 @@ jobs:
 
   test-stage:
     name: Test (stage)
-    needs: [skip-gate]
-    if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    needs: [release-info, skip-gate]
+    if: always() && (github.event_name == 'pull_request' || needs.release-info.outputs.is_release == 'true')
     uses: ./.github/workflows/stage.yml
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
@@ -238,8 +220,8 @@ jobs:
 
   test-prod:
     name: Test (prod)
-    needs: [skip-gate]
-    if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    needs: [release-info, skip-gate]
+    if: always() && (github.event_name == 'pull_request' || needs.release-info.outputs.is_release == 'true')
     uses: ./.github/workflows/prod.yml
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
@@ -247,37 +229,34 @@ jobs:
 
   test-windows:
     name: Test (windows)
-    needs: [skip-gate]
-    if: always() && (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    needs: [release-info, skip-gate]
+    if: always() && (github.event_name == 'pull_request' || needs.release-info.outputs.is_release == 'true')
     uses: ./.github/workflows/windows.yml
     with:
       skip: ${{ needs.skip-gate.outputs.skip || 'false' }}
     secrets: inherit
 
   publish-pypi:
-    # Runs only when the PR was merged with the `release` label, AND one of:
+    # Runs on a push to main whose merged PR carried the `release` label, AND one of:
     #   a) `breaking-glass` label is present  → bypass test results
-    #   b) check-pr-tests confirmed all three test jobs already passed on the PR
-    #      head SHA  → tests were intentionally skipped on this merge run
-    #   c) all three test jobs succeeded in this run  → normal release path
+    #   b) all three test jobs succeeded on the pushed commit  → normal release path
     #
-    # `always()` is required because the test jobs may be skipped (case b), and
-    # without it GitHub would auto-skip this job when any dependency is skipped.
+    # `always()` is required so a failed/skipped test job doesn't auto-skip this job
+    # before the `breaking-glass` check is evaluated.
     name: Publish to PyPI
     if: >
       always() &&
-      github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'release') &&
+      github.event_name == 'push' &&
+      needs.release-info.outputs.is_release == 'true' &&
       (
-        contains(github.event.pull_request.labels.*.name, 'breaking-glass') ||
-        needs.check-pr-tests.outputs.tests_already_passed == 'true' ||
+        needs.release-info.outputs.breaking_glass == 'true' ||
         (
           needs.test-stage.result == 'success' &&
           needs.test-prod.result == 'success' &&
           needs.test-windows.result == 'success'
         )
       )
-    needs: [check-pr-tests, test-stage, test-prod, test-windows]
+    needs: [release-info, test-stage, test-prod, test-windows]
     runs-on: ubuntu-latest
     environment: pypi  # requires approval from designated reviewers (repo Settings → Environments)
     permissions:
@@ -330,10 +309,8 @@ jobs:
 
   publish-docs:
     name: Publish docs
-    if: >
-      github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'release')
-    needs: [publish-pypi]
+    if: github.event_name == 'push' && needs.release-info.outputs.is_release == 'true'
+    needs: [release-info, publish-pypi]
     uses: ./.github/workflows/docs.yml
     secrets: inherit
 
