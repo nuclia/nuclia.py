@@ -86,15 +86,22 @@ point for all CI and release activity. Here is what happens at each stage:
 
 ### When a PR with the `release` label is merged
 
-5. **`publish-pypi`** — runs only when `merged == true` and the `release` label is
-   present, and only if no test job failed or was cancelled:
-   - Generates a bot token, checks out the merge commit.
-   - Creates and pushes the version tag (e.g. `v4.10.0`) on the merge commit.
+The release runs on the resulting **push to `main`**, not on the PR event, so the `pypi`
+environment sees `main` (a protected branch) and tests run against the exact commit that
+gets published (relevant for squash merges).
+
+5. **`release-info`** — finds the merged PR for the pushed commit and reads its
+   `release` / `breaking-glass` labels. Pushes whose PR has no `release` label stop here.
+6. **`test-stage`, `test-prod`, `test-windows`** — run for real on the pushed commit.
+7. **`publish-pypi`** — runs only if the PR had the `release` label and all three test
+   jobs succeeded (or `breaking-glass` is set):
+   - Generates a bot token and checks out the pushed commit.
+   - Creates and pushes the version tag (e.g. `v4.10.0`) on that commit.
    - Builds the package with `uv build`.
    - Publishes to PyPI using `pypa/gh-action-pypi-publish` via OIDC Trusted Publishing
      (no stored PyPI token).
-   
-6. **`publish-docs`** — runs after `publish-pypi`, syncs the `docs/` folder to S3 via
+
+8. **`publish-docs`** — runs after `publish-pypi`, syncs the `docs/` folder to S3 via
    an assumed AWS IAM role (also OIDC, no stored AWS credentials).
 
 ### Manual release via `workflow_dispatch`
